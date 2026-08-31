@@ -1,0 +1,70 @@
+# ─── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ─── Environment / Secrets ─────────────────────────────────────────────────────
+# NEVER commit real environment files.
+# Use .env.example to document expected variables.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
+
+# ─── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.expo/
+
+# ─── Mobile (Expo / React Native) ──────────────────────────────────────────────
+mobile/.expo/
+mobile/android/
+mobile/ios/
+*.jks
+*.keystore
+*.p12
+*.cer
+
+# ─── Backend ───────────────────────────────────────────────────────────────────
+backend/dist/
+
+# ─── Admin ─────────────────────────────────────────────────────────────────────
+admin/.next/
+admin/dist/
+
+# ─── Coverage / Tests ──────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+*.lcov
+
+# ─── TypeScript ────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+
+# ─── OS / IDE ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Docker ────────────────────────────────────────────────────────────────────
+# Do not ignore docker-compose.yml — it should be committed.
+# Ignore any local overrides if used.
+docker-compose.override.yml
+
+# ─── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ─── Misc ──────────────────────────────────────────────────────────────────────
+.cache/
+tmp/

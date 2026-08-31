@@ -1,0 +1,73 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Dating App — Local Development Infrastructure
+#
+# FOR LOCAL DEVELOPMENT ONLY.
+# Do NOT use this file for production.
+#
+# Prerequisites:
+#   - Docker Desktop installed and running
+#   - Download: https://www.docker.com/products/docker-desktop/
+#
+# Usage:
+#   docker compose up -d        Start all services in background
+#   docker compose down         Stop all services (data preserved)
+#   docker compose down -v      Stop and DELETE all local data
+#   docker compose logs -f      Tail logs
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── PostgreSQL 18 ──────────────────────────────────────────────────────────
+  # Primary relational database.
+  # PostgreSQL 18 confirmed available on Docker Hub (stable, August 2026).
+  # Credentials here are for local development only.
+  # Production uses managed cloud PostgreSQL — NOT these credentials.
+  postgres:
+    image: postgres:18-bookworm
+    container_name: dating-app-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: dating_app_dev
+      POSTGRES_USER: dating_app
+      # Local dev password only. Never use this in production.
+      POSTGRES_PASSWORD: local_dev_password_change_in_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dating_app -d dating_app_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis 7 ────────────────────────────────────────────────────────────────
+  # Used for:
+  #   - Caching
+  #   - Rate limiting
+  #   - BullMQ job queues (future phases)
+  #   - Realtime pub/sub infrastructure (future phases)
+  #
+  # Redis is NOT the source of truth for persistent dating data.
+  redis:
+    image: redis:7-alpine
+    container_name: dating-app-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local

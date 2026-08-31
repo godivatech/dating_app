@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Git line ending normalization.
+# Ensures consistent line endings across Windows and Unix/Mac development environments.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Auto-detect text files and normalize to LF on commit
+* text=auto
+
+# Force LF for all source code / config files
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.mjs   text eol=lf
+*.json  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+*.env   text eol=lf
+*.env.* text eol=lf
+*.sh    text eol=lf
+*.sql   text eol=lf
+
+# Binary files — do not modify
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.zip   binary
+*.tar   binary
+*.gz    binary
