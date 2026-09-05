@@ -3,6 +3,8 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+import { RedisService } from '../src/redis/redis.service';
 
 interface HealthResponse {
   status: string;
@@ -15,7 +17,22 @@ describe('Dating App Backend (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(PrismaService)
+      .useValue({
+        $connect: jest.fn().mockResolvedValue(undefined),
+        $disconnect: jest.fn().mockResolvedValue(undefined),
+      })
+      .overrideProvider(RedisService)
+      .useValue({
+        setWithNx: jest.fn().mockResolvedValue(true),
+        incrementWithWindow: jest
+          .fn()
+          .mockResolvedValue({ current: 1, isFirst: true }),
+        get: jest.fn().mockResolvedValue(null),
+        del: jest.fn().mockResolvedValue(undefined),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
 

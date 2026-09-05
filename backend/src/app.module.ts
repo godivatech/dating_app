@@ -1,15 +1,48 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { HealthController } from './health.controller';
+import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
+import { SmsModule } from './sms/sms.module';
+import { AuthModule } from './auth/auth.module';
+import { ProfileModule } from './profile/profile.module';
+import { MediaModule } from './media/media.module';
+import { DiscoveryModule } from './discovery/discovery.module';
+import { MatchingModule } from './matching/matching.module';
+import { ChatModule } from './chat/chat.module';
+import { SafetyModule } from './safety/safety.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { BillingModule } from './billing/billing.module';
+import { CallModule } from './call/call.module';
+import { AdminModule } from './admin/admin.module';
 
 /**
- * Root application module — Phase 1.
+ * Root application module — Phase 12.
  *
- * Only the health check is wired here for Phase 1.
- * Future domain modules (auth, users, profiles, etc.) will be
- * imported here as they are implemented in subsequent phases.
+ * Configured with ConfigModule, PrismaModule, RedisModule,
+ * SmsModule, AuthModule, ProfileModule, MediaModule, DiscoveryModule, MatchingModule, ChatModule, SafetyModule, NotificationsModule, BillingModule, CallModule, and AdminModule.
  */
 @Module({
-  imports: [],
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env', '.env.development'],
+    }),
+    PrismaModule,
+    RedisModule,
+    SmsModule,
+    AuthModule,
+    ProfileModule,
+    MediaModule,
+    DiscoveryModule,
+    MatchingModule,
+    ChatModule,
+    SafetyModule,
+    NotificationsModule,
+    BillingModule,
+    CallModule,
+    AdminModule,
+  ],
   controllers: [HealthController],
   providers: [],
 })

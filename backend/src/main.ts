@@ -22,13 +22,19 @@ async function bootstrap() {
     }),
   );
 
+  // Enable CORS for mobile devices and web clients
+  app.enableCors({
+    origin: true,
+    credentials: true,
+  });
+
   // Enable graceful shutdown hooks for proper cleanup
   app.enableShutdownHooks();
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  console.log(`Backend running on http://localhost:${port}/api/v1`);
+  console.log(`Backend running on http://0.0.0.0:${port}/api/v1 (accessible at http://10.99.28.115:${port}/api/v1)`);
 }
 
 void bootstrap();

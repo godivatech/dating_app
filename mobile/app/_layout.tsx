@@ -1,27 +1,43 @@
+import React, { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuthStore } from '../src/stores/auth-store';
 
-/**
- * Root layout for the dating app.
- *
- * This is the top-level layout that wraps all routes.
- * It configures the root Stack navigator.
- *
- * Future phases will add:
- * - Authentication state provider
- * - Theme provider
- * - TanStack Query provider
- * - Zustand store initialization
- */
+import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
+import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+});
+
 export default function RootLayout() {
+  const checkSession = useAuthStore((state) => state.checkSession);
+
+  useEffect(() => {
+    // Check existing stored session on initial app boot
+    checkSession();
+  }, [checkSession]);
+
   return (
-    <>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-        }}
-      />
-      <StatusBar style="auto" />
-    </>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'fade',
+          }}
+        />
+        <IncomingCallModal />
+        <ActiveCallModal />
+        <StatusBar style="dark" />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

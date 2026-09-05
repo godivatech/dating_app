@@ -1,0 +1,747 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  DEACTIVATED
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+model User {
+  id                 String                         @id @default(uuid())
+  phoneNumber        String                         @unique // Normalized canonical E.164 (e.g. +919876543210)
+  phoneVerifiedAt    DateTime?
+  status             UserStatus                     @default(ACTIVE)
+  role               UserRole                       @default(USER)
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+  lastLoginAt        DateTime?
+
+  sessions           AuthSession[]
+  profile            DatingProfile?
+  impressionsMade    DiscoveryImpression[]
+  actionsMade        UserAction[]                   @relation("UserActionsMade")
+  matchesAsUser1     Match[]                        @relation("MatchUser1")
+  matchesAsUser2     Match[]                        @relation("MatchUser2")
+  messagesSent       Message[]
+  conversationStates ConversationParticipantState[]
+  blocksInitiated    Block[]                        @relation("BlocksInitiated")
+  blocksReceived     Block[]                        @relation("BlocksReceived")
+  reportsSubmitted   Report[]                       @relation("ReportsSubmitted")
+  reportsReceived    Report[]                       @relation("ReportsReceived")
+  moderatorAuditLogs ModerationAuditLog[]           @relation("ModeratorAuditLogs")
+  notifications      Notification[]
+  deviceRegistrations DeviceRegistration[]
+  subscriptions      UserSubscription[]
+  transactions       PurchaseTransaction[]
+  entitlements       UserEntitlement[]
+  callsInitiated     CallLog[]                      @relation("CallsInitiated")
+  callsReceived      CallLog[]                      @relation("CallsReceived")
+  messagingRestrictedUntil DateTime?
+  shadowBannedUntil        DateTime?
+  safetyStrikes            UserSafetyStrike[]
+
+  @@index([phoneNumber])
+  @@index([status])
+  @@index([role])
+  @@index([messagingRestrictedUntil])
+  @@index([shadowBannedUntil])
+}
+
+model OtpChallenge {
+  id            String    @id @default(uuid())
+  phoneNumber   String    // Normalized canonical E.164
+  otpHash       String    // HMAC-SHA256(key = OTP_PEPPER, message = challengeId + ":" + otp)
+  expiresAt     DateTime
+  attemptsCount Int       @default(0)
+  maxAttempts   Int       @default(3)
+  isConsumed    Boolean   @default(false)
+  consumedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([phoneNumber, isConsumed, expiresAt])
+}
+
+model AuthSession {
+  id               String     @id @default(uuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String     @unique // SHA-256 hash of opaque refresh token
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  lastUsedAt       DateTime   @default(now())
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([userId, revokedAt, expiresAt])
+  @@index([refreshTokenHash])
+}
+
+// --------------------------------------------------------------------------
+// Phase 3: Profile & Onboarding Foundation Models
+// --------------------------------------------------------------------------
+
+enum Gender {
+  MAN
+  WOMAN
+  NON_BINARY
+  OTHER
+}
+
+enum PreferredGenderMode {
+  ANY
+  SELECTED
+}
+
+enum RelationshipIntent {
+  LONG_TERM
+  MARRIAGE
+  SERIOUS_DATING
+  OPEN_TO_EXPLORE
+  CASUAL
+}
+
+enum ProfileVisibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum ProfileStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  READY
+}
+
+model DatingProfile {
+  id                 String              @id @default(uuid())
+  userId             String              @unique
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName        String
+  dateOfBirth        DateTime            // UTC calendar date
+  gender             Gender
+  bio                String?
+  locationCity       String?
+  locationRegion     String?
+  locationCountry    String              @default("IN")
+  visibility         ProfileVisibility   @default(HIDDEN)
+  status             ProfileStatus       @default(IN_PROGRESS)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  preferences        DatingPreferences?
+  interests          ProfileInterest[]
+  photos             ProfilePhoto[]
+  impressions        DiscoveryImpression[]
+  actionsReceived    UserAction[]        @relation("TargetProfileActions")
+
+  @@index([status, visibility])
+  @@index([gender])
+  @@index([locationCountry, locationRegion, locationCity])
+}
+
+model DatingPreferences {
+  id                  String              @id @default(uuid())
+  profileId           String              @unique
+  profile             DatingProfile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  preferredGenderMode PreferredGenderMode @default(ANY)
+  preferredGenders    Gender[]            @default([])
+  minAge              Int                 @default(18)
+  maxAge              Int                 @default(100)
+  relationshipIntent  RelationshipIntent  @default(SERIOUS_DATING)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([relationshipIntent])
+}
+
+enum InterestStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Interest {
+  id        String            @id
+  name      String
+  category  String
+  status    InterestStatus    @default(ACTIVE)
+  createdAt DateTime          @default(now())
+
+  profiles  ProfileInterest[]
+}
+
+model ProfileInterest {
+  id         String        @id @default(uuid())
+  profileId  String
+  interestId String
+  createdAt  DateTime      @default(now())
+
+  profile    DatingProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  interest   Interest      @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, interestId])
+  @@index([profileId])
+  @@index([interestId])
+}
+
+// --------------------------------------------------------------------------
+// Phase 4: Profile Media Foundation Models
+// --------------------------------------------------------------------------
+
+enum PhotoStatus {
+  UPLOADING
+  UPLOADED
+  PROCESSING
+  PENDING_MODERATION
+  APPROVED
+  REJECTED
+  DELETED
+}
+
+model ProfilePhoto {
+  id           String        @id @default(uuid())
+  profileId    String
+  profile      DatingProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  objectKey    String
+  thumbnailKey String?
+  mediumKey    String?
+  largeKey     String?
+  position     Int           @default(0)
+  status       PhotoStatus   @default(UPLOADING)
+  width        Int?
+  height       Int?
+  sizeBytes    Int?
+  mimeType     String?
+  rejectionReason String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([profileId, status])
+  @@index([profileId, position])
+}
+
+// --------------------------------------------------------------------------
+// Phase 5: Discovery Impression Models
+// --------------------------------------------------------------------------
+
+model DiscoveryImpression {
+  id                 String        @id @default(uuid())
+  viewerUserId       String
+  viewer             User          @relation(fields: [viewerUserId], references: [id], onDelete: Cascade)
+  targetProfileId    String
+  targetProfile      DatingProfile @relation(fields: [targetProfileId], references: [id], onDelete: Cascade)
+  algorithmVersion   String        @default("baseline-v1")
+  feedSessionId      String?
+  position           Int           @default(0)
+  createdAt          DateTime      @default(now())
+
+  @@index([viewerUserId, createdAt])
+  @@index([targetProfileId, createdAt])
+  @@index([viewerUserId, targetProfileId])
+}
+
+// --------------------------------------------------------------------------
+// Phase 6: User Actions & Matching Models
+// --------------------------------------------------------------------------
+
+enum ActionType {
+  LIKE
+  PASS
+}
+
+model UserAction {
+  id               String        @id @default(uuid())
+  actorUserId      String
+  actorUser        User          @relation("UserActionsMade", fields: [actorUserId], references: [id], onDelete: Cascade)
+  targetProfileId  String
+  targetProfile    DatingProfile @relation("TargetProfileActions", fields: [targetProfileId], references: [id], onDelete: Cascade)
+  actionType       ActionType
+  note             String?       // Direct Message / Note attached to like (max 150 chars)
+  algorithmVersion String        @default("baseline-v1")
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@unique([actorUserId, targetProfileId])
+  @@index([actorUserId, actionType, createdAt])
+  @@index([targetProfileId, actionType, createdAt])
+  @@index([targetProfileId, actionType, note])
+}
+
+enum MatchStatus {
+  ACTIVE
+  UNMATCHED
+  BLOCKED
+}
+
+model Match {
+  id                String         @id @default(uuid())
+  user1Id           String
+  user1             User           @relation("MatchUser1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id           String
+  user2             User           @relation("MatchUser2", fields: [user2Id], references: [id], onDelete: Cascade)
+  status            MatchStatus    @default(ACTIVE)
+  unmatchedByUserId String?
+  unmatchedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  conversation      Conversation?
+  calls             CallLog[]
+
+  @@unique([user1Id, user2Id])
+  @@index([user1Id, status, createdAt])
+  @@index([user2Id, status, createdAt])
+}
+
+// --------------------------------------------------------------------------
+// Phase 7: Real-Time Chat & Messaging Models
+// --------------------------------------------------------------------------
+
+model Conversation {
+  id                String                        @id @default(uuid())
+  matchId           String                        @unique
+  match             Match                         @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  lastSequence      Int                           @default(0)
+  lastMessageAt     DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  messages          Message[]
+  participantStates ConversationParticipantState[]
+
+  @@index([matchId])
+}
+
+enum MessageType {
+  TEXT
+  CALL_EVENT
+}
+
+enum MessageDeliveryStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+model Message {
+  id              String                @id @default(uuid())
+  conversationId  String
+  conversation    Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderUserId    String
+  senderUser      User                  @relation(fields: [senderUserId], references: [id], onDelete: Cascade)
+  clientMessageId String
+  sequence        Int
+  type            MessageType           @default(TEXT)
+  body            String
+  deliveryStatus  MessageDeliveryStatus @default(SENT)
+  sentAt          DateTime              @default(now())
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([conversationId, clientMessageId])
+  @@unique([conversationId, sequence])
+  @@index([conversationId, sequence])
+  @@index([senderUserId, createdAt])
+}
+
+model ConversationParticipantState {
+  id               String       @id @default(uuid())
+  conversationId   String
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadSequence Int          @default(0)
+  lastReadAt       DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([conversationId, userId])
+  @@index([conversationId, userId])
+}
+
+// --------------------------------------------------------------------------
+// Phase 8: Safety, Blocking, Reporting & Moderation Models
+// --------------------------------------------------------------------------
+
+model Block {
+  id            String    @id @default(uuid())
+  blockerUserId String
+  blockerUser   User      @relation("BlocksInitiated", fields: [blockerUserId], references: [id], onDelete: Cascade)
+  blockedUserId String
+  blockedUser   User      @relation("BlocksReceived", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  reason        String?
+  createdAt     DateTime  @default(now())
+
+  @@unique([blockerUserId, blockedUserId])
+  @@index([blockerUserId, createdAt])
+  @@index([blockedUserId, createdAt])
+}
+
+enum ReportTargetType {
+  USER
+  PROFILE
+  PHOTO
+  MESSAGE
+}
+
+enum ReportReason {
+  HARASSMENT
+  INAPPROPRIATE_CONTENT
+  SPAM
+  SCAM_OR_FRAUD
+  IMPERSONATION
+  HATE_OR_ABUSE
+  SEXUAL_CONTENT
+  MINOR_SAFETY
+  OFF_PLATFORM_SOLICITATION
+  THREAT_OR_DANGER
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  UNDER_REVIEW
+  ACTIONED
+  DISMISSED
+}
+
+model Report {
+  id               String           @id @default(uuid())
+  reporterUserId   String
+  reporterUser     User             @relation("ReportsSubmitted", fields: [reporterUserId], references: [id], onDelete: Cascade)
+  targetUserId     String
+  targetUser       User             @relation("ReportsReceived", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetType       ReportTargetType
+  targetId         String
+  reason           ReportReason
+  details          String?
+  status           ReportStatus     @default(OPEN)
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  resolutionNotes  String?
+  snapshotJson     Json?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([reporterUserId, createdAt])
+  @@index([targetUserId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+enum ModerationActionType {
+  WARN_USER
+  SUSPEND_ACCOUNT
+  BAN_ACCOUNT
+  RESTORE_ACCOUNT
+  HIDE_PROFILE
+  UNHIDE_PROFILE
+  REJECT_PHOTO
+  DISMISS_REPORT
+}
+
+model ModerationAuditLog {
+  id              String               @id @default(uuid())
+  moderatorUserId String
+  moderatorUser   User                 @relation("ModeratorAuditLogs", fields: [moderatorUserId], references: [id], onDelete: Cascade)
+  targetUserId    String
+  actionType      ModerationActionType
+  reason          String
+  reportId        String?
+  metadata        Json?
+  createdAt       DateTime             @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([moderatorUserId, createdAt])
+  @@index([actionType, createdAt])
+}
+
+enum StrikeSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model UserSafetyStrike {
+  id           String         @id @default(uuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason       String
+  severity     StrikeSeverity @default(MEDIUM)
+  strikeNumber Int
+  actionTaken  String         // WARNING, MUTE_24H, SHADOWBAN_7D, SUSPENDED
+  evidence     String?
+  createdAt    DateTime       @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, strikeNumber])
+}
+
+// --------------------------------------------------------------------------
+// Phase 9: Notifications, Device Registration & Engagement Models
+// --------------------------------------------------------------------------
+
+enum NotificationType {
+  NEW_MATCH
+  NEW_MESSAGE
+  SAFETY_UPDATE
+  SYSTEM
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           NotificationType
+  referenceId    String?          // e.g. matchId, conversationId, reportId
+  title          String
+  body           String           // Sanitized summary
+  metadata       Json?            // Safe navigation target metadata
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  idempotencyKey String?          // Unique per user for deduplication
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+  @@index([userId, isRead, createdAt])
+}
+
+model DeviceRegistration {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token       String         // Mobile Push Notification token
+  platform    DevicePlatform // IOS | ANDROID
+  deviceModel String?
+  isActive    Boolean        @default(true)
+  lastSeenAt  DateTime       @default(now())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([userId, token])
+  @@index([userId, isActive])
+}
+
+// --------------------------------------------------------------------------
+// Phase 10: Monetization, Subscriptions & Entitlements Models
+// --------------------------------------------------------------------------
+
+enum SubscriptionTier {
+  FREE
+  PLUS
+  GOLD
+  A_LA_CARTE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  REVOKED
+  GRACE_PERIOD
+  PAUSED
+}
+
+enum BillingPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+  ONE_TIME
+}
+
+enum PaymentProvider {
+  APPLE
+  GOOGLE
+  MOCK
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  REVOKED
+}
+
+enum EntitlementKey {
+  UNLIMITED_LIKES
+  SEE_LIKES
+  REWIND_PASS
+  PROFILE_BOOST
+  ADVANCED_PREFERENCES
+  DISCOVERY_PRIORITY
+  VIDEO_CALL
+  AUDIO_CALL
+  UNLIMITED_DIRECT_NOTES
+}
+
+enum EntitlementSource {
+  SUBSCRIPTION
+  ONE_TIME_PURCHASE
+  PROMOTION
+  ADMIN_GRANT
+  REFERRAL
+}
+
+model SubscriptionProduct {
+  id            String              @id @default(uuid())
+  productKey    String              @unique // e.g. SPARK_PLUS_1M, SPARK_GOLD_3M, BOOST_PACK_1
+  displayName   String
+  description   String?
+  tier          SubscriptionTier    @default(PLUS)
+  platform      DevicePlatform      @default(IOS)
+  storeProductId String             // e.g. com.sparkdating.plus.1m
+  currency      String              @default("INR")
+  priceAmount   Int                 // In smallest currency unit (paisa, e.g. 29900 = ₹299.00)
+  billingPeriod BillingPeriod       @default(MONTHLY)
+  isActive      Boolean             @default(true)
+  metadata      Json?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  subscriptions UserSubscription[]
+  transactions  PurchaseTransaction[]
+
+  @@index([tier, isActive])
+  @@index([storeProductId])
+}
+
+model UserSubscription {
+  id                     String              @id @default(uuid())
+  userId                 String
+  user                   User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId              String
+  product                SubscriptionProduct @relation(fields: [productId], references: [id])
+  provider               PaymentProvider     @default(MOCK)
+  providerSubscriptionId String?
+  status                 SubscriptionStatus  @default(ACTIVE)
+  startedAt              DateTime            @default(now())
+  expiresAt              DateTime
+  canceledAt             DateTime?
+  autoRenewing           Boolean             @default(true)
+  lastVerifiedAt         DateTime            @default(now())
+  metadata               Json?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  @@index([userId, status, expiresAt])
+}
+
+model PurchaseTransaction {
+  id                    String               @id @default(uuid())
+  userId                String
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform              DevicePlatform       @default(IOS)
+  provider              PaymentProvider      @default(MOCK)
+  providerTransactionId String               @unique // Idempotency & replay protection
+  originalTransactionId String?
+  productId             String?
+  product               SubscriptionProduct? @relation(fields: [productId], references: [id])
+  storeProductId        String
+  amount                Int
+  currency              String               @default("INR")
+  status                TransactionStatus    @default(COMPLETED)
+  verifiedAt            DateTime             @default(now())
+  rawPayload            Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([userId, status])
+  @@index([storeProductId])
+}
+
+model UserEntitlement {
+  id                String            @id @default(uuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entitlementKey    EntitlementKey
+  source            EntitlementSource @default(SUBSCRIPTION)
+  sourceReferenceId String?
+  startsAt          DateTime          @default(now())
+  expiresAt         DateTime?         // Null means permanent capability
+  isActive          Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@unique([userId, entitlementKey, sourceReferenceId])
+  @@index([userId, entitlementKey, isActive, expiresAt])
+}
+
+// --------------------------------------------------------------------------
+// Phase 11: Real-Time Audio & Video Calling Models
+// --------------------------------------------------------------------------
+
+enum CallType {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  ACCEPTED
+  REJECTED
+  MISSED
+  BUSY
+  ENDED
+  FAILED
+}
+
+enum CallEndReason {
+  CALLER_HANGUP
+  RECEIVER_HANGUP
+  MISSED_TIMEOUT
+  REJECTED
+  BUSY
+  NETWORK_FAILURE
+  SAFETY_TERMINATED
+}
+
+model CallLog {
+  id              String         @id @default(uuid())
+  matchId         String
+  match           Match          @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  callerUserId    String
+  callerUser      User           @relation("CallsInitiated", fields: [callerUserId], references: [id], onDelete: Cascade)
+  receiverUserId  String
+  receiverUser    User           @relation("CallsReceived", fields: [receiverUserId], references: [id], onDelete: Cascade)
+  callType        CallType       @default(VIDEO)
+  status          CallStatus     @default(INITIATED)
+  channelName     String
+  durationSeconds Int            @default(0)
+  startedAt       DateTime       @default(now())
+  connectedAt     DateTime?
+  endedAt         DateTime?
+  endReason       CallEndReason?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([matchId, createdAt])
+  @@index([callerUserId, createdAt])
+  @@index([receiverUserId, createdAt])
+  @@index([status])
+}
