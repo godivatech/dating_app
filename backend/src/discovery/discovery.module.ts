@@ -3,6 +3,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { MediaModule } from '../media/media.module';
 import { SafetyModule } from '../safety/safety.module';
+import { ProfileModule } from '../profile/profile.module';
 import { DiscoveryController } from './discovery.controller';
 import { DiscoveryService } from './services/discovery.service';
 import { DiscoveryEligibilityService } from './services/discovery-eligibility.service';
@@ -17,7 +18,7 @@ import { DiscoveryPaginationService } from './services/discovery-pagination.serv
 import { ImpressionService } from './services/impression.service';
 
 @Module({
-  imports: [PrismaModule, RedisModule, MediaModule, SafetyModule],
+  imports: [PrismaModule, RedisModule, MediaModule, SafetyModule, ProfileModule],
   controllers: [DiscoveryController],
   providers: [
     DiscoveryEligibilityService,

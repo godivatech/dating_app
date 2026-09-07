@@ -262,6 +262,8 @@ export interface DiscoveryEligibilityStatus {
   eligible: boolean;
   reason?: DiscoveryIneligibleReason;
   message?: string;
+  missingFields?: string[];
+  completionScore?: number;
 }
 
 export interface DiscoveryFeedResponse {

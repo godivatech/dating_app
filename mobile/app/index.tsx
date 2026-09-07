@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -10,7 +10,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/auth-store';
 import { useProfileStore } from '../src/stores/profile-store';
@@ -20,6 +20,7 @@ import { useBillingStore } from '../src/stores/billing-store';
 import { ButterflyLogo } from '../src/components/ButterflyLogo';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { PaywallModal } from '../src/components/PaywallModal';
+import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
 import { Colors } from '../src/theme/colors';
 
@@ -41,21 +42,23 @@ const SAMPLE_NEAR_YOU = [
 export default function IndexScreen() {
   const router = useRouter();
   const { status: authStatus, user } = useAuthStore();
-  const { profile, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
+  const { profile, completion, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
   const { candidates, fetchDiscoveryFeed } = useDiscoveryStore();
   const { unreadCount, fetchUnreadCount } = useNotificationsStore();
   const { fetchBillingStatus } = useBillingStore();
 
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<ProfileDetailData | null>(null);
 
-  useEffect(() => {
-    if (authStatus === 'AUTHENTICATED') {
-      fetchProfile();
-      fetchUnreadCount();
-      fetchBillingStatus();
-      fetchDiscoveryFeed();
-    }
-  }, [authStatus, fetchProfile, fetchUnreadCount, fetchBillingStatus, fetchDiscoveryFeed]);
+  useFocusEffect(
+    useCallback(() => {
+      if (authStatus === 'AUTHENTICATED') {
+        fetchProfile();
+        fetchUnreadCount();
+        fetchBillingStatus();
+        fetchDiscoveryFeed();
+      }
+    }, [authStatus, fetchProfile, fetchUnreadCount, fetchBillingStatus, fetchDiscoveryFeed]),
+  );
 
   // Loading state
   if (
@@ -207,6 +210,15 @@ export default function IndexScreen() {
           </View>
           <Text style={styles.mainTitle}>Find the one for you</Text>
         </View>
+
+        {/* Compact Profile Completion Banner (if incomplete) */}
+        {authStatus === 'AUTHENTICATED' && profile && (
+          <ProfileCompletionCard
+            profile={profile}
+            completion={completion}
+            compact={true}
+          />
+        )}
 
         {/* Stories Horizontal Row */}
         <ScrollView

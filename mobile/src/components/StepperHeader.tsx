@@ -4,11 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 
 interface StepperHeaderProps {
-  currentStep: 1 | 2 | 3;
+  currentStep: number;
+  totalSteps?: number;
 }
 
-export const StepperHeader: React.FC<StepperHeaderProps> = ({ currentStep }) => {
-  const steps = [1, 2, 3];
+export const StepperHeader: React.FC<StepperHeaderProps> = ({
+  currentStep,
+  totalSteps = 5,
+}) => {
+  const steps = Array.from({ length: totalSteps }, (_, i) => i + 1);
 
   return (
     <View style={styles.container}>
@@ -30,7 +34,7 @@ export const StepperHeader: React.FC<StepperHeaderProps> = ({ currentStep }) => 
                 ]}
               >
                 {isCompleted ? (
-                  <Ionicons name="checkmark" size={16} color={Colors.white} />
+                  <Ionicons name="checkmark" size={14} color={Colors.white} />
                 ) : (
                   <Text
                     style={[
@@ -73,12 +77,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    width: 220,
+    width: '100%',
+    maxWidth: 300,
+    paddingHorizontal: 12,
   },
   circle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -94,7 +100,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   stepNumber: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   activeStepNumber: {
@@ -108,7 +114,7 @@ const styles = StyleSheet.create({
     height: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
+    marginHorizontal: 4,
   },
   connectorLine: {
     width: '100%',
@@ -121,3 +127,4 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
 });
+

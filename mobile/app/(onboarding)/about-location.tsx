@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
+import { StepperHeader } from '../../src/components/StepperHeader';
 import { useProfileStore } from '../../src/stores/profile-store';
 import { Colors } from '../../src/theme/colors';
 
@@ -74,6 +75,9 @@ export default function AboutLocationScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {/* Stepper Progress Bar: 05 active */}
+          <StepperHeader currentStep={5} />
+
           <View style={styles.header}>
             <Text style={styles.title}>About & Location</Text>
             <Text style={styles.subtitle}>

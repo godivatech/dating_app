@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
+import { StepperHeader } from '../../src/components/StepperHeader';
 import { useProfileStore } from '../../src/stores/profile-store';
 import {
   Gender,
@@ -94,7 +95,11 @@ export default function PreferencesScreen() {
     });
 
     if (success) {
-      router.back();
+      if (!profile?.bio || !profile?.locationCity) {
+        router.push('/(onboarding)/about-location');
+      } else {
+        router.back();
+      }
     }
   };
 
@@ -116,6 +121,8 @@ export default function PreferencesScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Stepper Progress Bar: 04 active */}
+        <StepperHeader currentStep={4} />
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Interested In</Text>
           <View style={styles.pillsRow}>

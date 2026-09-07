@@ -103,15 +103,15 @@ export class ProfileService {
     }
 
     const interests = profile.interests.map((pi) => pi.interest);
-    const approvedPhotosCount = profile.photos.filter(
-      (p) => p.status === PhotoStatus.APPROVED,
+    const validPhotosCount = profile.photos.filter(
+      (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
     ).length;
 
     const evaluation = this.completionService.evaluate(
       profile,
       profile.preferences,
       interests.length,
-      approvedPhotosCount,
+      validPhotosCount,
     );
 
     return {
@@ -214,20 +214,23 @@ export class ProfileService {
       });
 
       if (updated) {
-        const approvedPhotosCount = updated.photos.filter(
-          (p) => p.status === PhotoStatus.APPROVED,
+        const validPhotosCount = updated.photos.filter(
+          (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
         ).length;
         const evaluation = this.completionService.evaluate(
           updated,
           updated.preferences,
           updated.interests.length,
-          approvedPhotosCount,
+          validPhotosCount,
         );
 
         if (updated.status !== (evaluation.status as any)) {
           await tx.datingProfile.update({
             where: { id: profileId },
-            data: { status: evaluation.status as any },
+            data: {
+              status: evaluation.status as any,
+              ...(evaluation.isReady ? { visibility: ProfileVisibility.VISIBLE } : {}),
+            },
           });
         }
       }
@@ -302,20 +305,23 @@ export class ProfileService {
       });
 
       if (updated) {
-        const approvedPhotosCount = updated.photos.filter(
-          (p) => p.status === PhotoStatus.APPROVED,
+        const validPhotosCount = updated.photos.filter(
+          (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
         ).length;
         const evaluation = this.completionService.evaluate(
           updated,
           updated.preferences,
           updated.interests.length,
-          approvedPhotosCount,
+          validPhotosCount,
         );
 
         if (updated.status !== (evaluation.status as any)) {
           await tx.datingProfile.update({
             where: { id: profile.id },
-            data: { status: evaluation.status as any },
+            data: {
+              status: evaluation.status as any,
+              ...(evaluation.isReady ? { visibility: ProfileVisibility.VISIBLE } : {}),
+            },
           });
         }
       }
@@ -375,20 +381,23 @@ export class ProfileService {
       });
 
       if (updated) {
-        const approvedPhotosCount = updated.photos.filter(
-          (p) => p.status === PhotoStatus.APPROVED,
+        const validPhotosCount = updated.photos.filter(
+          (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
         ).length;
         const evaluation = this.completionService.evaluate(
           updated,
           updated.preferences,
           updated.interests.length,
-          approvedPhotosCount,
+          validPhotosCount,
         );
 
         if (updated.status !== (evaluation.status as any)) {
           await tx.datingProfile.update({
             where: { id: profile.id },
-            data: { status: evaluation.status as any },
+            data: {
+              status: evaluation.status as any,
+              ...(evaluation.isReady ? { visibility: ProfileVisibility.VISIBLE } : {}),
+            },
           });
         }
       }
@@ -452,20 +461,23 @@ export class ProfileService {
       });
 
       if (updated) {
-        const approvedPhotosCount = updated.photos.filter(
-          (p) => p.status === PhotoStatus.APPROVED,
+        const validPhotosCount = updated.photos.filter(
+          (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
         ).length;
         const evaluation = this.completionService.evaluate(
           updated,
           updated.preferences,
           updated.interests.length,
-          approvedPhotosCount,
+          validPhotosCount,
         );
 
         if (updated.status !== (evaluation.status as any)) {
           await tx.datingProfile.update({
             where: { id: profile.id },
-            data: { status: evaluation.status as any },
+            data: {
+              status: evaluation.status as any,
+              ...(evaluation.isReady ? { visibility: ProfileVisibility.VISIBLE } : {}),
+            },
           });
         }
       }
@@ -492,15 +504,15 @@ export class ProfileService {
       throw new NotFoundException('Profile not found.');
     }
 
-    const approvedPhotosCount = profile.photos.filter(
-      (p) => p.status === PhotoStatus.APPROVED,
+    const validPhotosCount = profile.photos.filter(
+      (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
     ).length;
 
     const evaluation = this.completionService.evaluate(
       profile,
       profile.preferences,
       profile.interests.length,
-      approvedPhotosCount,
+      validPhotosCount,
     );
 
     if (visibility === ProfileVisibility.VISIBLE && !evaluation.isReady) {
@@ -542,15 +554,15 @@ export class ProfileService {
       };
     }
 
-    const approvedPhotosCount = profile.photos.filter(
-      (p) => p.status === PhotoStatus.APPROVED,
+    const validPhotosCount = profile.photos.filter(
+      (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
     ).length;
 
     const evaluation = this.completionService.evaluate(
       profile,
       profile.preferences,
       profile.interests.length,
-      approvedPhotosCount,
+      validPhotosCount,
     );
 
     return {

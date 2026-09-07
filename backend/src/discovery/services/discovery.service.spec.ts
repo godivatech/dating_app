@@ -2,6 +2,7 @@ import { DiscoveryService } from './discovery.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { DiscoveryEligibilityService } from './discovery-eligibility.service';
+import { ProfileCompletionService } from '../../profile/services/profile-completion.service';
 import { MutualCompatibilityService } from './mutual-compatibility.service';
 import { CandidateGeneratorService } from './candidate-generator.service';
 import { ExclusionService } from './exclusion.service';
@@ -34,6 +35,7 @@ describe('DiscoveryService', () => {
       displayName: 'Alice',
       dateOfBirth: new Date('1998-05-15T00:00:00.000Z'), // 28
       gender: Gender.WOMAN,
+      bio: 'Coffee lover and traveler from Bengaluru enjoying life.',
       locationCity: 'Bengaluru',
       locationRegion: 'Karnataka',
       locationCountry: 'IN',
@@ -46,7 +48,11 @@ describe('DiscoveryService', () => {
         maxAge: 32,
         relationshipIntent: RelationshipIntent.LONG_TERM,
       },
-      interests: [{ interestId: 'hiking', interest: { name: 'Hiking' } }],
+      interests: [
+        { interestId: 'hiking', interest: { name: 'Hiking' } },
+        { interestId: 'coffee', interest: { name: 'Coffee' } },
+        { interestId: 'travel', interest: { name: 'Travel' } },
+      ],
       photos: [
         {
           id: 'p-1',
@@ -127,7 +133,9 @@ describe('DiscoveryService', () => {
         .mockImplementation((key) => `https://cdn.datingapp.com/${key}`),
     };
 
-    const eligibilityService = new DiscoveryEligibilityService();
+    const eligibilityService = new DiscoveryEligibilityService(
+      new ProfileCompletionService(),
+    );
     const mutualComp = new MutualCompatibilityService();
     const candidateGen = new CandidateGeneratorService(
       mockPrisma as PrismaService,

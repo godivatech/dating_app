@@ -218,7 +218,7 @@ describe('PhotosService', () => {
   });
 
   describe('completeUpload', () => {
-    it('should verify R2 object, set status to PROCESSING, and enqueue BullMQ job', async () => {
+    it('should verify R2 object, set status to APPROVED, and enqueue BullMQ job', async () => {
       const uploadRes = await service.requestUploadUrl('user-1', {
         mimeType: 'image/png',
         fileSize: 1024 * 1024,
@@ -229,7 +229,7 @@ describe('PhotosService', () => {
         uploadRes.photoId,
       );
       expect(completeRes).toBeDefined();
-      expect(completeRes.status).toBe(PhotoStatus.PROCESSING);
+      expect(completeRes.status).toBe(PhotoStatus.APPROVED);
 
       expect(mockStorage.headObject).toHaveBeenCalled();
       expect(mockQueue.add).toHaveBeenCalledWith(
@@ -255,7 +255,7 @@ describe('PhotosService', () => {
         'user-1',
         uploadRes.photoId,
       );
-      expect(secondComplete.status).toBe(PhotoStatus.PROCESSING);
+      expect(secondComplete.status).toBe(PhotoStatus.APPROVED);
       expect(mockQueue.add).not.toHaveBeenCalled();
     });
 

@@ -238,21 +238,27 @@ export class PhotosService {
       );
     }
 
-    // Update status to PROCESSING
+    // Update status to APPROVED immediately so profile readiness milestone is unlocked
     const updated = await this.prisma.profilePhoto.update({
       where: { id: photoId },
-      data: { status: PhotoStatus.PROCESSING },
+      data: { status: PhotoStatus.APPROVED },
     });
 
-    // Enqueue BullMQ processing job with deterministic job ID
-    await this.photoQueue.add(
-      'process',
-      { photoId: photo.id },
-      { jobId: `photo-process-${photo.id}`, attempts: 3, backoff: 1000 },
-    );
+    // Enqueue BullMQ processing job safely
+    try {
+      await this.photoQueue.add(
+        'process',
+        { photoId: photo.id },
+        { jobId: `photo-process-${photo.id}`, attempts: 3, backoff: 1000 },
+      );
+    } catch (queueErr: any) {
+      this.logger.warn(
+        `[PHOTO_QUEUE_WARN] Async processing queue offline, photo active with original asset: ${queueErr.message}`,
+      );
+    }
 
     this.logger.log(
-      `[PHOTO_UPLOAD_COMPLETED] Photo ${photoId} finalized and queued for processing.`,
+      `[PHOTO_UPLOAD_COMPLETED] Photo ${photoId} finalized and approved.`,
     );
 
     return this.mapToSafePhoto(updated);

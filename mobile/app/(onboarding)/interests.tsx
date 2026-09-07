@@ -93,14 +93,14 @@ export default function InterestsScreen() {
     try {
       const success = await saveInterests({ interestIds: selectedIds });
       if (success) {
-        router.replace('/(onboarding)/ready');
+        router.push('/(onboarding)/preferences');
       } else {
         if (!storeError) {
-          router.replace('/(onboarding)/ready');
+          router.push('/(onboarding)/preferences');
         }
       }
     } catch {
-      router.replace('/(onboarding)/ready');
+      router.push('/(onboarding)/preferences');
     }
   };
 

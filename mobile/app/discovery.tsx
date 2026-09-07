@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useProfileStore } from '../src/stores/profile-store';
@@ -20,6 +20,7 @@ import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileDetailModal } from '../src/components/ProfileDetailModal';
 import { SendNoteModal } from '../src/components/SendNoteModal';
 import { BottomTabBar } from '../src/components/BottomTabBar';
+import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ActionType } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
 import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevention';
@@ -28,7 +29,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function DiscoveryScreen() {
   const router = useRouter();
-  const { profile: myProfile } = useProfileStore();
+  const { profile: myProfile, completion, fetchProfile } = useProfileStore();
   const { openPaywall } = useBillingStore();
   const {
     candidates,
@@ -53,9 +54,12 @@ export default function DiscoveryScreen() {
   // Protect member photos against unauthorized screenshots and recordings during discovery
   useScreenCapturePrevention(true);
 
-  useEffect(() => {
-    fetchDiscoveryFeed();
-  }, [fetchDiscoveryFeed]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+      fetchDiscoveryFeed();
+    }, [fetchProfile, fetchDiscoveryFeed]),
+  );
 
   const candidate = candidates[currentIndex];
 
@@ -174,21 +178,22 @@ export default function DiscoveryScreen() {
           <Text style={styles.emptySubText}>Finding partners near you...</Text>
         </View>
       ) : eligibility && !eligibility.eligible ? (
-        <View style={styles.emptyContainer}>
-          <View style={styles.emptyIconCircle}>
-            <Ionicons name="person" size={32} color={Colors.primary} />
-          </View>
-          <Text style={styles.emptyTitle}>Complete Your Profile</Text>
-          <Text style={styles.emptySubText}>
-            {eligibility.message || 'Complete your profile setup to start discovering matches.'}
-          </Text>
-          <TouchableOpacity
-            style={styles.refreshBtn}
-            onPress={() => router.push('/profile' as any)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.refreshBtnText}>Go to Profile</Text>
-          </TouchableOpacity>
+        <View style={{ flex: 1, paddingBottom: 80 }}>
+          <ProfileCompletionCard
+            profile={myProfile}
+            completion={
+              completion || {
+                completionScore: eligibility.completionScore || 0,
+                status: 'IN_PROGRESS' as any,
+                missingFields: eligibility.missingFields || [],
+                isReady: false,
+              }
+            }
+            onRefresh={() => {
+              fetchProfile();
+              fetchDiscoveryFeed(true);
+            }}
+          />
         </View>
       ) : error ? (
         <View style={styles.emptyContainer}>
