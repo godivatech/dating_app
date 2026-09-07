@@ -43,8 +43,25 @@ import { STORAGE_SERVICE } from './storage/storage.interface';
           };
         }
 
-        const redisUrl =
-          config.get<string>('REDIS_URL') || 'redis://localhost:6379';
+        const redisUrl = config.get<string>('REDIS_URL');
+        const isCloudWithoutRedis =
+          !redisUrl ||
+          (redisUrl.includes('localhost') &&
+            (Boolean(process.env.RENDER) || process.env.NODE_ENV === 'production'));
+
+        if (isCloudWithoutRedis) {
+          return {
+            add: (name: string, data: any, opts?: any) =>
+              Promise.resolve({
+                id: `job-mock-${Date.now()}`,
+                name,
+                data,
+                opts,
+              }),
+            close: () => Promise.resolve(),
+          };
+        }
+
         try {
           const parsed = new URL(redisUrl);
           const connection = {
@@ -60,13 +77,16 @@ import { STORAGE_SERVICE } from './storage/storage.interface';
           };
           return new Queue(PHOTO_PROCESSING_QUEUE, { connection });
         } catch {
-          return new Queue(PHOTO_PROCESSING_QUEUE, {
-            connection: {
-              host: 'localhost',
-              port: 6379,
-              maxRetriesPerRequest: null,
-            },
-          });
+          return {
+            add: (name: string, data: any, opts?: any) =>
+              Promise.resolve({
+                id: `job-mock-${Date.now()}`,
+                name,
+                data,
+                opts,
+              }),
+            close: () => Promise.resolve(),
+          };
         }
       },
     },

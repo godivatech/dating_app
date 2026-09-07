@@ -37,8 +37,18 @@ export class PhotoProcessingWorker implements OnModuleInit, OnModuleDestroy {
       return; // Do not spawn active redis worker threads during Jest unit/e2e testing
     }
 
-    const redisUrl =
-      this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
+    const redisUrl = this.configService.get<string>('REDIS_URL');
+    const isCloudWithoutRedis =
+      !redisUrl ||
+      (redisUrl.includes('localhost') &&
+        (Boolean(process.env.RENDER) || nodeEnv === 'production'));
+
+    if (isCloudWithoutRedis) {
+      this.logger.warn(
+        'REDIS_URL not configured for cloud deployment. PhotoProcessingWorker disabled.',
+      );
+      return;
+    }
     try {
       const parsed = new URL(redisUrl);
       const connection = {
