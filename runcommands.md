@@ -107,4 +107,8 @@ npm run type-check
 ```bash
 cd mobile
 npx expo prebuild --platform android
-```
+``` 
+after this above commmadn to build apk we need to run 
+
+cd android
+.\gradlew assembleDebug
