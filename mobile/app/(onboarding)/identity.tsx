@@ -150,7 +150,7 @@ export default function IdentityScreen() {
               <Text style={styles.label}>Full Name</Text>
               <TextInput
                 style={styles.input}
-                placeholder="e.g. Priya Sharma"
+                placeholder="e.g. Ananya / Kavitha / Karthik"
                 placeholderTextColor={Colors.textMuted}
                 value={name}
                 onChangeText={(text) => {
