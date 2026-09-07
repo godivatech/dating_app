@@ -112,3 +112,15 @@ after this above commmadn to build apk we need to run
 
 cd android
 .\gradlew assembleDebug
+
+
+# To build apk using expo (Only needed when native modules change)
+```bash
+eas build -p android --profile preview
+```
+
+# To publish instant Over-The-Air (OTA) updates (NO APK rebuild or reinstall needed!)
+```bash
+cd mobile
+$env:CI="1"; npx eas-cli update --channel preview --environment preview -m "Your update description"
+```

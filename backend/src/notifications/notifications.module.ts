@@ -4,7 +4,7 @@ import { NotificationsService } from './services/notifications.service';
 import { NotificationsController } from './notifications.controller';
 import {
   PUSH_NOTIFICATION_PROVIDER,
-  ConsolePushNotificationProvider,
+  ExpoPushNotificationProvider,
 } from './providers/push-notification.provider';
 
 @Module({
@@ -14,7 +14,7 @@ import {
     NotificationsService,
     {
       provide: PUSH_NOTIFICATION_PROVIDER,
-      useClass: ConsolePushNotificationProvider,
+      useClass: ExpoPushNotificationProvider,
     },
   ],
   exports: [NotificationsService, PUSH_NOTIFICATION_PROVIDER],
