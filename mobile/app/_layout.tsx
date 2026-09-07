@@ -9,6 +9,7 @@ import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
+import { registerForPushNotificationsAsync } from '../src/services/push-notification.service';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,7 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const checkSession = useAuthStore((state) => state.checkSession);
+  const status = useAuthStore((state) => state.status);
 
   useEffect(() => {
     // Check existing stored session on initial app boot
@@ -29,6 +31,13 @@ export default function RootLayout() {
     const cleanup = setupAutoUpdateListener();
     return cleanup;
   }, [checkSession]);
+
+  useEffect(() => {
+    // When user is authenticated, register push notification token with backend
+    if (status === 'AUTHENTICATED') {
+      registerForPushNotificationsAsync();
+    }
+  }, [status]);
 
   return (
     <SafeAreaProvider>
