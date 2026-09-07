@@ -79,7 +79,7 @@ npm install
 
 # 2. Start Expo Metro bundler
 npm start
-# or: npx expo start -c (to clear cache)
+# or: npx expo start -c (to clear cache) or npx expo start --tunnel
 ```
 
 ### Run on Specific Targets
@@ -100,4 +100,11 @@ npm run ios
 ```bash
 cd mobile
 npm run type-check
+```
+
+
+# To build the apk using android studio locally
+```bash
+cd mobile
+npx expo prebuild --platform android
 ```
