@@ -138,6 +138,29 @@ describe('NotificationsService', () => {
 
       expect(result.id).toBe('notif-1');
     });
+
+    it('deactivates dead tokens if push provider reports delivery failure (token hygiene)', async () => {
+      prisma.notification.findUnique.mockResolvedValue(null);
+      prisma.notification.create.mockResolvedValue(mockNotification);
+      prisma.deviceRegistration.findMany.mockResolvedValue([
+        { ...mockDevice, token: 'dead-token-1' },
+      ]);
+      pushProvider.sendPush.mockResolvedValue({
+        sentCount: 0,
+        failedTokens: ['dead-token-1'],
+      });
+
+      await service.createNotification('user-1', {
+        type: NotificationType.NEW_MESSAGE,
+        title: 'New message',
+        body: 'Hello',
+      });
+
+      expect(prisma.deviceRegistration.updateMany).toHaveBeenCalledWith({
+        where: { token: { in: ['dead-token-1'] } },
+        data: { isActive: false },
+      });
+    });
   });
 
   describe('listNotifications', () => {

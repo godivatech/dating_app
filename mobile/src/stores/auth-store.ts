@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { apiClient, setOnAuthFailure, API_BASE_URL } from '../services/api-client';
 import { SecureStorage } from '../services/secure-storage';
+import { unregisterForPushNotificationsAsync } from '../services/push-notification.service';
 
 export type AuthStatus =
   | 'IDLE'
@@ -233,6 +234,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     logout: async () => {
       set({ isLoading: true });
       try {
+        await unregisterForPushNotificationsAsync();
         await apiClient.post('/auth/logout');
       } catch {
         // Continue with client-side cleanup regardless of network status

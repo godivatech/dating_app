@@ -98,9 +98,33 @@ export class NotificationsService {
 
       if (devices.length > 0) {
         const tokens = devices.map((d) => d.token);
-        await this.pushProvider.sendPush(tokens, {
+
+        // Intelligent channel and priority routing (Zomato/Swiggy pattern)
+        let channelId = 'default';
+        let priority: 'high' | 'normal' = 'high';
+        if (dto.type === NotificationType.NEW_MATCH) {
+          channelId = 'matches';
+          priority = 'high';
+        } else if (dto.type === NotificationType.NEW_MESSAGE) {
+          channelId = 'messages';
+          priority = 'high';
+        } else if (dto.type === NotificationType.SYSTEM) {
+          channelId = 'default';
+          priority = 'normal';
+        }
+
+        // Calculate current unread count for real-time mobile app badge synchronization
+        const unreadCount = await this.prisma.notification.count({
+          where: { userId, isRead: false },
+        });
+
+        const pushResult = await this.pushProvider.sendPush(tokens, {
           title: dto.title,
           body: dto.body,
+          sound: 'default',
+          priority,
+          channelId,
+          badge: unreadCount,
           data: {
             notificationId: notification.id,
             type: dto.type,
@@ -108,6 +132,17 @@ export class NotificationsService {
             ...(dto.metadata || {}),
           },
         });
+
+        // Enterprise Token Hygiene: prune deactivated or uninstalled device tokens
+        if (pushResult && pushResult.failedTokens && pushResult.failedTokens.length > 0) {
+          await this.prisma.deviceRegistration.updateMany({
+            where: { token: { in: pushResult.failedTokens } },
+            data: { isActive: false },
+          });
+          this.logger.log(
+            `[TOKEN_HYGIENE] Deactivated ${pushResult.failedTokens.length} dead token(s) for user ${userId}`,
+          );
+        }
       }
     } catch (pushErr: any) {
       // Push failure must NEVER compromise notification persistence or core caller flows

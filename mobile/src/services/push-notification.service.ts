@@ -10,6 +10,41 @@ import { useNotificationsStore } from '../stores/notifications-store';
  * 3. Automatic channel configuration (Vibration, High Priority, Heads-up popup).
  * 4. Syncs with backend `/notifications/device-token` on successful login.
  */
+// Keep track of cached token in memory for clean unregistration on logout
+let cachedPushToken: string | null = null;
+
+/**
+ * Configure Foreground Notification Presentation
+ * Ensures notifications display banners, play custom sounds, and update badges
+ * when the app is actively in use (Swiggy/Zomato behavior).
+ */
+export function initPushNotificationHandler(): void {
+  if (Platform.OS === 'web') return;
+
+  try {
+    const Notifications = require('expo-notifications');
+    if (Notifications?.setNotificationHandler) {
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+        }),
+      });
+    }
+  } catch (err: any) {
+    console.log('[PUSH_HANDLER_INIT] Foreground notification handler init error:', err.message);
+  }
+}
+
+/**
+ * Enterprise Push Notification Registration Service
+ * Designed following Zomato/Swiggy patterns:
+ * 1. Safe detection: Works gracefully whether running on Expo Go, physical Android, or iOS.
+ * 2. Dynamic token capture without crashing if notifications package is optional.
+ * 3. Automatic channel configuration (Vibration, High Priority, Heads-up popup).
+ * 4. Syncs with backend `/notifications/device-token` on successful login.
+ */
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
   // Push notifications require a physical mobile device
   if (Platform.OS === 'web') {
@@ -28,7 +63,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
     if (!Notifications) return null;
 
-    // Configure high-importance notification channel for Android (Zomato/Swiggy standard)
+    // Configure high-importance notification channels for Android (Zomato/Swiggy standard)
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync('default', {
         name: 'Dating App Notifications',
@@ -83,6 +118,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
     const token = tokenData?.data;
     if (token) {
       console.log('[PUSH_REGISTRATION] Successfully acquired push token:', token);
+      cachedPushToken = token;
       const platform = Platform.OS === 'ios' ? DevicePlatform.IOS : DevicePlatform.ANDROID;
       
       // Register with backend
@@ -94,4 +130,82 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
   }
 
   return null;
+}
+
+/**
+ * Enterprise Push Notification Listeners & Deep Link Handler
+ * - Listens for incoming notifications in foreground -> refreshes unread count badge.
+ * - Listens for user taps/clicks on notifications -> routes directly to the chat/match.
+ */
+export function setupPushNotificationListeners(
+  onNavigate?: (screenPath: string) => void,
+): () => void {
+  if (Platform.OS === 'web') return () => {};
+
+  try {
+    const Notifications = require('expo-notifications');
+    if (!Notifications) return () => {};
+
+    // 1. Foreground Notification Received Listener
+    const receivedSubscription = Notifications.addNotificationReceivedListener(
+      (notification: any) => {
+        console.log('[PUSH_RECEIVED_FOREGROUND]', notification.request?.content?.title);
+        // Synchronize in-app unread count badge
+        useNotificationsStore.getState().fetchUnreadCount();
+      },
+    );
+
+    // 2. Notification Response (Tap / Click / Lock screen action) Listener
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+      (response: any) => {
+        const data = response?.notification?.request?.content?.data;
+        console.log('[PUSH_INTERACTION_TAPPED]', data);
+
+        if (!onNavigate || !data) return;
+
+        // Smart deep link routing (Zomato/Swiggy patterns)
+        if (data.type === 'NEW_MATCH' && data.matchId) {
+          onNavigate(`/chat/${data.matchId}`);
+        } else if (data.type === 'NEW_MESSAGE' && data.conversationId) {
+          onNavigate(`/chat/${data.conversationId}`);
+        } else if (data.type === 'INCOMING_CALL') {
+          onNavigate('/matches');
+        } else if (data.type === 'SYSTEM' || data.type === 'SAFETY_WARNING') {
+          onNavigate('/notifications');
+        } else if (data.screen) {
+          onNavigate(data.screen);
+        }
+      },
+    );
+
+    return () => {
+      receivedSubscription?.remove();
+      responseSubscription?.remove();
+    };
+  } catch (err: any) {
+    console.log('[PUSH_LISTENERS_ERROR] Could not attach notification listeners:', err.message);
+    return () => {};
+  }
+}
+
+/**
+ * Unregister device token upon user logout
+ * Prevents privacy leaks and dead token accumulation.
+ */
+export async function unregisterForPushNotificationsAsync(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  try {
+    const Notifications = require('expo-notifications');
+    if (Notifications?.setBadgeCountAsync) {
+      await Notifications.setBadgeCountAsync(0);
+    }
+
+    if (cachedPushToken) {
+      await useNotificationsStore.getState().unregisterDeviceToken(cachedPushToken);
+      cachedPushToken = null;
+    }
+  } catch (err: any) {
+    console.log('[PUSH_UNREGISTER_ERROR] Failed to unregister token on logout:', err.message);
+  }
 }

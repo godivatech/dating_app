@@ -9,6 +9,7 @@ export interface PushNotificationPayload {
   sound?: string | 'default';
   priority?: 'default' | 'normal' | 'high';
   channelId?: string;
+  badge?: number;
 }
 
 export interface PushNotificationProvider {
@@ -76,6 +77,7 @@ export class ExpoPushNotificationProvider implements PushNotificationProvider {
       data: payload.data || {},
       priority: payload.priority || 'high',
       channelId: payload.channelId || 'default',
+      ...(payload.badge !== undefined ? { badge: payload.badge } : {}),
     }));
 
     // Expo recommends chunks of up to 100 messages per HTTP request
