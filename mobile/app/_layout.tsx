@@ -8,7 +8,7 @@ import { useAuthStore } from '../src/stores/auth-store';
 import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 
-import { checkForAppUpdates } from '../src/services/update.service';
+import { setupAutoUpdateListener } from '../src/services/update.service';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,8 +25,9 @@ export default function RootLayout() {
   useEffect(() => {
     // Check existing stored session on initial app boot
     checkSession();
-    // Check for OTA updates automatically in the background
-    checkForAppUpdates();
+    // Setup automatic background OTA updates (launch + app resume)
+    const cleanup = setupAutoUpdateListener();
+    return cleanup;
   }, [checkSession]);
 
   return (
