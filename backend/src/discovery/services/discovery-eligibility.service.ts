@@ -102,7 +102,7 @@ export class DiscoveryEligibilityService {
 
     return {
       eligible: true,
-      completionScore: 100,
+      completionScore: evaluation.completionScore,
     };
   }
 }

@@ -63,9 +63,18 @@ export class ExpoPushNotificationProvider implements PushNotificationProvider {
       return { sentCount: 0, failedTokens: [] };
     }
 
-    // Filter valid Expo push tokens (ExponentPushToken[...])
-    const validTokens = tokens.filter((t) => typeof t === 'string' && t.trim().length > 0);
+    // Validate: Expo push tokens MUST start with 'ExponentPushToken['
+    // Sending invalid format tokens silently wastes API quota (production bug)
+    const validTokens = tokens.filter(
+      (t) =>
+        typeof t === 'string' &&
+        t.trim().startsWith('ExponentPushToken[') &&
+        t.trim().endsWith(']'),
+    );
     if (validTokens.length === 0) {
+      this.logger.warn(
+        `[EXPO_PUSH_TOKEN_INVALID] ${tokens.length} token(s) filtered out — none matched ExponentPushToken format.`,
+      );
       return { sentCount: 0, failedTokens: [] };
     }
 

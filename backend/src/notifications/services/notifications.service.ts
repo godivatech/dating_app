@@ -102,7 +102,10 @@ export class NotificationsService {
         // Intelligent channel and priority routing (Zomato/Swiggy pattern)
         let channelId = 'default';
         let priority: 'high' | 'normal' = 'high';
-        if (dto.type === NotificationType.NEW_MATCH) {
+        if (
+          dto.type === NotificationType.NEW_MATCH ||
+          dto.type === NotificationType.LIKE_RECEIVED
+        ) {
           channelId = 'matches';
           priority = 'high';
         } else if (dto.type === NotificationType.NEW_MESSAGE) {

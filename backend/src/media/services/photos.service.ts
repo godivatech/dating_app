@@ -23,7 +23,8 @@ import {
   PhotoStatus as SharedPhotoStatus,
   RequestPhotoUploadResponse,
 } from '../../../../shared/src/types';
-import { PhotoStatus, UserStatus } from '@prisma/client';
+import { PhotoStatus, UserStatus, ProfileVisibility } from '@prisma/client';
+import { ProfileCompletionService } from '../../profile/services/profile-completion.service';
 
 export const MAX_PROFILE_PHOTOS = 6;
 export const MAX_CONCURRENT_UPLOADING = 2;
@@ -42,7 +43,64 @@ export class PhotosService {
     private readonly storageService: StorageService,
     @Inject(PHOTO_QUEUE_TOKEN)
     private readonly photoQueue: Queue<PhotoProcessingJobData>,
+    private readonly completionService: ProfileCompletionService,
   ) {}
+
+  /**
+   * Re-evaluates the profile and auto-hides it from discovery if the completion
+   * score has dropped below 100% (e.g. user deleted their only photo, or photo was rejected).
+   * This is the inverse of the auto-activate logic in ProfileService.
+   */
+  private async _syncProfileVisibilityAfterPhotoChange(
+    profileId: string,
+  ): Promise<void> {
+    try {
+      const profile = await this.prisma.datingProfile.findUnique({
+        where: { id: profileId },
+        include: { preferences: true, interests: true, photos: true },
+      });
+
+      if (!profile) return;
+
+      const validPhotosCount = profile.photos.filter(
+        (p) => p.status !== PhotoStatus.DELETED && p.status !== PhotoStatus.REJECTED,
+      ).length;
+
+      const evaluation = this.completionService.evaluate(
+        profile,
+        profile.preferences,
+        profile.interests.length,
+        validPhotosCount,
+      );
+
+      // If profile is currently VISIBLE but no longer READY, auto-hide it
+      if (
+        profile.visibility === ProfileVisibility.VISIBLE &&
+        !evaluation.isReady
+      ) {
+        await this.prisma.datingProfile.update({
+          where: { id: profileId },
+          data: {
+            visibility: ProfileVisibility.HIDDEN,
+            status: evaluation.status as any,
+          },
+        });
+        this.logger.log(
+          `[AUTO_HIDE] Profile ${profileId} auto-hidden: completion dropped to ${evaluation.completionScore}% after photo change.`,
+        );
+      } else if (profile.status !== (evaluation.status as any)) {
+        // Status sync even if visibility does not change
+        await this.prisma.datingProfile.update({
+          where: { id: profileId },
+          data: { status: evaluation.status as any },
+        });
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `[AUTO_HIDE_WARN] Could not sync visibility after photo change for profile ${profileId}: ${err.message}`,
+      );
+    }
+  }
 
   /**
    * Helper to map a database ProfilePhoto record to a safe DTO.
@@ -459,6 +517,9 @@ export class PhotosService {
 
     this.logger.log(`[PHOTO_DELETED] User ${userId} deleted photo ${photoId}.`);
 
+    // BUG FIX: Re-evaluate profile completion — auto-hide if user lost their only photo
+    await this._syncProfileVisibilityAfterPhotoChange(profileId);
+
     return this.getPhotos(userId);
   }
 
@@ -505,6 +566,11 @@ export class PhotosService {
     this.logger.log(
       `[PHOTO_MODERATED] Photo ${photoId} moderated to ${dto.status}.`,
     );
+
+    // BUG FIX: If a photo was rejected, re-evaluate and auto-hide profile if it drops below ready
+    if (dto.status === PhotoStatus.REJECTED) {
+      await this._syncProfileVisibilityAfterPhotoChange(photo.profileId);
+    }
 
     return this.mapToSafePhoto(updated);
   }

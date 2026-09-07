@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
+import { ProfileModule } from '../profile/profile.module';
 import { PhotosController } from './photos.controller';
 import { PhotosService } from './services/photos.service';
 import { ImageProcessorService } from './services/image-processor.service';
@@ -15,7 +16,7 @@ import { R2StorageService } from './storage/r2-storage.service';
 import { STORAGE_SERVICE } from './storage/storage.interface';
 
 @Module({
-  imports: [PrismaModule, RedisModule],
+  imports: [PrismaModule, RedisModule, forwardRef(() => ProfileModule)],
   controllers: [PhotosController],
   providers: [
     R2StorageService,
