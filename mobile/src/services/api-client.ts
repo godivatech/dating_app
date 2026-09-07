@@ -27,8 +27,8 @@ const getApiBaseUrl = (): string => {
       return `http://${host}:3000/api/v1`;
     }
   }
-  // Fallback to local network IP for physical device
-  return 'http://192.168.1.43:3000/api/v1';
+  // Fallback to cloud production backend
+  return 'https://dating-app-ez5c.onrender.com/api/v1';
 };
 
 export const API_BASE_URL = getApiBaseUrl();
