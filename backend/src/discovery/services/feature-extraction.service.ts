@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { calculateAge } from '../../profile/utils/age.util';
 import { RelationshipIntent } from '@prisma/client';
+import {
+  calculateHaversineDistanceKm,
+  isValidCoordinate,
+} from '../utils/geo-distance.util';
 
 export interface DiscoveryFeatures {
   ageProximity: number; // 0.0 to 1.0
@@ -104,6 +108,31 @@ export class FeatureExtractionService {
 
   private calculateLocationMatch(user?: any, candidate?: any): number {
     if (!user || !candidate) return 0.0;
+
+    // 1. If both profiles have valid GPS coordinates, compute geodesic distance score
+    if (
+      isValidCoordinate(user.latitude, user.longitude) &&
+      isValidCoordinate(candidate.latitude, candidate.longitude)
+    ) {
+      const distanceKm = calculateHaversineDistanceKm(
+        user.latitude,
+        user.longitude,
+        candidate.latitude,
+        candidate.longitude,
+      );
+
+      if (distanceKm !== null) {
+        if (distanceKm <= 5) return 1.0;
+        if (distanceKm <= 15) return 0.95;
+        if (distanceKm <= 30) return 0.85;
+        if (distanceKm <= 50) return 0.7;
+        if (distanceKm <= 100) return 0.5;
+        if (distanceKm <= 200) return 0.3;
+        return Math.max(0.05, 1 / (1 + distanceKm / 50));
+      }
+    }
+
+    // 2. Graceful hierarchical fallback based on City / Region / Country
     const userCity = user.locationCity?.trim().toLowerCase();
     const candCity = candidate.locationCity?.trim().toLowerCase();
 

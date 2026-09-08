@@ -237,11 +237,14 @@ export default function DiscoveryScreen() {
                 id: candidate.profileId,
                 name: candidate.displayName,
                 age: candidate.age,
-                city: candidate.locationCity || 'Stuttgart, Germany',
+                city: candidate.locationCity
+                  ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
+                  : 'Nearby',
                 bio: candidate.bio || undefined,
                 photos: candidate.photos,
                 interests: candidate.interests?.map((i) => i.name) || [],
-                distanceKm: 2.5,
+                distanceKm: candidate.distanceKm,
+                distanceDisplay: candidate.distanceDisplay,
               })
             }
             activeOpacity={0.95}
@@ -284,9 +287,20 @@ export default function DiscoveryScreen() {
               }}
             />
 
-            {/* Top Right Floating Chip: 2.5Km Away */}
+            {/* Top Right Floating Chip: Dynamic Relative Distance */}
             <View style={styles.distancePill}>
-              <Text style={styles.distancePillText}>2.5Km Away</Text>
+              <Ionicons
+                name="location-sharp"
+                size={12}
+                color={Colors.white}
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.distancePillText}>
+                {candidate.distanceDisplay ||
+                  (candidate.locationCity
+                    ? candidate.locationCity
+                    : 'Nearby')}
+              </Text>
             </View>
 
             {/* Bottom Card Info Overlay */}
@@ -304,7 +318,9 @@ export default function DiscoveryScreen() {
                     {candidate.age ? `, ${candidate.age}` : ''}
                   </Text>
                   <Text style={styles.candidateLocation}>
-                    {candidate.locationCity || 'Stuttgart, Germany'}
+                    {candidate.locationCity
+                      ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
+                      : candidate.distanceDisplay || 'Nearby'}
                   </Text>
                 </View>
 
@@ -567,6 +583,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
     zIndex: 10,
   },
   distancePillText: {

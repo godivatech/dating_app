@@ -28,6 +28,12 @@ interface ProfileState {
   savePreferences: (dto: UpdatePreferencesDto) => Promise<boolean>;
   saveInterests: (dto: UpdateInterestsDto) => Promise<boolean>;
   saveAboutLocation: (dto: UpdateAboutLocationDto) => Promise<boolean>;
+  updateLocationCoords: (
+    latitude: number,
+    longitude: number,
+    locationCity?: string,
+    locationRegion?: string,
+  ) => Promise<boolean>;
   toggleVisibility: (visibility: ProfileVisibility) => Promise<boolean>;
 
   // Photo Management Actions
@@ -196,6 +202,25 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         error: typeof message === 'string' ? message : message[0],
         isLoading: false,
       });
+      return false;
+    }
+  },
+
+  updateLocationCoords: async (
+    latitude: number,
+    longitude: number,
+    locationCity?: string,
+    locationRegion?: string,
+  ) => {
+    try {
+      await apiClient.patch('/profile/location-coords', {
+        latitude,
+        longitude,
+        locationCity,
+        locationRegion,
+      });
+      return true;
+    } catch {
       return false;
     }
   },

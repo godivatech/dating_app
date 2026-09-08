@@ -26,6 +26,7 @@ import {
   SafeProfilePhoto,
 } from '../../../../shared/src/types';
 import { PhotoStatus } from '@prisma/client';
+import { calculateRelativeDistance } from '../utils/geo-distance.util';
 
 export const DISCOVERY_RATE_WINDOW_SECONDS = 60;
 export const MAX_DISCOVERY_REQUESTS_PER_WINDOW = 60;
@@ -144,9 +145,9 @@ export class DiscoveryService {
       ? this.paginationService.createCursor(offset + limit)
       : null;
 
-    // 10. Map Candidates to Safe Public DTOs
+    // 10. Map Candidates to Safe Public DTOs with Relative Distance Calculation
     const candidates: DiscoveryCandidate[] = pageItems.map((item) =>
-      this.mapToSafeCandidate(item.candidate),
+      this.mapToSafeCandidate(item.candidate, userProfile),
     );
 
     this.logger.log(
@@ -165,7 +166,10 @@ export class DiscoveryService {
   /**
    * Helper to map an internal candidate profile record to a safe public DiscoveryCandidate DTO.
    */
-  private mapToSafeCandidate(candidate: any): DiscoveryCandidate {
+  private mapToSafeCandidate(
+    candidate: any,
+    userProfile?: any,
+  ): DiscoveryCandidate {
     const age = calculateAge(candidate.dateOfBirth);
     const photos: SafeProfilePhoto[] = (candidate.photos || []).map(
       (photo: any) => {
@@ -209,6 +213,16 @@ export class DiscoveryService {
       status: pi.interest?.status || 'ACTIVE',
     }));
 
+    const { distanceKm, distanceDisplay } = calculateRelativeDistance(
+      userProfile?.latitude,
+      userProfile?.longitude,
+      userProfile?.locationCity,
+      candidate.latitude,
+      candidate.longitude,
+      candidate.locationCity,
+      candidate.locationRegion,
+    );
+
     return {
       profileId: candidate.id,
       userId: candidate.userId,
@@ -223,6 +237,8 @@ export class DiscoveryService {
       interests,
       photos,
       algorithmVersion: this.rankingStrategy.version,
+      distanceKm,
+      distanceDisplay,
     };
   }
 }

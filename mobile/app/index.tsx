@@ -34,9 +34,9 @@ const SAMPLE_STORIES = [
 ];
 
 const SAMPLE_NEAR_YOU = [
-  { id: '1', name: 'Priya', distance: '1.2km', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80' },
-  { id: '2', name: 'Kavitha', distance: '2.5km', image: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&auto=format&fit=crop&q=80' },
-  { id: '3', name: 'Ananya', distance: '3.1km', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80' },
+  { id: '1', name: 'Priya', distance: 'Nearby', image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80' },
+  { id: '2', name: 'Kavitha', distance: 'Nearby', image: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600&auto=format&fit=crop&q=80' },
+  { id: '3', name: 'Ananya', distance: 'Nearby', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80' },
 ];
 
 export default function IndexScreen() {
@@ -107,10 +107,10 @@ export default function IndexScreen() {
     null;
 
   const liveNearYou = candidates.length > 0
-    ? candidates.map((c, idx) => ({
+    ? candidates.map((c) => ({
       id: c.profileId,
       name: c.displayName.split(' ')[0],
-      distance: `${(1.2 + idx * 0.7).toFixed(1)}km`,
+      distance: c.distanceDisplay || (c.locationCity ? c.locationCity : 'Nearby'),
       image:
         c.photos?.[0]?.largeUrl ||
         c.photos?.[0]?.mediumUrl ||
@@ -140,7 +140,9 @@ export default function IndexScreen() {
         id: c.profileId,
         name: c.displayName,
         age: c.age,
-        city: c.locationCity || 'Chennai, Tamil Nadu',
+        city: c.locationCity
+          ? `${c.locationCity}${c.locationRegion ? `, ${c.locationRegion}` : ''}`
+          : 'Nearby',
         bio: c.bio || undefined,
         photos: c.photos?.map((p: any) => ({
           url: p.largeUrl || p.mediumUrl || p.thumbnailUrl || '',
@@ -148,7 +150,8 @@ export default function IndexScreen() {
         })),
         primaryPhotoUrl: c.photos?.[0]?.largeUrl || c.photos?.[0]?.mediumUrl || person.image,
         interests: c.interests?.map((i: any) => (typeof i === 'string' ? i : i.name)) || [],
-        distanceKm: parseFloat(person.distance) || 2.5,
+        distanceKm: c.distanceKm,
+        distanceDisplay: c.distanceDisplay,
       });
     } else {
       router.push('/discovery' as any);

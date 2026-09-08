@@ -34,6 +34,10 @@ import {
   ProfileCompletionResult,
   ViewableProfileDto,
 } from '../../../../shared/src/types';
+import {
+  calculateRelativeDistance,
+  isValidCoordinate,
+} from '../../discovery/utils/geo-distance.util';
 
 @Injectable()
 export class ProfileService {
@@ -152,6 +156,8 @@ export class ProfileService {
         status: i.status as any,
       })),
       photos: profile.photos.map((p) => this.mapToSafePhoto(p)),
+      latitude: profile.latitude,
+      longitude: profile.longitude,
       createdAt: profile.createdAt.toISOString(),
       updatedAt: profile.updatedAt.toISOString(),
     };
@@ -450,6 +456,8 @@ export class ProfileService {
       this.contentFilterService.validateOrThrow(trimmedRegion, 'PROFILE');
     }
 
+    const hasCoordinates = isValidCoordinate(dto.latitude, dto.longitude);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.datingProfile.update({
         where: { id: profile.id },
@@ -457,6 +465,13 @@ export class ProfileService {
           bio: trimmedBio || null,
           locationCity: trimmedCity,
           locationRegion: trimmedRegion || null,
+          ...(hasCoordinates
+            ? {
+                latitude: dto.latitude,
+                longitude: dto.longitude,
+                locationUpdatedAt: new Date(),
+              }
+            : {}),
         },
       });
 
@@ -490,6 +505,34 @@ export class ProfileService {
 
     const result = await this.getMe(userId);
     return result!;
+  }
+
+  /**
+   * Silently updates user's current GPS coordinates (e.g. on mobile app foreground).
+   */
+  async updateLocationCoords(
+    userId: string,
+    latitude: number,
+    longitude: number,
+    locationCity?: string,
+    locationRegion?: string,
+  ): Promise<{ success: boolean }> {
+    if (!isValidCoordinate(latitude, longitude)) {
+      throw new BadRequestException('Invalid coordinates provided.');
+    }
+
+    await this.prisma.datingProfile.updateMany({
+      where: { userId },
+      data: {
+        latitude,
+        longitude,
+        locationUpdatedAt: new Date(),
+        ...(locationCity ? { locationCity: locationCity.trim() } : {}),
+        ...(locationRegion ? { locationRegion: locationRegion.trim() } : {}),
+      },
+    });
+
+    return { success: true };
   }
 
   /**
@@ -642,6 +685,21 @@ export class ProfileService {
 
     const age = calculateAge(profile.dateOfBirth);
 
+    const requesterProfile = await this.prisma.datingProfile.findUnique({
+      where: { userId: requesterUserId },
+      select: { latitude: true, longitude: true, locationCity: true },
+    });
+
+    const { distanceKm, distanceDisplay } = calculateRelativeDistance(
+      requesterProfile?.latitude,
+      requesterProfile?.longitude,
+      requesterProfile?.locationCity,
+      profile.latitude,
+      profile.longitude,
+      profile.locationCity,
+      profile.locationRegion,
+    );
+
     return {
       profileId: profile.id,
       userId: profile.userId,
@@ -661,6 +719,8 @@ export class ProfileService {
         category: pi.interest.category,
       })),
       photos: profile.photos.map((p) => this.mapToSafePhoto(p)),
+      distanceKm,
+      distanceDisplay,
     };
   }
 }

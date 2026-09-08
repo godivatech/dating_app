@@ -139,6 +139,8 @@ export interface SafeDatingProfile {
   preferences: DatingPreferences | null;
   interests: Interest[];
   photos: SafeProfilePhoto[];
+  latitude?: number | null;
+  longitude?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -225,6 +227,15 @@ export interface UpdateAboutLocationDto {
   bio?: string;
   locationCity: string;
   locationRegion?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface UpdateLocationCoordsDto {
+  latitude: number;
+  longitude: number;
+  locationCity?: string;
+  locationRegion?: string;
 }
 
 export interface UpdateVisibilityDto {
@@ -249,6 +260,8 @@ export interface DiscoveryCandidate {
   interests: Interest[];
   photos: SafeProfilePhoto[];
   algorithmVersion: string;
+  distanceKm?: number | null;
+  distanceDisplay?: string;
 }
 
 export type DiscoveryIneligibleReason =
@@ -656,6 +669,8 @@ export interface ViewableProfileDto {
   relationshipIntent: RelationshipIntent | null;
   interests: Array<{ id: string; name: string; category: string }>;
   photos: SafeProfilePhoto[];
+  distanceKm?: number | null;
+  distanceDisplay?: string;
 }
 
 // --------------------------------------------------------------------------

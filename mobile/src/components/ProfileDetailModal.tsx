@@ -21,7 +21,8 @@ export interface ProfileDetailData {
   photos?: Array<{ url: string; id?: string }>;
   primaryPhotoUrl?: string;
   primaryPhoto?: { url: string };
-  distanceKm?: number;
+  distanceKm?: number | null;
+  distanceDisplay?: string;
   interests?: string[];
 }
 
@@ -52,8 +53,13 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
     profile.photos?.[0]?.url ||
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
 
-  const distanceKm =
-    profile.distanceKm !== undefined ? `${profile.distanceKm.toFixed(1)}km` : '2.5km';
+  const distanceLabel =
+    profile.distanceDisplay ||
+    (profile.distanceKm !== undefined && profile.distanceKm !== null
+      ? profile.distanceKm < 1
+        ? 'Less than 1 km away'
+        : `${Math.round(profile.distanceKm)} km away`
+      : profile.city || 'Nearby');
   const interests = profile.interests || ['Dancing', 'Gym & Fitness', 'Movie', 'Fashion'];
 
   return (
@@ -80,10 +86,12 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
           </View>
 
           {/* Floating Distance Badge on Photo Top Right */}
-          <View style={styles.distanceBadge}>
-            <Ionicons name="location-sharp" size={12} color={Colors.white} />
-            <Text style={styles.distanceText}>{distanceKm}</Text>
-          </View>
+          {distanceLabel ? (
+            <View style={styles.distanceBadge}>
+              <Ionicons name="location-sharp" size={12} color={Colors.white} />
+              <Text style={styles.distanceText}>{distanceLabel}</Text>
+            </View>
+          ) : null}
         </View>
 
         {/* Bottom Sheet Card Overlapping Photo */}
@@ -112,17 +120,16 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
               </Text>
             </View>
             <Text style={styles.locationSubText}>
-              {profile.city || 'Stuttgart, Germany'}
+              {profile.city || distanceLabel || 'Nearby'}
             </Text>
 
             {/* Section: About Me */}
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About</Text>
-              <Text style={styles.bioText}>
-                {profile.bio ||
-                  'Passionate traveler, love photography and exploring new food and coffee spots around town.'}
-              </Text>
-            </View>
+            {profile.bio ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>About</Text>
+                <Text style={styles.bioText}>{profile.bio}</Text>
+              </View>
+            ) : null}
 
             {/* Section: Interests & Passions (Checkmark Tags) */}
             <View style={styles.section}>

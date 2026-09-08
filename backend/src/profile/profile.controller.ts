@@ -17,6 +17,7 @@ import { UpdateIdentityDto } from './dto/update-identity.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UpdateInterestsDto } from './dto/update-interests.dto';
 import { UpdateAboutLocationDto } from './dto/update-about-location.dto';
+import { UpdateLocationCoordsDto } from './dto/update-location-coords.dto';
 import { UpdateVisibilityDto } from './dto/update-visibility.dto';
 
 @Controller()
@@ -81,6 +82,22 @@ export class ProfileController {
     @Body() dto: UpdateAboutLocationDto,
   ) {
     return this.profileService.updateAboutLocation(userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('profile/location-coords')
+  @HttpCode(HttpStatus.OK)
+  async updateLocationCoords(
+    @CurrentUser('userId') userId: string,
+    @Body() dto: UpdateLocationCoordsDto,
+  ) {
+    return this.profileService.updateLocationCoords(
+      userId,
+      dto.latitude,
+      dto.longitude,
+      dto.locationCity,
+      dto.locationRegion,
+    );
   }
 
   @UseGuards(JwtAuthGuard)

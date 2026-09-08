@@ -139,6 +139,9 @@ model DatingProfile {
   locationCity       String?
   locationRegion     String?
   locationCountry    String              @default("IN")
+  latitude           Float?
+  longitude          Float?
+  locationUpdatedAt  DateTime?
   visibility         ProfileVisibility   @default(HIDDEN)
   status             ProfileStatus       @default(IN_PROGRESS)
   createdAt          DateTime            @default(now())
@@ -153,6 +156,7 @@ model DatingProfile {
   @@index([status, visibility])
   @@index([gender])
   @@index([locationCountry, locationRegion, locationCity])
+  @@index([latitude, longitude])
 }
 
 model DatingPreferences {
