@@ -255,11 +255,15 @@ export class CallService {
       connectedAt: connectedAt.toISOString(),
       caller: {
         userId: callLog.callerUserId,
+        rtcUid: callerUid,
+        rtcToken: callerToken.token,
         agoraUid: callerUid,
         agoraToken: callerToken.token,
       },
       receiver: {
         userId: callLog.receiverUserId,
+        rtcUid: receiverUid,
+        rtcToken: receiverToken.token,
         agoraUid: receiverUid,
         agoraToken: receiverToken.token,
       },

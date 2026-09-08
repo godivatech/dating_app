@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { callSocket } from '../services/call-socket.service';
+import { agoraRtcService } from '../services/rtc/agora-rtc.service';
 import {
   CallType,
   CallEndReason,
@@ -18,8 +19,11 @@ export interface ActiveCallData {
   partnerAvatarUrl: string | null;
   callType: CallType;
   channelName: string;
+  rtcToken?: string;
+  rtcUid?: number;
   agoraToken?: string;
   agoraUid?: number;
+  partnerAgoraUid?: number;
 }
 
 interface CallStoreState {
@@ -102,11 +106,16 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       }));
     });
 
-    callSocket.onCallConnected((data: CallConnectedPayload) => {
+    callSocket.onCallConnected(async (data: CallConnectedPayload) => {
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         set((state) => ({ durationSeconds: state.durationSeconds + 1 }));
       }, 1000);
+
+      const isVideo = data.callType === CallType.VIDEO;
+      const myUid = data.rtcUid || data.agoraUid;
+      const partnerUid = myUid === 1001 ? 2002 : 1001;
+      const token = data.rtcToken || data.agoraToken;
 
       set((state) => ({
         callState: 'CONNECTED',
@@ -118,10 +127,29 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
               channelName: data.channelName,
               agoraToken: data.agoraToken,
               agoraUid: data.agoraUid,
+              rtcToken: token,
+              rtcUid: myUid,
+              partnerAgoraUid: partnerUid,
               callType: data.callType,
             }
           : null,
       }));
+
+      // Initialize and join the live Agora media channel
+      try {
+        const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
+        if (appId) {
+          await agoraRtcService.init(appId);
+          await agoraRtcService.joinChannel({
+            channelName: data.channelName,
+            token,
+            uid: myUid,
+            isVideo,
+          });
+        }
+      } catch (err: any) {
+        console.warn('[CALL_STORE] Failed to initialize Agora RTC channel:', err?.message);
+      }
     });
 
     callSocket.onCallRejected((data: any) => {
@@ -220,6 +248,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     if (activeCall?.callId) {
       callSocket.endCall(activeCall.callId, CallEndReason.CALLER_HANGUP);
     }
+    agoraRtcService.leaveChannel();
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;
@@ -230,6 +259,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   toggleMic: () => {
     const next = !get().isMicMuted;
     set({ isMicMuted: next });
+    agoraRtcService.toggleMic(next);
     const { activeCall } = get();
     if (activeCall?.callId) {
       callSocket.toggleMedia(activeCall.callId, activeCall.partnerUserId, get().isVideoMuted, next);
@@ -239,6 +269,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   toggleVideo: () => {
     const next = !get().isVideoMuted;
     set({ isVideoMuted: next });
+    agoraRtcService.toggleVideo(next);
     const { activeCall } = get();
     if (activeCall?.callId) {
       callSocket.toggleMedia(activeCall.callId, activeCall.partnerUserId, next, get().isMicMuted);
@@ -246,14 +277,18 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   toggleSpeaker: () => {
-    set((state) => ({ isSpeakerOn: !state.isSpeakerOn }));
+    const next = !get().isSpeakerOn;
+    set({ isSpeakerOn: next });
+    agoraRtcService.toggleSpeaker(next);
   },
 
   flipCamera: () => {
     set((state) => ({ isCameraFlipped: !state.isCameraFlipped }));
+    agoraRtcService.flipCamera();
   },
 
   resetCall: () => {
+    agoraRtcService.leaveChannel();
     if (timerInterval) {
       clearInterval(timerInterval);
       timerInterval = null;

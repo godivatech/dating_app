@@ -16,6 +16,7 @@ import { useSafetyStore } from '../../stores/safety-store';
 import { CallType, ReportTargetType } from '../../../../shared/src/types';
 import { ReportModal } from '../ReportModal';
 import { useScreenCapturePrevention } from '../../hooks/useScreenCapturePrevention';
+import { VideoSurfaceView } from './VideoSurfaceView';
 
 export const ActiveCallModal: React.FC = () => {
   const {
@@ -113,9 +114,15 @@ export const ActiveCallModal: React.FC = () => {
           {/* Main Stage (Video or Avatar) */}
           <View style={styles.mainStage}>
             {isConnected && isVideo && !partnerVideoMuted ? (
-              // Active Video Stream Mock/Live Surface
+              // Active Video Stream Stage (Remote Partner)
               <View style={styles.videoSurfacePlaceholder}>
-                <Image source={{ uri: avatarUri }} style={styles.fullscreenVideoMock} />
+                <VideoSurfaceView
+                  uid={activeCall.partnerAgoraUid || 2002}
+                  channelId={activeCall.channelName}
+                  avatarUrl={avatarUri}
+                  isMuted={partnerVideoMuted}
+                  style={StyleSheet.absoluteFill}
+                />
                 <View style={styles.videoBadge}>
                   <Text style={styles.videoBadgeText}>HD Streaming</Text>
                 </View>
@@ -145,10 +152,13 @@ export const ActiveCallModal: React.FC = () => {
                     <Ionicons name="videocam-off" size={20} color="#94A3B8" />
                   </View>
                 ) : (
-                  <View style={styles.pipActive}>
-                    <Ionicons name="person" size={28} color="#FFFFFF" />
-                    <Text style={styles.pipLabel}>You</Text>
-                  </View>
+                  <VideoSurfaceView
+                    uid={0}
+                    isLocal={true}
+                    avatarUrl={null}
+                    isMuted={false}
+                    style={StyleSheet.absoluteFill}
+                  />
                 )}
               </View>
             )}

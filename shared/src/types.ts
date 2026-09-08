@@ -896,6 +896,8 @@ export interface EndCallPayload {
 export interface CallConnectedPayload {
   callId: string;
   channelName: string;
+  rtcToken?: string;
+  rtcUid?: number;
   agoraToken: string;
   agoraUid: number;
   callType: CallType;

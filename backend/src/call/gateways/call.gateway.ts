@@ -95,6 +95,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
           callId: glare.callId,
           channelName: glare.channelName,
           callType: glare.callType,
+          rtcToken: glare.caller.rtcToken || glare.caller.agoraToken,
+          rtcUid: glare.caller.rtcUid || glare.caller.agoraUid,
           agoraToken: glare.caller.agoraToken,
           agoraUid: glare.caller.agoraUid,
           connectedAt: glare.connectedAt,
@@ -103,6 +105,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
           callId: glare.callId,
           channelName: glare.channelName,
           callType: glare.callType,
+          rtcToken: glare.receiver.rtcToken || glare.receiver.agoraToken,
+          rtcUid: glare.receiver.rtcUid || glare.receiver.agoraUid,
           agoraToken: glare.receiver.agoraToken,
           agoraUid: glare.receiver.agoraUid,
           connectedAt: glare.connectedAt,
@@ -150,21 +154,25 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const result = await this.callService.acceptCall(userId, dto);
 
-      // Send connection payload with specific Agora token to caller
+      // Send connection payload with RTC token to caller
       this.server.to(`user:${result.caller.userId}`).emit('call:connected', {
         callId: result.callId,
         channelName: result.channelName,
         callType: result.callType,
+        rtcToken: result.caller.rtcToken || result.caller.agoraToken,
+        rtcUid: result.caller.rtcUid || result.caller.agoraUid,
         agoraToken: result.caller.agoraToken,
         agoraUid: result.caller.agoraUid,
         connectedAt: result.connectedAt,
       });
 
-      // Send connection payload with specific Agora token to receiver
+      // Send connection payload with RTC token to receiver
       this.server.to(`user:${result.receiver.userId}`).emit('call:connected', {
         callId: result.callId,
         channelName: result.channelName,
         callType: result.callType,
+        rtcToken: result.receiver.rtcToken || result.receiver.agoraToken,
+        rtcUid: result.receiver.rtcUid || result.receiver.agoraUid,
         agoraToken: result.receiver.agoraToken,
         agoraUid: result.receiver.agoraUid,
         connectedAt: result.connectedAt,
