@@ -77,8 +77,8 @@ export default function PreferencesScreen() {
       setValidationError('Minimum age must be at least 18.');
       return;
     }
-    if (numMax > 100) {
-      setValidationError('Maximum age cannot exceed 100.');
+    if (numMax > 99) {
+      setValidationError('Maximum age cannot exceed 99.');
       return;
     }
     if (numMin > numMax) {
@@ -160,9 +160,13 @@ export default function PreferencesScreen() {
               <TextInput
                 style={styles.ageInput}
                 keyboardType="numeric"
-                maxLength={3}
+                maxLength={2}
                 value={minAge}
-                onChangeText={setMinAge}
+                onChangeText={(text) => {
+                  setMinAge(text);
+                  if (validationError) setValidationError(null);
+                  if (error) clearError();
+                }}
               />
             </View>
             <Text style={styles.toText}>to</Text>
@@ -171,9 +175,13 @@ export default function PreferencesScreen() {
               <TextInput
                 style={styles.ageInput}
                 keyboardType="numeric"
-                maxLength={3}
+                maxLength={2}
                 value={maxAge}
-                onChangeText={setMaxAge}
+                onChangeText={(text) => {
+                  setMaxAge(text);
+                  if (validationError) setValidationError(null);
+                  if (error) clearError();
+                }}
               />
             </View>
           </View>

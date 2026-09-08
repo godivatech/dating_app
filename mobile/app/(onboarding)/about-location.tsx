@@ -43,17 +43,31 @@ export default function AboutLocationScreen() {
       setValidationError('Please write a short bio (at least 10 characters).');
       return;
     }
+    if (trimmedBio.length > 500) {
+      setValidationError('Bio cannot exceed 500 characters.');
+      return;
+    }
 
     const trimmedCity = city.trim();
     if (trimmedCity.length < 2) {
-      setValidationError('Please enter your city.');
+      setValidationError('Please enter your city (at least 2 characters).');
+      return;
+    }
+    if (trimmedCity.length > 60) {
+      setValidationError('City name cannot exceed 60 characters.');
+      return;
+    }
+
+    const trimmedRegion = region.trim();
+    if (trimmedRegion.length > 60) {
+      setValidationError('Region/State cannot exceed 60 characters.');
       return;
     }
 
     const success = await saveAboutLocation({
       bio: trimmedBio,
       locationCity: trimmedCity,
-      locationRegion: region.trim() || undefined,
+      locationRegion: trimmedRegion || undefined,
     });
 
     if (success) {
@@ -97,6 +111,7 @@ export default function AboutLocationScreen() {
                 onChangeText={(text) => {
                   setBio(text);
                   if (validationError) setValidationError(null);
+                  if (error) clearError();
                 }}
                 multiline
                 numberOfLines={4}
@@ -114,9 +129,11 @@ export default function AboutLocationScreen() {
                 placeholder="e.g. Chennai, Coimbatore, Madurai"
                 placeholderTextColor={Colors.textMuted}
                 value={city}
+                maxLength={60}
                 onChangeText={(text) => {
                   setCity(text);
                   if (validationError) setValidationError(null);
+                  if (error) clearError();
                 }}
               />
             </View>
@@ -129,7 +146,12 @@ export default function AboutLocationScreen() {
                 placeholder="e.g. Tamil Nadu"
                 placeholderTextColor={Colors.textMuted}
                 value={region}
-                onChangeText={setRegion}
+                maxLength={60}
+                onChangeText={(text) => {
+                  setRegion(text);
+                  if (validationError) setValidationError(null);
+                  if (error) clearError();
+                }}
               />
             </View>
 

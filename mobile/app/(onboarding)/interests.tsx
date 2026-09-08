@@ -89,18 +89,18 @@ export default function InterestsScreen() {
       setValidationError('Please select at least 3 interests');
       return;
     }
+    if (selectedIds.length > 10) {
+      setValidationError('You can select up to 10 interests');
+      return;
+    }
 
     try {
       const success = await saveInterests({ interestIds: selectedIds });
       if (success) {
         router.push('/(onboarding)/preferences');
-      } else {
-        if (!storeError) {
-          router.push('/(onboarding)/preferences');
-        }
       }
-    } catch {
-      router.push('/(onboarding)/preferences');
+    } catch (err: any) {
+      setValidationError(err?.message || 'Failed to save interests');
     }
   };
 
@@ -141,16 +141,8 @@ export default function InterestsScreen() {
                   isSelected && styles.interestPillSelected,
                 ]}
                 onPress={() => toggleInterest(interest.id)}
-                activeOpacity={0.8}
+                activeOpacity={0.7}
               >
-                {isSelected && (
-                  <Ionicons
-                    name="checkmark"
-                    size={14}
-                    color={Colors.primary}
-                    style={styles.pillCheck}
-                  />
-                )}
                 <Text
                   style={[
                     styles.interestText,
@@ -159,6 +151,14 @@ export default function InterestsScreen() {
                 >
                   {interest.name}
                 </Text>
+                {isSelected && (
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={Colors.primary}
+                    style={styles.pillCheck}
+                  />
+                )}
               </TouchableOpacity>
             );
           })}
@@ -170,17 +170,21 @@ export default function InterestsScreen() {
           </View>
         ) : null}
 
-        {/* Complete Profile Button */}
+        {/* Save & Continue Button */}
         <TouchableOpacity
-          style={[styles.completeButton, (selectedIds.length < 3 || isLoading) && styles.buttonDisabled]}
+          style={[
+            styles.completeButton,
+            (selectedIds.length < 3 || selectedIds.length > 10 || isLoading) &&
+              styles.buttonDisabled,
+          ]}
           onPress={handleComplete}
-          disabled={selectedIds.length < 3 || isLoading}
+          disabled={selectedIds.length < 3 || selectedIds.length > 10 || isLoading}
           activeOpacity={0.85}
         >
           {isLoading ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.completeButtonText}>Complete Profile</Text>
+            <Text style={styles.completeButtonText}>Save & Continue</Text>
           )}
         </TouchableOpacity>
       </ScrollView>

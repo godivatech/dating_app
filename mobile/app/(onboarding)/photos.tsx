@@ -77,11 +77,8 @@ export default function PhotosScreen() {
     if (photos.length === 0) {
       Alert.alert(
         'Photo Required',
-        'Please upload at least 1 photo before continuing, or proceed with demo profile.',
-        [
-          { text: 'Upload', style: 'cancel' },
-          { text: 'Proceed', onPress: () => router.push('/(onboarding)/interests') },
-        ]
+        'Please upload at least 1 photo to complete your profile and find matches.',
+        [{ text: 'OK' }],
       );
       return;
     }
@@ -211,11 +208,19 @@ export default function PhotosScreen() {
 
         {/* Next Step CTA */}
         <TouchableOpacity
-          style={styles.nextButton}
+          style={[
+            styles.nextButton,
+            (localUploading || isUploadingPhoto) && styles.buttonDisabled,
+          ]}
           onPress={handleNext}
+          disabled={localUploading || isUploadingPhoto}
           activeOpacity={0.85}
         >
-          <Text style={styles.nextButtonText}>Next</Text>
+          {localUploading || isUploadingPhoto ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.nextButtonText}>Next</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -385,6 +390,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     elevation: 5,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   nextButtonText: {
     color: Colors.white,
