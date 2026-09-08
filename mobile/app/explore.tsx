@@ -124,11 +124,16 @@ export default function ExploreScreen() {
           <Feather name="search" size={18} color={Colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search interests..."
             placeholderTextColor={Colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
@@ -141,7 +146,12 @@ export default function ExploreScreen() {
           <TouchableOpacity
             key={item.id}
             style={styles.categoryCard}
-            onPress={() => router.push('/discovery' as any)}
+            onPress={() =>
+              router.push({
+                pathname: '/discovery',
+                params: { q: item.name },
+              } as any)
+            }
             activeOpacity={0.8}
           >
             {/* Left Thumbnail Image */}

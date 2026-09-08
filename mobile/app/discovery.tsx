@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useProfileStore } from '../src/stores/profile-store';
@@ -34,22 +34,37 @@ export default function DiscoveryScreen() {
   const {
     candidates,
     currentIndex,
-    currentPhotoIndex,
     isLoading,
     isActionLoading,
     eligibility,
     error,
     fetchDiscoveryFeed,
-    nextPhoto,
-    prevPhoto,
     recordAction,
     undoLastPass,
   } = useDiscoveryStore();
+
+  const params = useLocalSearchParams<{ q?: string; interest?: string }>();
+  const [searchQuery, setSearchQuery] = useState(params.q || params.interest || '');
+  const [searchIndex, setSearchIndex] = useState(0);
 
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<any | null>(null);
   const [likeHeartAnim] = useState(new Animated.Value(0));
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
+
+  // Sync params query if navigation passes search or interest
+  useEffect(() => {
+    if (params.q) {
+      setSearchQuery(params.q);
+    } else if (params.interest) {
+      setSearchQuery(params.interest);
+    }
+  }, [params.q, params.interest]);
+
+  // Reset filtered index when search query changes
+  useEffect(() => {
+    setSearchIndex(0);
+  }, [searchQuery]);
 
   // Protect member photos against unauthorized screenshots and recordings during discovery
   useScreenCapturePrevention(true);
@@ -61,7 +76,52 @@ export default function DiscoveryScreen() {
     }, [fetchProfile, fetchDiscoveryFeed]),
   );
 
-  const candidate = candidates[currentIndex];
+  // Filter candidates in real-time by Name, City, Region, Bio, or Interests
+  const filteredCandidates = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return candidates;
+    return candidates.filter((c) => {
+      const name = c.displayName?.toLowerCase() || '';
+      const city = c.locationCity?.toLowerCase() || '';
+      const region = c.locationRegion?.toLowerCase() || '';
+      const bio = c.bio?.toLowerCase() || '';
+      const interests =
+        c.interests?.map((i) => i.name?.toLowerCase() || (i as any)?.interest?.name?.toLowerCase() || '').join(' ') || '';
+      const intent = c.relationshipIntent?.toLowerCase() || '';
+      return (
+        name.includes(q) ||
+        city.includes(q) ||
+        region.includes(q) ||
+        bio.includes(q) ||
+        interests.includes(q) ||
+        intent.includes(q)
+      );
+    });
+  }, [candidates, searchQuery]);
+
+  const isFiltering = searchQuery.trim().length > 0;
+  const activeCandidates = isFiltering ? filteredCandidates : candidates;
+  const activeIndex = isFiltering ? searchIndex : currentIndex;
+  const candidate = activeCandidates[activeIndex];
+
+  const [activePhotoIndex, setActivePhotoIndex] = useState(0);
+
+  // Reset photo index when candidate changes
+  useEffect(() => {
+    setActivePhotoIndex(0);
+  }, [candidate?.profileId]);
+
+  const handleNextPhoto = () => {
+    if (candidate && activePhotoIndex < (candidate.photos?.length || 1) - 1) {
+      setActivePhotoIndex((prev) => prev + 1);
+    }
+  };
+
+  const handlePrevPhoto = () => {
+    if (activePhotoIndex > 0) {
+      setActivePhotoIndex((prev) => prev - 1);
+    }
+  };
 
   const triggerHeartAnimation = () => {
     setShowHeartOverlay(true);
@@ -89,6 +149,15 @@ export default function DiscoveryScreen() {
     }
 
     const result = await recordAction(candidate.profileId, actionType);
+
+    if (isFiltering) {
+      if (searchIndex < filteredCandidates.length - 1) {
+        setSearchIndex((prev) => prev + 1);
+      } else {
+        setSearchIndex(filteredCandidates.length);
+      }
+    }
+
     if (!result) {
       const storeError = useDiscoveryStore.getState().error;
       if (
@@ -101,6 +170,10 @@ export default function DiscoveryScreen() {
   };
 
   const handleRewind = async () => {
+    if (isFiltering && searchIndex > 0) {
+      setSearchIndex((prev) => prev - 1);
+      return;
+    }
     const success = await undoLastPass();
     if (!success) {
       const storeError = useDiscoveryStore.getState().error;
@@ -113,7 +186,7 @@ export default function DiscoveryScreen() {
     }
   };
 
-  const candidatePhotoObj = candidate?.photos?.[currentPhotoIndex] || candidate?.photos?.[0];
+  const candidatePhotoObj = candidate?.photos?.[activePhotoIndex] || candidate?.photos?.[0];
   const currentPhotoUrl =
     candidatePhotoObj?.largeUrl ||
     candidatePhotoObj?.mediumUrl ||
@@ -165,10 +238,40 @@ export default function DiscoveryScreen() {
           <Feather name="search" size={18} color={Colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search Partners"
+            placeholder="Search partners by name, city, interest..."
             placeholderTextColor={Colors.textMuted}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearchQuery('')}
+              style={styles.clearSearchIconBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={18} color={Colors.textMuted} />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {isFiltering && (
+          <View style={styles.searchFilterBadgeRow}>
+            <View style={styles.searchFilterBadge}>
+              <Ionicons name="filter" size={12} color={Colors.primary} />
+              <Text style={styles.searchFilterBadgeText} numberOfLines={1}>
+                {filteredCandidates.length > 0
+                  ? `${filteredCandidates.length} profile${filteredCandidates.length === 1 ? '' : 's'} matching "${searchQuery}"`
+                  : `No profiles matching "${searchQuery}"`}
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setSearchQuery('')} activeOpacity={0.7}>
+              <Text style={styles.clearFilterText}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
       {/* Main Content Area */}
@@ -208,6 +311,23 @@ export default function DiscoveryScreen() {
             activeOpacity={0.85}
           >
             <Text style={styles.refreshBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      ) : isFiltering && !candidate ? (
+        <View style={styles.emptyContainer}>
+          <View style={styles.emptyIconCircle}>
+            <Ionicons name="search-outline" size={32} color={Colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>No Matching Partners</Text>
+          <Text style={styles.emptySubText}>
+            We couldn't find anyone matching "{searchQuery}". Try searching by another name, city, or interest.
+          </Text>
+          <TouchableOpacity
+            style={styles.refreshBtn}
+            onPress={() => setSearchQuery('')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.refreshBtnText}>Clear Search</Text>
           </TouchableOpacity>
         </View>
       ) : !candidate ? (
@@ -264,7 +384,7 @@ export default function DiscoveryScreen() {
                     key={i}
                     style={[
                       styles.indicatorBar,
-                      i === currentPhotoIndex && styles.indicatorBarActive,
+                      i === activePhotoIndex && styles.indicatorBarActive,
                     ]}
                   />
                 ))}
@@ -276,14 +396,14 @@ export default function DiscoveryScreen() {
               style={styles.tapZoneLeft}
               onPress={(e) => {
                 e.stopPropagation();
-                prevPhoto();
+                handlePrevPhoto();
               }}
             />
             <TouchableOpacity
               style={styles.tapZoneRight}
               onPress={(e) => {
                 e.stopPropagation();
-                nextPhoto();
+                handleNextPhoto();
               }}
             />
 
@@ -435,6 +555,9 @@ export default function DiscoveryScreen() {
         onClose={() => setNoteModalVisible(false)}
         onSent={() => {
           triggerHeartAnimation();
+          if (isFiltering) {
+            setSearchIndex((prev) => prev + 1);
+          }
         }}
       />
 
@@ -516,6 +639,39 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.textPrimary,
+  },
+  clearSearchIconBtn: {
+    padding: 4,
+    marginLeft: 4,
+  },
+  searchFilterBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingHorizontal: 4,
+  },
+  searchFilterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    flexShrink: 1,
+  },
+  searchFilterBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+    flexShrink: 1,
+  },
+  clearFilterText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    marginLeft: 8,
   },
   cardContainer: {
     flex: 1,
