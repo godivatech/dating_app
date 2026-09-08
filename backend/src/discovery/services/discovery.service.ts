@@ -168,27 +168,38 @@ export class DiscoveryService {
   private mapToSafeCandidate(candidate: any): DiscoveryCandidate {
     const age = calculateAge(candidate.dateOfBirth);
     const photos: SafeProfilePhoto[] = (candidate.photos || []).map(
-      (photo: any) => ({
-        id: photo.id,
-        profileId: photo.profileId,
-        status: photo.status,
-        position: photo.position,
-        isPrimary:
-          photo.position === 0 && photo.status === PhotoStatus.APPROVED,
-        thumbnailUrl: photo.thumbnailKey
-          ? this.storageService.getPublicUrl(photo.thumbnailKey)
-          : null,
-        mediumUrl: photo.mediumKey
-          ? this.storageService.getPublicUrl(photo.mediumKey)
-          : null,
-        largeUrl: photo.largeKey
-          ? this.storageService.getPublicUrl(photo.largeKey)
-          : null,
-        width: photo.width,
-        height: photo.height,
-        createdAt: photo.createdAt.toISOString(),
-        updatedAt: photo.updatedAt.toISOString(),
-      }),
+      (photo: any) => {
+        const isApproved = photo.status === PhotoStatus.APPROVED;
+        const fallbackUrl =
+          isApproved && photo.objectKey && photo.objectKey !== 'pending'
+            ? this.storageService.getPublicUrl(photo.objectKey)
+            : null;
+
+        return {
+          id: photo.id,
+          profileId: photo.profileId,
+          status: photo.status,
+          position: photo.position,
+          isPrimary:
+            photo.position === 0 && isApproved,
+          thumbnailUrl:
+            isApproved && photo.thumbnailKey
+              ? this.storageService.getPublicUrl(photo.thumbnailKey)
+              : fallbackUrl,
+          mediumUrl:
+            isApproved && photo.mediumKey
+              ? this.storageService.getPublicUrl(photo.mediumKey)
+              : fallbackUrl,
+          largeUrl:
+            isApproved && photo.largeKey
+              ? this.storageService.getPublicUrl(photo.largeKey)
+              : fallbackUrl,
+          width: photo.width,
+          height: photo.height,
+          createdAt: photo.createdAt.toISOString(),
+          updatedAt: photo.updatedAt.toISOString(),
+        };
+      },
     );
 
     const interests = (candidate.interests || []).map((pi: any) => ({

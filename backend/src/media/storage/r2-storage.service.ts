@@ -168,20 +168,21 @@ export class R2StorageService implements StorageService {
   }
 
   async deleteObjects(keys: string[]): Promise<void> {
-    if (keys.length === 0) return;
+    const validKeys = (keys || []).filter((k) => Boolean(k) && k !== 'pending');
+    if (validKeys.length === 0) return;
 
     try {
       const command = new DeleteObjectsCommand({
         Bucket: this.bucketName,
         Delete: {
-          Objects: keys.map((k) => ({ Key: k })),
+          Objects: validKeys.map((k) => ({ Key: k })),
           Quiet: true,
         },
       });
       await this.s3Client.send(command);
     } catch (err: any) {
       this.logger.warn(
-        `Failed to batch delete objects [${keys.join(', ')}]: ${err.message}`,
+        `Failed to batch delete objects [${validKeys.join(', ')}]: ${err.message}`,
       );
     }
   }

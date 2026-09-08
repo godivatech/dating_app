@@ -53,6 +53,11 @@ export class ProfileService {
 
   private mapToSafePhoto(photo: any): SafeProfilePhoto {
     const isApproved = photo.status === PhotoStatus.APPROVED;
+    const fallbackUrl =
+      isApproved && photo.objectKey && photo.objectKey !== 'pending'
+        ? this.storageService.getPublicUrl(photo.objectKey)
+        : null;
+
     return {
       id: photo.id,
       profileId: photo.profileId,
@@ -62,15 +67,15 @@ export class ProfileService {
       thumbnailUrl:
         isApproved && photo.thumbnailKey
           ? this.storageService.getPublicUrl(photo.thumbnailKey)
-          : null,
+          : fallbackUrl,
       mediumUrl:
         isApproved && photo.mediumKey
           ? this.storageService.getPublicUrl(photo.mediumKey)
-          : null,
+          : fallbackUrl,
       largeUrl:
         isApproved && photo.largeKey
           ? this.storageService.getPublicUrl(photo.largeKey)
-          : null,
+          : fallbackUrl,
       width: photo.width,
       height: photo.height,
       createdAt: photo.createdAt.toISOString(),
