@@ -104,7 +104,7 @@ export default function IndexScreen() {
     profile?.photos?.find((p) => p.isPrimary)?.mediumUrl ||
     profile?.photos?.[0]?.mediumUrl ||
     profile?.photos?.[0]?.thumbnailUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
+    null;
 
   const liveNearYou = candidates.length > 0
     ? candidates.map((c, idx) => ({
@@ -165,11 +165,17 @@ export default function IndexScreen() {
           onPress={() => router.push('/profile' as any)}
           activeOpacity={0.8}
         >
-          <Image
-            source={{ uri: myAvatarUrl }}
-            style={styles.homeAvatar}
-            resizeMode="cover"
-          />
+          {myAvatarUrl ? (
+            <Image
+              source={{ uri: myAvatarUrl }}
+              style={styles.homeAvatar}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={[styles.homeAvatar, styles.placeholderAvatar]}>
+              <Ionicons name="person" size={22} color={Colors.textMuted} />
+            </View>
+          )}
           <View style={styles.onlineDot} />
         </TouchableOpacity>
 
@@ -229,11 +235,17 @@ export default function IndexScreen() {
           {/* My Story */}
           <View style={styles.storyItem}>
             <View style={styles.myStoryCircle}>
-              <Image
-                source={{ uri: myAvatarUrl }}
-                style={styles.storyImg}
-                resizeMode="cover"
-              />
+              {myAvatarUrl ? (
+                <Image
+                  source={{ uri: myAvatarUrl }}
+                  style={styles.storyImg}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={[styles.storyImg, styles.placeholderAvatar]}>
+                  <Ionicons name="person" size={20} color={Colors.textMuted} />
+                </View>
+              )}
               <View style={styles.plusStoryBadge}>
                 <Ionicons name="add" size={12} color={Colors.white} />
               </View>
@@ -427,6 +439,11 @@ const styles = StyleSheet.create({
     height: 44,
     borderRadius: 22,
     backgroundColor: Colors.backgroundSecondary,
+  },
+  placeholderAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E2E8F0',
   },
   onlineDot: {
     position: 'absolute',

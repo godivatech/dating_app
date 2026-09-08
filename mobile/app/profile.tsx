@@ -34,7 +34,8 @@ export default function ProfileScreen() {
   const avatarUrl =
     profile?.photos?.find((p) => p.isPrimary)?.mediumUrl ||
     profile?.photos?.[0]?.mediumUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
+    profile?.photos?.[0]?.thumbnailUrl ||
+    null;
 
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure you want to log out of Truelove?', [
@@ -90,7 +91,13 @@ export default function ProfileScreen() {
       <View style={styles.mainCard}>
         {/* Center Circular Profile Avatar with White Border */}
         <View style={styles.avatarWrapper}>
-          <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.placeholderAvatar]}>
+              <Ionicons name="person" size={48} color={Colors.textMuted} />
+            </View>
+          )}
           <TouchableOpacity
             style={styles.avatarEditBadge}
             onPress={() => router.push('/(onboarding)/photos' as any)}
@@ -390,6 +397,11 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: Colors.white,
     backgroundColor: Colors.backgroundSecondary,
+  },
+  placeholderAvatar: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#E2E8F0',
   },
   avatarEditBadge: {
     position: 'absolute',

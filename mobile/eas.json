@@ -13,7 +13,8 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://dating-app-ez5c.onrender.com/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://dating-app-ez5c.onrender.com/api/v1",
+        "EXPO_PUBLIC_AGORA_APP_ID": "07f3de63ed2c431c9e7c40cd26b1c91b"
       },
       "android": {
         "buildType": "apk"
