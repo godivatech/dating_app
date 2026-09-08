@@ -33,6 +33,7 @@ export default function PhotosScreen() {
   } = useProfileStore();
 
   const [localUploading, setLocalUploading] = useState(false);
+  const [optimisticUri, setOptimisticUri] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -52,20 +53,27 @@ export default function PhotosScreen() {
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 5],
-        quality: 0.8,
+        quality: 0.7,
       });
 
       if (!result.canceled && result.assets && result.assets[0]) {
         const asset = result.assets[0];
+        // Instant optimistic preview: display image locally in 0ms
+        setOptimisticUri(asset.uri);
         setLocalUploading(true);
+
         const fileSize = asset.fileSize || 1024 * 1024;
         const mimeType = asset.mimeType || 'image/jpeg';
-        await uploadPhoto(asset.uri, mimeType, fileSize);
-        await fetchProfile();
+        const success = await uploadPhoto(asset.uri, mimeType, fileSize);
+
+        if (!success) {
+          setOptimisticUri(null);
+        }
         setLocalUploading(false);
       }
     } catch (err: any) {
       setLocalUploading(false);
+      setOptimisticUri(null);
       Alert.alert('Upload Failed', err?.message || 'Unable to upload photo.');
     }
   };
@@ -73,8 +81,18 @@ export default function PhotosScreen() {
   const primaryPhoto = photos.find((p: SafeProfilePhoto) => p.isPrimary) || photos[0];
   const secondaryPhotos = photos.filter((p: SafeProfilePhoto) => p.id !== primaryPhoto?.id);
 
+  // Use optimistic URI first so user never waits for remote round-trip download
+  const displayPrimaryUri =
+    optimisticUri ||
+    primaryPhoto?.largeUrl ||
+    primaryPhoto?.mediumUrl ||
+    primaryPhoto?.thumbnailUrl ||
+    null;
+
+  const hasPhoto = photos.length > 0 || Boolean(optimisticUri);
+
   const handleNext = () => {
-    if (photos.length === 0) {
+    if (!hasPhoto) {
       Alert.alert(
         'Photo Required',
         'Please upload at least 1 photo to complete your profile and find matches.',
@@ -98,17 +116,9 @@ export default function PhotosScreen() {
 
         {/* Big Primary Photo Container */}
         <View style={styles.primaryPhotoCard}>
-          {primaryPhoto &&
-          (primaryPhoto.largeUrl ||
-            primaryPhoto.mediumUrl ||
-            primaryPhoto.thumbnailUrl) ? (
+          {displayPrimaryUri ? (
             <Image
-              source={{
-                uri:
-                  primaryPhoto.largeUrl ||
-                  primaryPhoto.mediumUrl ||
-                  primaryPhoto.thumbnailUrl!,
-              }}
+              source={{ uri: displayPrimaryUri }}
               style={styles.primaryPhoto}
               resizeMode="cover"
             />
@@ -116,6 +126,14 @@ export default function PhotosScreen() {
             <View style={styles.placeholderPrimary}>
               <Ionicons name="camera-outline" size={48} color={Colors.textMuted} />
               <Text style={styles.placeholderText}>No photo uploaded yet</Text>
+            </View>
+          )}
+
+          {/* Frosted Uploading Badge */}
+          {localUploading && (
+            <View style={styles.uploadingOverlay}>
+              <ActivityIndicator size="small" color={Colors.white} />
+              <Text style={styles.uploadingOverlayText}>Saving photo...</Text>
             </View>
           )}
 
@@ -265,6 +283,23 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     fontSize: 14,
     fontWeight: '500',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  uploadingOverlayText: {
+    color: Colors.white,
+    fontSize: 12,
+    fontWeight: '600',
   },
   changePhotoBtn: {
     position: 'absolute',

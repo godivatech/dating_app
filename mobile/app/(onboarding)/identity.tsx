@@ -90,21 +90,106 @@ function normalizeDateInput(input: string): { normalized: string; error?: string
   return { normalized, age };
 }
 
+const MONTHS = [
+  { val: 1, name: 'Jan', full: 'January' },
+  { val: 2, name: 'Feb', full: 'February' },
+  { val: 3, name: 'Mar', full: 'March' },
+  { val: 4, name: 'Apr', full: 'April' },
+  { val: 5, name: 'May', full: 'May' },
+  { val: 6, name: 'Jun', full: 'June' },
+  { val: 7, name: 'Jul', full: 'July' },
+  { val: 8, name: 'Aug', full: 'August' },
+  { val: 9, name: 'Sep', full: 'September' },
+  { val: 10, name: 'Oct', full: 'October' },
+  { val: 11, name: 'Nov', full: 'November' },
+  { val: 12, name: 'Dec', full: 'December' },
+];
+
+function validateDateParts(
+  dayStr: string,
+  monthNum: number,
+  yearStr: string,
+): { normalized: string; age: number | null; error?: string } {
+  const day = parseInt(dayStr.trim(), 10);
+  const year = parseInt(yearStr.trim(), 10);
+
+  if (!dayStr.trim() || !yearStr.trim() || isNaN(day) || isNaN(year)) {
+    return { normalized: '', age: null };
+  }
+
+  if (day < 1 || day > 31) {
+    return { normalized: '', age: null, error: 'Please enter a valid day (1–31)' };
+  }
+
+  const currentYear = new Date().getFullYear();
+  if (year < 1920 || year > currentYear) {
+    return { normalized: '', age: null, error: `Enter a birth year between 1920 and ${currentYear}` };
+  }
+
+  const testDate = new Date(year, monthNum - 1, day);
+  if (
+    isNaN(testDate.getTime()) ||
+    testDate.getFullYear() !== year ||
+    testDate.getMonth() !== monthNum - 1 ||
+    testDate.getDate() !== day
+  ) {
+    return {
+      normalized: '',
+      age: null,
+      error: `Invalid date for ${MONTHS.find((m) => m.val === monthNum)?.full || 'selected month'}`,
+    };
+  }
+
+  const mm = monthNum.toString().padStart(2, '0');
+  const dd = day.toString().padStart(2, '0');
+  const normalized = `${year}-${mm}-${dd}`;
+
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  const cMonth = today.getMonth() + 1;
+  const cDay = today.getDate();
+
+  if (cMonth < monthNum || (cMonth === monthNum && cDay < day)) {
+    age--;
+  }
+
+  if (age < 18) {
+    return { normalized, age, error: 'You must be at least 18 years old to join Truelove' };
+  }
+
+  if (age > 100) {
+    return { normalized, age, error: 'Please enter a valid birth year' };
+  }
+
+  return { normalized, age };
+}
+
 export default function IdentityScreen() {
   const router = useRouter();
   const { profile, saveIdentity, isLoading, error: storeError, clearError } = useProfileStore();
 
   const [name, setName] = useState(profile?.displayName || '');
-  const [birthdate, setBirthdate] = useState(
+
+  // Initialize DOB parts
+  const initialDateStr =
     (profile as any)?.dateOfBirth
       ? (profile as any).dateOfBirth.split('T')[0]
       : profile?.age
         ? `${new Date().getFullYear() - profile.age}-01-15`
-        : '2000-01-15',
-  );
+        : '2000-01-15';
+
+  const parts = initialDateStr.split('-');
+  const [birthYear, setBirthYear] = useState(parts[0] || '2000');
+  const [birthMonth, setBirthMonth] = useState(parseInt(parts[1] || '1', 10));
+  const [birthDay, setBirthDay] = useState(parts[2] || '15');
+  const [showMonthModal, setShowMonthModal] = useState(false);
+
   const [gender, setGender] = useState<Gender>(profile?.gender || Gender.WOMAN);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Live validation & calculated age
+  const liveDate = validateDateParts(birthDay, birthMonth, birthYear);
 
   const handleContinue = async () => {
     setValidationError(null);
@@ -116,23 +201,36 @@ export default function IdentityScreen() {
       return;
     }
 
-    const dateResult = normalizeDateInput(birthdate);
-    if (dateResult.error) {
-      setValidationError(dateResult.error);
+    if (trimmedName.length > 50) {
+      setValidationError('Full name cannot exceed 50 characters');
+      return;
+    }
+
+    if (!birthDay.trim() || !birthYear.trim()) {
+      setValidationError('Please enter your complete date of birth');
+      return;
+    }
+
+    if (liveDate.error) {
+      setValidationError(liveDate.error);
+      return;
+    }
+
+    if (!liveDate.normalized) {
+      setValidationError('Please enter a valid date of birth');
       return;
     }
 
     try {
       const success = await saveIdentity({
         displayName: trimmedName,
-        dateOfBirth: dateResult.normalized,
+        dateOfBirth: liveDate.normalized,
         gender,
       });
 
       if (success) {
         router.push('/(onboarding)/photos');
       } else {
-        // If saveIdentity returned false, storeError will be displayed
         if (!storeError) {
           setValidationError('Failed to save profile details. Please try again.');
         }
@@ -170,6 +268,7 @@ export default function IdentityScreen() {
                 placeholderTextColor={Colors.textMuted}
                 value={name}
                 maxLength={50}
+                autoCapitalize="words"
                 onChangeText={(text) => {
                   setName(text);
                   if (validationError) setValidationError(null);
@@ -178,24 +277,135 @@ export default function IdentityScreen() {
               />
             </View>
 
-            {/* Birthdate */}
+            {/* Date of Birth (Modern 3-Segment Picker) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date of Birth (18+)</Text>
-              <View style={styles.iconInputWrapper}>
-                <TextInput
-                  style={styles.iconInput}
-                  placeholder="YYYY-MM-DD or DD-MM-YYYY"
-                  placeholderTextColor={Colors.textMuted}
-                  value={birthdate}
-                  onChangeText={(text) => {
-                    setBirthdate(text);
-                    if (validationError) setValidationError(null);
-                    if (storeError) clearError();
-                  }}
-                />
-                <Ionicons name="calendar-outline" size={20} color={Colors.textMuted} />
+              <View style={styles.dobHeaderRow}>
+                <Text style={styles.label}>Date of Birth</Text>
+                <Text style={styles.badge18}>18+ Only</Text>
               </View>
-              <Text style={styles.inputHelper}>Example: 2000-01-15 or 15-01-2000</Text>
+
+              <View style={styles.dobRow}>
+                {/* Day Input */}
+                <View style={styles.dobDayCol}>
+                  <Text style={styles.dobSubLabel}>Day</Text>
+                  <TextInput
+                    style={styles.dobInput}
+                    placeholder="DD"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    value={birthDay}
+                    onChangeText={(text) => {
+                      setBirthDay(text);
+                      if (validationError) setValidationError(null);
+                      if (storeError) clearError();
+                    }}
+                  />
+                </View>
+
+                {/* Month Dropdown Button */}
+                <View style={styles.dobMonthCol}>
+                  <Text style={styles.dobSubLabel}>Month</Text>
+                  <TouchableOpacity
+                    style={styles.dobMonthBtn}
+                    onPress={() => {
+                      setShowMonthModal(!showMonthModal);
+                      setShowGenderModal(false);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.dobMonthBtnText}>
+                      {MONTHS.find((m) => m.val === birthMonth)?.name}
+                    </Text>
+                    <Ionicons name="chevron-down" size={16} color={Colors.textPrimary} />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Year Input */}
+                <View style={styles.dobYearCol}>
+                  <Text style={styles.dobSubLabel}>Year</Text>
+                  <TextInput
+                    style={styles.dobInput}
+                    placeholder="YYYY"
+                    placeholderTextColor={Colors.textMuted}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    value={birthYear}
+                    onChangeText={(text) => {
+                      setBirthYear(text);
+                      if (validationError) setValidationError(null);
+                      if (storeError) clearError();
+                    }}
+                  />
+                </View>
+              </View>
+
+              {/* Month Grid Dropdown */}
+              {showMonthModal && (
+                <View style={styles.monthGridContainer}>
+                  <Text style={styles.monthGridTitle}>Select Birth Month</Text>
+                  <View style={styles.monthGrid}>
+                    {MONTHS.map((m) => {
+                      const isSelected = birthMonth === m.val;
+                      return (
+                        <TouchableOpacity
+                          key={m.val}
+                          style={[
+                            styles.monthChip,
+                            isSelected && styles.monthChipSelected,
+                          ]}
+                          onPress={() => {
+                            setBirthMonth(m.val);
+                            setShowMonthModal(false);
+                            if (validationError) setValidationError(null);
+                            if (storeError) clearError();
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          <Text
+                            style={[
+                              styles.monthChipText,
+                              isSelected && styles.monthChipTextSelected,
+                            ]}
+                          >
+                            {m.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+
+              {/* Live Age Feedback Badge */}
+              {liveDate.age !== null ? (
+                <View
+                  style={[
+                    styles.ageBadge,
+                    liveDate.age < 18 ? styles.ageBadgeError : styles.ageBadgeSuccess,
+                  ]}
+                >
+                  <Ionicons
+                    name={liveDate.age < 18 ? 'alert-circle' : 'sparkles'}
+                    size={16}
+                    color={liveDate.age < 18 ? '#EF4444' : Colors.primary}
+                  />
+                  <Text
+                    style={[
+                      styles.ageBadgeText,
+                      liveDate.age < 18 ? styles.ageBadgeTextError : styles.ageBadgeTextSuccess,
+                    ]}
+                  >
+                    {liveDate.age < 18
+                      ? `Age: ${liveDate.age} (Must be at least 18 to register)`
+                      : `Age: ${liveDate.age} years old`}
+                  </Text>
+                </View>
+              ) : null}
+
+              <Text style={styles.dobPrivacyNote}>
+                🔒 Only your age is shown to matches. Your exact birthdate is never shared.
+              </Text>
             </View>
 
             {/* Gender */}
@@ -203,7 +413,10 @@ export default function IdentityScreen() {
               <Text style={styles.label}>Gender</Text>
               <TouchableOpacity
                 style={styles.dropdownInput}
-                onPress={() => setShowGenderModal(!showGenderModal)}
+                onPress={() => {
+                  setShowGenderModal(!showGenderModal);
+                  setShowMonthModal(false);
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={styles.dropdownValue}>
@@ -305,6 +518,139 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 15,
     color: Colors.textPrimary,
+  },
+  dobHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  badge18: {
+    backgroundColor: Colors.primaryLight,
+    color: Colors.primary,
+    fontSize: 11,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  dobRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 2,
+  },
+  dobDayCol: {
+    flex: 2,
+  },
+  dobMonthCol: {
+    flex: 3,
+  },
+  dobYearCol: {
+    flex: 3,
+  },
+  dobSubLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  dobInput: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 14,
+    height: 52,
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  dobMonthBtn: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 14,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+  },
+  dobMonthBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  monthGridContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    padding: 14,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  monthGridTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  monthGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+  },
+  monthChip: {
+    width: '23%',
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: Colors.backgroundSecondary,
+    alignItems: 'center',
+  },
+  monthChipSelected: {
+    backgroundColor: Colors.primary,
+  },
+  monthChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  monthChipTextSelected: {
+    color: Colors.white,
+    fontWeight: '700',
+  },
+  ageBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  ageBadgeSuccess: {
+    backgroundColor: Colors.primaryLight,
+  },
+  ageBadgeError: {
+    backgroundColor: '#FEE2E2',
+  },
+  ageBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  ageBadgeTextSuccess: {
+    color: Colors.primary,
+  },
+  ageBadgeTextError: {
+    color: '#EF4444',
+  },
+  dobPrivacyNote: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginTop: 4,
+    lineHeight: 16,
   },
   iconInputWrapper: {
     flexDirection: 'row',
