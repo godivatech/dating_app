@@ -9,8 +9,8 @@ export class AgoraTokenService {
   private readonly appCertificate: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.appId = this.configService.get<string>('AGORA_APP_ID') || '';
-    this.appCertificate = this.configService.get<string>('AGORA_APP_CERTIFICATE') || '';
+    this.appId = this.configService.get<string>('AGORA_APP_ID') || '07f3de63ed2c431c9e7c40cd26b1c91b';
+    this.appCertificate = this.configService.get<string>('AGORA_APP_CERTIFICATE') || '1575b07111ce4d699ce99c26ea3ec5a4';
 
     if (!this.appId || !this.appCertificate) {
       this.logger.warn(

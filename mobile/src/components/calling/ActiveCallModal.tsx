@@ -52,9 +52,8 @@ export const ActiveCallModal: React.FC = () => {
 
   const isVideo = activeCall.callType === CallType.VIDEO;
   const isConnected = callState === 'CONNECTED';
-  const avatarUri =
-    activeCall.partnerAvatarUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80';
+  const avatarUri = activeCall.partnerAvatarUrl || null;
+  const nameInitial = (activeCall.partnerName || '?').charAt(0).toUpperCase();
 
   const formatTimer = (totalSeconds: number) => {
     const minutes = Math.floor(totalSeconds / 60);
@@ -131,7 +130,13 @@ export const ActiveCallModal: React.FC = () => {
               // Audio Call or Camera Muted State
               <View style={styles.avatarCenterBox}>
                 <View style={styles.avatarGlow}>
-                  <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
+                  {avatarUri ? (
+                    <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
+                  ) : (
+                    <View style={styles.largeAvatarInitial}>
+                      <Text style={styles.largeAvatarInitialText}>{nameInitial}</Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={styles.stagePartnerName}>{activeCall.partnerName}</Text>
                 <Text style={styles.stageStatusText}>
@@ -317,6 +322,19 @@ const styles = StyleSheet.create({
     width: 140,
     height: 140,
     borderRadius: 70,
+  },
+  largeAvatarInitial: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: '#FD5D65',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  largeAvatarInitialText: {
+    fontSize: 52,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   stagePartnerName: {
     color: '#FFFFFF',

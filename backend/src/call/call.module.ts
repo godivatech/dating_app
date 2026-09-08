@@ -3,6 +3,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { RedisModule } from '../redis/redis.module';
 import { AuthModule } from '../auth/auth.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { MediaModule } from '../media/media.module';
 import { CallService } from './services/call.service';
 import { AgoraTokenService } from './services/agora-token.service';
 import { CallGateway } from './gateways/call.gateway';
@@ -14,6 +15,7 @@ import { CallController } from './call.controller';
     RedisModule,
     AuthModule,
     NotificationsModule,
+    MediaModule,
   ],
   controllers: [CallController],
   providers: [

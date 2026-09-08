@@ -30,9 +30,8 @@ export const IncomingCallModal: React.FC = () => {
   if (!isVisible || !activeCall) return null;
 
   const isVideo = activeCall.callType === CallType.VIDEO;
-  const avatarUri =
-    activeCall.partnerAvatarUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&q=80';
+  const avatarUri = activeCall.partnerAvatarUrl || null;
+  const nameInitial = (activeCall.partnerName || '?').charAt(0).toUpperCase();
 
   return (
     <Modal
@@ -63,7 +62,13 @@ export const IncomingCallModal: React.FC = () => {
           {/* Central Avatar */}
           <View style={styles.avatarContainer}>
             <View style={styles.pulseCircle}>
-              <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+              ) : (
+                <View style={styles.avatarInitialCircle}>
+                  <Text style={styles.avatarInitialText}>{nameInitial}</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -163,6 +168,19 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
+  },
+  avatarInitialCircle: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#FD5D65',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitialText: {
+    fontSize: 56,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   actionRow: {
     flexDirection: 'row',

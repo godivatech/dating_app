@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   Logger,
   BadRequestException,
   NotFoundException,
@@ -9,6 +10,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AgoraTokenService } from './agora-token.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
+import type { StorageService } from '../../media/storage/storage.interface';
+import { STORAGE_SERVICE } from '../../media/storage/storage.interface';
 import { InitiateCallDto, AcceptCallDto, RejectCallDto, EndCallDto } from '../dto/call.dto';
 import {
   CallStatus,
@@ -30,6 +33,8 @@ export class CallService {
     private readonly redisService: RedisService,
     private readonly agoraTokenService: AgoraTokenService,
     private readonly notificationsService: NotificationsService,
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService: StorageService,
   ) {}
 
   /**
@@ -166,7 +171,8 @@ export class CallService {
     // 8. Dispatch Push Notification to Receiver
     const callerProfile = callLog.callerUser.profile;
     const callerName = callerProfile?.displayName || 'Someone';
-    const callerAvatarUrl = callerProfile?.photos?.[0]?.thumbnailKey || null;
+    const callerPhotoKey = callerProfile?.photos?.[0]?.thumbnailKey || callerProfile?.photos?.[0]?.objectKey || null;
+    const callerAvatarUrl = callerPhotoKey ? this.storageService.getPublicUrl(callerPhotoKey) : null;
 
     try {
       await this.notificationsService.createNotification(dto.receiverUserId, {

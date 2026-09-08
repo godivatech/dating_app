@@ -380,8 +380,8 @@ export default function ChatScreen() {
       {/* Messages List & Input with Keyboard Avoidance */}
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior="padding"
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 80}
       >
         {isLoadingMessages ? (
           <View style={styles.loadingBox}>

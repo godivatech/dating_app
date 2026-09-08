@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { callSocket } from '../services/call-socket.service';
 import { agoraRtcService } from '../services/rtc/agora-rtc.service';
+import { requestCallingPermissions } from '../utils/call-permissions';
 import {
   CallType,
   CallEndReason,
@@ -137,7 +138,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
       // Initialize and join the live Agora media channel
       try {
-        const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '';
+        const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
         if (appId) {
           await agoraRtcService.init(appId);
           await agoraRtcService.joinChannel({
@@ -200,11 +201,20 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       });
     });
 
+    // Automatically sync speaker state with native audio route (e.g. Bluetooth headset or loudspeaker)
+    agoraRtcService.onAudioRoutingChanged((routing: number) => {
+      // 3 = Built-in speaker; 5 = Bluetooth headset; 0/2 = Wired headset; 1 = Earpiece
+      set({ isSpeakerOn: routing === 3 });
+    });
+
     set({ isInitialized: true });
   },
 
-  startCall: (matchId, receiverUserId, partnerName, partnerAvatarUrl, callType = CallType.VIDEO) => {
+  startCall: async (matchId, receiverUserId, partnerName, partnerAvatarUrl, callType = CallType.VIDEO) => {
     get().initCallSocket();
+
+    const granted = await requestCallingPermissions(callType === CallType.VIDEO);
+    if (!granted) return;
 
     set({
       callState: 'OUTGOING_RINGING',
@@ -224,9 +234,12 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     callSocket.initiateCall(matchId, receiverUserId, callType);
   },
 
-  acceptIncomingCall: () => {
+  acceptIncomingCall: async () => {
     const { activeCall } = get();
     if (!activeCall || !activeCall.callId) return;
+
+    const granted = await requestCallingPermissions(activeCall.callType === CallType.VIDEO);
+    if (!granted) return;
 
     set({ statusMessage: 'Connecting...' });
     callSocket.acceptCall(activeCall.callId);
