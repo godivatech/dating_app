@@ -27,6 +27,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  private readonly activeUserSockets = new Map<string, Set<string>>();
 
   constructor(
     private readonly tokenService: TokenService,
@@ -62,9 +63,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = userId;
       await client.join(`user:${userId}`);
 
+      // Track presence
+      const userSockets = this.activeUserSockets.get(userId) || new Set<string>();
+      const wasOffline = userSockets.size === 0;
+      userSockets.add(client.id);
+      this.activeUserSockets.set(userId, userSockets);
+
       this.logger.log(
-        `[SOCKET_CONNECTED] User ${userId} connected on socket ${client.id}`,
+        `[SOCKET_CONNECTED] User ${userId} connected on socket ${client.id} (total active sockets: ${userSockets.size})`,
       );
+
+      if (wasOffline) {
+        this.server.emit('user.presence', { userId, isOnline: true });
+      }
 
       client.emit('authenticated', { userId });
     } catch (err: any) {
@@ -76,9 +87,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
+    const userId = client.data?.userId;
+    if (userId) {
+      const userSockets = this.activeUserSockets.get(userId);
+      if (userSockets) {
+        userSockets.delete(client.id);
+        if (userSockets.size === 0) {
+          this.activeUserSockets.delete(userId);
+          const lastSeen = new Date().toISOString();
+          this.logger.log(
+            `[USER_OFFLINE] User ${userId} is now offline. Broadcasting presence.`,
+          );
+          this.server.emit('user.presence', { userId, isOnline: false, lastSeen });
+        }
+      }
+    }
+
     this.logger.log(
       `[SOCKET_DISCONNECTED] Socket ${client.id} disconnected (user: ${client.data?.userId})`,
     );
+  }
+
+  @SubscribeMessage('presence.query')
+  handlePresenceQuery(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { targetUserId: string },
+  ) {
+    if (!data?.targetUserId) return;
+    const isOnline = (this.activeUserSockets.get(data.targetUserId)?.size || 0) > 0;
+    client.emit('presence.result', {
+      userId: data.targetUserId,
+      isOnline,
+      lastSeen: isOnline ? undefined : new Date().toISOString(),
+    });
   }
 
   @SubscribeMessage('conversation.join')

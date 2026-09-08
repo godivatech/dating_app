@@ -18,6 +18,8 @@ export class ChatSocketService {
   private errorListeners: Set<(err: { event?: string; clientMessageId?: string; message: string }) => void> = new Set();
   private likeReceivedListeners: Set<(data: { hasNote: boolean; note?: string; actorDisplayName: string; actorProfileId: string }) => void> = new Set();
   private matchFormedListeners: Set<(data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => void> = new Set();
+  private presenceListeners: Set<(data: { userId: string; isOnline: boolean; lastSeen?: string }) => void> = new Set();
+  private presenceResultListeners: Set<(data: { userId: string; isOnline: boolean; lastSeen?: string }) => void> = new Set();
 
   private constructor() {}
 
@@ -98,6 +100,14 @@ export class ChatSocketService {
 
     this.socket.on('match.formed', (data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => {
       this.matchFormedListeners.forEach((listener) => listener(data));
+    });
+
+    this.socket.on('user.presence', (data: { userId: string; isOnline: boolean; lastSeen?: string }) => {
+      this.presenceListeners.forEach((listener) => listener(data));
+    });
+
+    this.socket.on('presence.result', (data: { userId: string; isOnline: boolean; lastSeen?: string }) => {
+      this.presenceResultListeners.forEach((listener) => listener(data));
     });
   }
 
@@ -217,6 +227,22 @@ export class ChatSocketService {
   onMatchFormed(fn: (data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => void): () => void {
     this.matchFormedListeners.add(fn);
     return () => this.matchFormedListeners.delete(fn);
+  }
+
+  onPresenceChange(fn: (data: { userId: string; isOnline: boolean; lastSeen?: string }) => void): () => void {
+    this.presenceListeners.add(fn);
+    return () => this.presenceListeners.delete(fn);
+  }
+
+  onPresenceResult(fn: (data: { userId: string; isOnline: boolean; lastSeen?: string }) => void): () => void {
+    this.presenceResultListeners.add(fn);
+    return () => this.presenceResultListeners.delete(fn);
+  }
+
+  queryPresence(targetUserId: string): void {
+    if (this.socket?.connected) {
+      this.socket.emit('presence.query', { targetUserId });
+    }
   }
 
   private notifyConnection(connected: boolean): void {

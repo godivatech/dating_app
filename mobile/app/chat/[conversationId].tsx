@@ -18,8 +18,10 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { useChatStore } from '../../src/stores/chat-store';
 import { useSafetyStore } from '../../src/stores/safety-store';
 import { useCallStore } from '../../src/stores/call-store';
+import { useAuthStore } from '../../src/stores/auth-store';
+import { chatSocket } from '../../src/services/chat-socket.service';
 import { useScreenCapturePrevention } from '../../src/hooks/useScreenCapturePrevention';
-import { SafeMessage, ReportTargetType, CallType } from '../../../shared/src/types';
+import { SafeMessage, ReportTargetType, CallType, MessageDeliveryStatus } from '../../../shared/src/types';
 import { ReportModal } from '../../src/components/ReportModal';
 import { Colors } from '../../src/theme/colors';
 
@@ -46,10 +48,12 @@ export default function ChatScreen() {
 
   const { blockUser } = useSafetyStore();
   const { startCall } = useCallStore();
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   const [inputText, setInputText] = useState('');
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isBlockedLocally, setIsBlockedLocally] = useState(false);
+  const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -67,6 +71,13 @@ export default function ChatScreen() {
       }
     };
   }, [conversationId, openConversation, closeConversation]);
+
+  // Mark messages as read when viewing conversation
+  useEffect(() => {
+    if (conversationId && convMessages.length > 0) {
+      useChatStore.getState().markAsRead(conversationId);
+    }
+  }, [conversationId, convMessages.length]);
 
   useEffect(() => {
     if (error) {
@@ -104,6 +115,38 @@ export default function ChatScreen() {
   };
 
   const matchedProfile = activeConversation?.matchedProfile;
+
+  // Real-time partner presence tracking
+  useEffect(() => {
+    if (!matchedProfile?.userId) return;
+
+    chatSocket.queryPresence(matchedProfile.userId);
+
+    const unsubResult = chatSocket.onPresenceResult((data) => {
+      if (data.userId === matchedProfile.userId) {
+        setIsPartnerOnline(data.isOnline);
+      }
+    });
+
+    const unsubChange = chatSocket.onPresenceChange((data) => {
+      if (data.userId === matchedProfile.userId) {
+        setIsPartnerOnline(data.isOnline);
+      }
+    });
+
+    return () => {
+      unsubResult();
+      unsubChange();
+    };
+  }, [matchedProfile?.userId]);
+
+  const handleMicPress = () => {
+    Alert.alert(
+      'Voice Notes 🎙️',
+      'Voice notes are being configured for our next build. In the meantime, you can make crystal-clear live Audio & Video Calls using the call buttons in the header!',
+      [{ text: 'OK', style: 'default' }],
+    );
+  };
 
   const handleBlock = () => {
     if (!matchedProfile) return;
@@ -154,7 +197,8 @@ export default function ChatScreen() {
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
 
   const renderMessageItem = ({ item }: { item: SafeMessage }) => {
-    const isMe = item.isMine ?? (item.senderUserId !== matchedProfile?.userId);
+    // Authoritative sender check: matches authenticated user ID or isMine flag
+    const isMe = (currentUserId && item.senderUserId === currentUserId) || item.isMine === true;
     const timeString = new Date(item.createdAt).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
@@ -167,6 +211,11 @@ export default function ChatScreen() {
           isMe ? styles.messageRowRight : styles.messageRowLeft,
         ]}
       >
+        {/* Incoming partner avatar on the left */}
+        {!isMe && (
+          <Image source={{ uri: partnerPhoto }} style={styles.bubbleAvatar} />
+        )}
+
         <View
           style={[
             styles.messageBubble,
@@ -182,14 +231,29 @@ export default function ChatScreen() {
             {item.body}
           </Text>
 
-          <Text
-            style={[
-              styles.messageTime,
-              isMe ? styles.timeOutgoing : styles.timeIncoming,
-            ]}
-          >
-            {timeString}
-          </Text>
+          <View style={styles.bubbleMetaRow}>
+            <Text
+              style={[
+                styles.messageTime,
+                isMe ? styles.timeOutgoing : styles.timeIncoming,
+              ]}
+            >
+              {timeString}
+            </Text>
+
+            {/* Delivery / Read Status Ticks for Outgoing Messages */}
+            {isMe && (
+              <View style={styles.tickBox}>
+                {item.deliveryStatus === MessageDeliveryStatus.READ ? (
+                  <Ionicons name="checkmark-done" size={14} color="#64D2FF" />
+                ) : item.deliveryStatus === MessageDeliveryStatus.DELIVERED ? (
+                  <Ionicons name="checkmark-done" size={14} color="rgba(255, 255, 255, 0.75)" />
+                ) : (
+                  <Ionicons name="checkmark" size={13} color="rgba(255, 255, 255, 0.75)" />
+                )}
+              </View>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -211,12 +275,22 @@ export default function ChatScreen() {
         <View style={styles.headerPartnerInfo}>
           <View style={styles.partnerAvatarWrapper}>
             <Image source={{ uri: partnerPhoto }} style={styles.partnerAvatar} />
-            <View style={styles.headerOnlineDot} />
+            <View
+              style={[
+                styles.headerOnlineDot,
+                !isPartnerOnline && styles.headerOfflineDot,
+              ]}
+            />
           </View>
           <View style={styles.partnerNameCol}>
             <Text style={styles.partnerNameText}>{partnerName}</Text>
-            <Text style={styles.partnerStatusText}>
-              {isPartnerTyping ? 'Typing...' : 'Online'}
+            <Text
+              style={[
+                styles.partnerStatusText,
+                !isPartnerOnline && !isPartnerTyping && styles.partnerStatusOffline,
+              ]}
+            >
+              {isPartnerTyping ? 'Typing...' : isPartnerOnline ? 'Online' : 'Offline'}
             </Text>
           </View>
         </View>
@@ -300,8 +374,12 @@ export default function ChatScreen() {
                 onChangeText={handleTextChange}
                 multiline={false}
               />
-              <TouchableOpacity style={styles.attachmentBtn} activeOpacity={0.7}>
-                <Feather name="mic" size={18} color={Colors.textMuted} />
+              <TouchableOpacity
+                style={styles.attachmentBtn}
+                onPress={handleMicPress}
+                activeOpacity={0.7}
+              >
+                <Feather name="mic" size={18} color={Colors.primary} />
               </TouchableOpacity>
             </View>
 
@@ -478,14 +556,36 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
-    alignSelf: 'flex-end',
   },
   timeIncoming: {
     color: Colors.textMuted,
   },
   timeOutgoing: {
     color: 'rgba(255, 255, 255, 0.75)',
+  },
+  bubbleMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    gap: 3,
+  },
+  tickBox: {
+    marginLeft: 2,
+  },
+  bubbleAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    marginRight: 8,
+    alignSelf: 'flex-end',
+    marginBottom: 2,
+  },
+  headerOfflineDot: {
+    backgroundColor: '#8E8E93',
+  },
+  partnerStatusOffline: {
+    color: Colors.textMuted,
   },
   emptyMessagesBox: {
     alignItems: 'center',

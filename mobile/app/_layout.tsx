@@ -13,7 +13,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from '../src/stores/auth-store';
 import { useNotificationsStore } from '../src/stores/notifications-store';
+import { useCallStore } from '../src/stores/call-store';
 import { chatSocket } from '../src/services/chat-socket.service';
+import { callSocket } from '../src/services/call-socket.service';
 import { MatchCelebrationModal, MatchedUserInfo } from '../src/components/MatchCelebrationModal';
 
 import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
@@ -112,8 +114,9 @@ export default function RootLayout() {
       // Register push notifications
       registerForPushNotificationsAsync();
 
-      // Connect real-time WebSocket
+      // Connect real-time WebSockets
       chatSocket.connect();
+      useCallStore.getState().initCallSocket();
 
       // Listen for real-time incoming likes
       const unsubLike = chatSocket.onLikeReceived((data) => {
@@ -145,6 +148,7 @@ export default function RootLayout() {
       };
     } else if (status === 'UNAUTHENTICATED') {
       chatSocket.disconnect();
+      callSocket.disconnect();
     }
   }, [status]);
 
