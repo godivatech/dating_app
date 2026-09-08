@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   NotFoundException,
   Logger,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
@@ -35,6 +36,7 @@ import {
 
 import { ContentFilterService } from '../../safety/services/content-filter.service';
 import { DisciplineService } from '../../safety/services/discipline.service';
+import { ChatGateway } from '../../chat/gateways/chat.gateway';
 
 export const ACTION_RATE_WINDOW_SECONDS = 60;
 export const MAX_ACTIONS_PER_WINDOW = 100;
@@ -53,6 +55,8 @@ export class ActionsService {
     private readonly storageService: StorageService,
     private readonly contentFilterService: ContentFilterService,
     private readonly disciplineService: DisciplineService,
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   /**
@@ -370,6 +374,34 @@ export class ActionsService {
             `match:${matchId}:user:${targetUserId}`,
           ),
         ]);
+
+        // Real-time WebSocket emission for immediate celebratory popup on both active client devices
+        try {
+          const actorPhotoKey = requesterProfile.photos?.[0]?.thumbnailKey || requesterProfile.photos?.[0]?.objectKey;
+          const targetPhotoKey = targetProfile.photos?.[0]?.thumbnailKey || targetProfile.photos?.[0]?.objectKey;
+          const actorPhotoUrl = actorPhotoKey ? this.storageService.getPublicUrl(actorPhotoKey) : null;
+          const targetPhotoUrl = targetPhotoKey ? this.storageService.getPublicUrl(targetPhotoKey) : null;
+
+          this.chatGateway?.server?.to(`user:${actorId}`)?.emit('match.formed', {
+            match: result.match,
+            matchedUser: {
+              displayName: targetDisplayName,
+              profileId: targetProfile.id,
+              photoUrl: targetPhotoUrl,
+            },
+          });
+
+          this.chatGateway?.server?.to(`user:${targetUserId}`)?.emit('match.formed', {
+            match: result.match,
+            matchedUser: {
+              displayName: actorDisplayName,
+              profileId: requesterProfile.id,
+              photoUrl: actorPhotoUrl,
+            },
+          });
+        } catch (wsErr: any) {
+          this.logger.warn(`[MATCH_WS_FAILED] Failed to emit match.formed: ${wsErr.message}`);
+        }
       } catch (notifErr: any) {
         this.logger.warn(
           `[NOTIF_MATCH_FAILED] Failed to dispatch match notification: ${notifErr.message}`,
@@ -378,27 +410,66 @@ export class ActionsService {
     } else if (
       !result.matched &&
       dto.actionType === ActionType.LIKE &&
-      cleanNote &&
       !isShadowBanned
     ) {
       try {
-        await this.notificationsService.createNotification(
+        const hasSeeLikes = await this.entitlementService.hasEntitlement(
           targetProfile.userId,
-          {
-            type: NotificationType.SYSTEM,
-            title: `New Note from ${requesterProfile.displayName} 💌`,
-            body: `"${cleanNote.slice(0, 80)}${cleanNote.length > 80 ? '...' : ''}"`,
-            metadata: {
-              type: 'DIRECT_NOTE',
-              actorProfileId: requesterProfile.id,
-              actorDisplayName: requesterProfile.displayName,
-              note: cleanNote,
-            },
-          },
-          `direct_note:${userId}:${targetProfile.id}`,
+          EntitlementKey.SEE_LIKES,
         );
+
+        const actorName = requesterProfile.displayName || 'Someone';
+
+        if (cleanNote) {
+          await this.notificationsService.createNotification(
+            targetProfile.userId,
+            {
+              type: NotificationType.SYSTEM,
+              title: `New Note from ${actorName} 💌`,
+              body: `"${cleanNote.slice(0, 80)}${cleanNote.length > 80 ? '...' : ''}"`,
+              metadata: {
+                type: 'DIRECT_NOTE',
+                actorProfileId: requesterProfile.id,
+                actorDisplayName: actorName,
+                note: cleanNote,
+              },
+            },
+            `direct_note:${userId}:${targetProfile.id}`,
+          );
+        } else {
+          await this.notificationsService.createNotification(
+            targetProfile.userId,
+            {
+              type: NotificationType.SYSTEM,
+              title: hasSeeLikes
+                ? `${actorName} liked your profile! ✨`
+                : 'Someone liked your profile! ✨',
+              body: hasSeeLikes
+                ? `Check out ${actorName}'s profile in your likes.`
+                : 'Open Truelove to see your new admirer.',
+              metadata: {
+                type: 'LIKE_RECEIVED',
+                actorProfileId: requesterProfile.id,
+                actorDisplayName: hasSeeLikes ? actorName : undefined,
+              },
+            },
+            `like:${userId}:${targetProfile.id}`,
+          );
+        }
+
+        // Real-time WebSocket event to update badge & notify recipient immediately if online
+        try {
+          this.chatGateway?.server?.to(`user:${targetProfile.userId}`)?.emit('like.received', {
+            hasNote: !!cleanNote,
+            note: cleanNote || undefined,
+            actorDisplayName: hasSeeLikes || !!cleanNote ? actorName : 'Someone',
+            actorProfileId: requesterProfile.id,
+          });
+        } catch (wsErr: any) {
+          this.logger.warn(`[LIKE_WS_FAILED] Failed to emit like.received: ${wsErr.message}`);
+        }
       } catch (err: any) {
-        this.logger.warn(`Could not dispatch direct note notification: ${err.message}`);
+        this.logger.warn(`Could not dispatch direct note/like notification: ${err.message}`);
       }
     }
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Dimensions,
   TextInput,
   Animated,
+  Vibration,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -16,6 +17,7 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
+import { useNotificationsStore } from '../src/stores/notifications-store';
 import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileDetailModal } from '../src/components/ProfileDetailModal';
 import { SendNoteModal } from '../src/components/SendNoteModal';
@@ -25,7 +27,7 @@ import { ActionType } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
 import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevention';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function DiscoveryScreen() {
   const router = useRouter();
@@ -47,10 +49,39 @@ export default function DiscoveryScreen() {
   const [searchQuery, setSearchQuery] = useState(params.q || params.interest || '');
   const [searchIndex, setSearchIndex] = useState(0);
 
+  const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const fetchUnreadCount = useNotificationsStore((s) => s.fetchUnreadCount);
+
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<any | null>(null);
   const [likeHeartAnim] = useState(new Animated.Value(0));
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
+
+  // Tactile swipe exit & feedback pill animation
+  const cardTranslateX = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
+  const [toastPill, setToastPill] = useState<{ visible: boolean; text: string }>({ visible: false, text: '' });
+  const toastPillAnim = useRef(new Animated.Value(0)).current;
+  const toastPillTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showPill = (text: string) => {
+    if (toastPillTimeout.current) clearTimeout(toastPillTimeout.current);
+    setToastPill({ visible: true, text });
+    Animated.spring(toastPillAnim, {
+      toValue: 1,
+      friction: 6,
+      tension: 50,
+      useNativeDriver: true,
+    }).start();
+
+    toastPillTimeout.current = setTimeout(() => {
+      Animated.timing(toastPillAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => setToastPill({ visible: false, text: '' }));
+    }, 2200);
+  };
 
   // Sync params query if navigation passes search or interest
   useEffect(() => {
@@ -73,7 +104,8 @@ export default function DiscoveryScreen() {
     useCallback(() => {
       fetchProfile();
       fetchDiscoveryFeed();
-    }, [fetchProfile, fetchDiscoveryFeed]),
+      fetchUnreadCount();
+    }, [fetchProfile, fetchDiscoveryFeed, fetchUnreadCount]),
   );
 
   // Filter candidates in real-time by Name, City, Region, Bio, or Interests
@@ -144,29 +176,58 @@ export default function DiscoveryScreen() {
   const handleAction = async (actionType: ActionType) => {
     if (!candidate || isActionLoading) return;
 
-    if (actionType === ActionType.LIKE) {
-      triggerHeartAnimation();
-    }
+    const currentCandidate = candidate;
+    const targetX = actionType === ActionType.LIKE ? SCREEN_WIDTH * 1.25 : -SCREEN_WIDTH * 1.25;
 
-    const result = await recordAction(candidate.profileId, actionType);
-
-    if (isFiltering) {
-      if (searchIndex < filteredCandidates.length - 1) {
-        setSearchIndex((prev) => prev + 1);
+    // 1. Instant tactile vibration & confirmation feedback
+    try {
+      if (actionType === ActionType.LIKE) {
+        Vibration.vibrate(35);
+        showPill(`❤️ Liked ${currentCandidate.displayName}!`);
       } else {
-        setSearchIndex(filteredCandidates.length);
+        Vibration.vibrate(20);
+        showPill(`Passed on ${currentCandidate.displayName}`);
       }
-    }
+    } catch {}
 
-    if (!result) {
-      const storeError = useDiscoveryStore.getState().error;
-      if (
-        storeError &&
-        (storeError.toLowerCase().includes('quota') || storeError.toLowerCase().includes('limit'))
-      ) {
-        openPaywall('DAILY_LIKES');
+    // 2. Smooth card exit animation
+    Animated.parallel([
+      Animated.timing(cardTranslateX, {
+        toValue: targetX,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start(async () => {
+      // 3. Record action with backend and advance state
+      const result = await recordAction(currentCandidate.profileId, actionType);
+
+      if (isFiltering) {
+        if (searchIndex < filteredCandidates.length - 1) {
+          setSearchIndex((prev) => prev + 1);
+        } else {
+          setSearchIndex(filteredCandidates.length);
+        }
       }
-    }
+
+      // 4. Instant reset of card transform for the next incoming candidate
+      cardTranslateX.setValue(0);
+      cardOpacity.setValue(1);
+
+      if (!result) {
+        const storeError = useDiscoveryStore.getState().error;
+        if (
+          storeError &&
+          (storeError.toLowerCase().includes('quota') || storeError.toLowerCase().includes('limit'))
+        ) {
+          openPaywall('DAILY_LIKES');
+        }
+      }
+    });
   };
 
   const handleRewind = async () => {
@@ -220,6 +281,7 @@ export default function DiscoveryScreen() {
             activeOpacity={0.7}
           >
             <Ionicons name="heart" size={18} color={Colors.primary} />
+            {unreadCount > 0 && <View style={styles.unreadBadgeDot} />}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -360,137 +422,191 @@ export default function DiscoveryScreen() {
         </View>
       ) : (
         <View style={styles.cardContainer}>
-          {/* Swiping Card */}
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              setSelectedProfileForModal({
-                id: candidate.profileId,
-                name: candidate.displayName,
-                age: candidate.age,
-                city: candidate.locationCity
-                  ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
-                  : 'Nearby',
-                bio: candidate.bio || undefined,
-                photos: candidate.photos,
-                interests: candidate.interests?.map((i) => i.name) || [],
-                distanceKm: candidate.distanceKm,
-                distanceDisplay: candidate.distanceDisplay,
-              })
-            }
-            activeOpacity={0.95}
+          {/* Swiping Card with smooth slide & stamps */}
+          <Animated.View
+            style={[
+              styles.animatedCardWrapper,
+              {
+                transform: [
+                  { translateX: cardTranslateX },
+                  {
+                    rotate: cardTranslateX.interpolate({
+                      inputRange: [-SCREEN_WIDTH, 0, SCREEN_WIDTH],
+                      outputRange: ['-14deg', '0deg', '14deg'],
+                    }),
+                  },
+                ],
+                opacity: cardOpacity,
+              },
+            ]}
           >
-            {/* Card Main Photo */}
-            <Image
-              source={{ uri: currentPhotoUrl }}
-              style={styles.cardPhoto}
-              resizeMode="cover"
-            />
-
-            {/* Photo Step Indicators */}
-            {candidate.photos.length > 1 && (
-              <View style={styles.photoIndicators}>
-                {candidate.photos.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.indicatorBar,
-                      i === activePhotoIndex && styles.indicatorBarActive,
-                    ]}
-                  />
-                ))}
-              </View>
-            )}
-
-            {/* Left / Right Tap zones for multiple photos */}
             <TouchableOpacity
-              style={styles.tapZoneLeft}
-              onPress={(e) => {
-                e.stopPropagation();
-                handlePrevPhoto();
-              }}
-            />
-            <TouchableOpacity
-              style={styles.tapZoneRight}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleNextPhoto();
-              }}
-            />
-
-            {/* Top Right Floating Chip: Dynamic Relative Distance */}
-            <View style={styles.distancePill}>
-              <Ionicons
-                name="location-sharp"
-                size={12}
-                color={Colors.white}
-                style={{ marginRight: 4 }}
+              style={styles.card}
+              onPress={() =>
+                setSelectedProfileForModal({
+                  id: candidate.profileId,
+                  name: candidate.displayName,
+                  age: candidate.age,
+                  city: candidate.locationCity
+                    ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
+                    : 'Nearby',
+                  bio: candidate.bio || undefined,
+                  photos: candidate.photos,
+                  interests: candidate.interests?.map((i) => i.name) || [],
+                  distanceKm: candidate.distanceKm,
+                  distanceDisplay: candidate.distanceDisplay,
+                })
+              }
+              activeOpacity={0.95}
+            >
+              {/* Card Main Photo */}
+              <Image
+                source={{ uri: currentPhotoUrl }}
+                style={styles.cardPhoto}
+                resizeMode="cover"
               />
-              <Text style={styles.distancePillText}>
-                {candidate.distanceDisplay ||
-                  (candidate.locationCity
-                    ? candidate.locationCity
-                    : 'Nearby')}
-              </Text>
-            </View>
 
-            {/* Bottom Card Info Overlay */}
-            <View style={styles.cardOverlay}>
-              <View style={styles.infoRow}>
-                {/* 75% Match Circle */}
-                <View style={styles.matchCircle}>
-                  <Text style={styles.matchScoreText}>75%</Text>
+              {/* Photo Step Indicators */}
+              {candidate.photos.length > 1 && (
+                <View style={styles.photoIndicators}>
+                  {candidate.photos.map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.indicatorBar,
+                        i === activePhotoIndex && styles.indicatorBarActive,
+                      ]}
+                    />
+                  ))}
                 </View>
+              )}
 
-                {/* Name & Location */}
-                <View style={styles.nameBlock}>
-                  <Text style={styles.candidateName}>
-                    {candidate.displayName}
-                    {candidate.age ? `, ${candidate.age}` : ''}
-                  </Text>
-                  <Text style={styles.candidateLocation}>
-                    {candidate.locationCity
-                      ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
-                      : candidate.distanceDisplay || 'Nearby'}
-                  </Text>
-                </View>
+              {/* Left / Right Tap zones for multiple photos */}
+              <TouchableOpacity
+                style={styles.tapZoneLeft}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handlePrevPhoto();
+                }}
+              />
+              <TouchableOpacity
+                style={styles.tapZoneRight}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleNextPhoto();
+                }}
+              />
 
-                {/* Social Badges on Bottom Right */}
-                <View style={styles.socialBadges}>
-                  <View style={styles.socialIconBox}>
-                    <Ionicons name="logo-twitter" size={14} color={Colors.white} />
-                  </View>
-                  <View style={styles.socialIconBox}>
-                    <Ionicons name="logo-instagram" size={14} color={Colors.white} />
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Heart Animation Overlay */}
-            {showHeartOverlay && (
+              {/* LIKE Stamp Overlay */}
               <Animated.View
                 style={[
-                  styles.heartAnimContainer,
+                  styles.likeStamp,
                   {
-                    transform: [
-                      {
-                        scale: likeHeartAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0.3, 1.3],
-                        }),
-                      },
-                    ],
-                    opacity: likeHeartAnim,
+                    opacity: cardTranslateX.interpolate({
+                      inputRange: [0, 40, 120],
+                      outputRange: [0, 0.6, 1],
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [{ rotate: '-15deg' }],
                   },
                 ]}
+                pointerEvents="none"
               >
-                <View style={styles.heartAnimCircle}>
-                  <Ionicons name="heart" size={54} color={Colors.white} />
-                </View>
+                <Text style={styles.likeStampText}>LIKE</Text>
               </Animated.View>
-            )}
-          </TouchableOpacity>
+
+              {/* NOPE Stamp Overlay */}
+              <Animated.View
+                style={[
+                  styles.nopeStamp,
+                  {
+                    opacity: cardTranslateX.interpolate({
+                      inputRange: [-120, -40, 0],
+                      outputRange: [1, 0.6, 0],
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [{ rotate: '15deg' }],
+                  },
+                ]}
+                pointerEvents="none"
+              >
+                <Text style={styles.nopeStampText}>NOPE</Text>
+              </Animated.View>
+
+              {/* Top Right Floating Chip: Dynamic Relative Distance */}
+              <View style={styles.distancePill}>
+                <Ionicons
+                  name="location-sharp"
+                  size={12}
+                  color={Colors.white}
+                  style={{ marginRight: 4 }}
+                />
+                <Text style={styles.distancePillText}>
+                  {candidate.distanceDisplay ||
+                    (candidate.locationCity
+                      ? candidate.locationCity
+                      : 'Nearby')}
+                </Text>
+              </View>
+
+              {/* Bottom Card Info Overlay */}
+              <View style={styles.cardOverlay}>
+                <View style={styles.infoRow}>
+                  {/* 75% Match Circle */}
+                  <View style={styles.matchCircle}>
+                    <Text style={styles.matchScoreText}>75%</Text>
+                  </View>
+
+                  {/* Name & Location */}
+                  <View style={styles.nameBlock}>
+                    <Text style={styles.candidateName}>
+                      {candidate.displayName}
+                      {candidate.age ? `, ${candidate.age}` : ''}
+                    </Text>
+                    <Text style={styles.candidateLocation}>
+                      {candidate.locationCity
+                        ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
+                        : candidate.distanceDisplay || 'Nearby'}
+                    </Text>
+                  </View>
+
+                  {/* Social Badges on Bottom Right */}
+                  <View style={styles.socialBadges}>
+                    <View style={styles.socialIconBox}>
+                      <Ionicons name="logo-twitter" size={14} color={Colors.white} />
+                    </View>
+                    <View style={styles.socialIconBox}>
+                      <Ionicons name="logo-instagram" size={14} color={Colors.white} />
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              {/* Heart Animation Overlay */}
+              {showHeartOverlay && (
+                <Animated.View
+                  style={[
+                    styles.heartAnimContainer,
+                    {
+                      transform: [
+                        {
+                          scale: likeHeartAnim.interpolate({
+                            inputRange: [0, 1],
+                            outputRange: [0.3, 1.3],
+                          }),
+                        },
+                      ],
+                      opacity: likeHeartAnim,
+                    },
+                  ]}
+                >
+                  <View style={styles.heartAnimCircle}>
+                    <Ionicons name="heart" size={54} color={Colors.white} />
+                  </View>
+                </Animated.View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Action Row Below Card */}
           <View style={styles.actionButtonsRow}>
@@ -565,12 +681,35 @@ export default function DiscoveryScreen() {
         candidate={candidate}
         onClose={() => setNoteModalVisible(false)}
         onSent={() => {
-          triggerHeartAnimation();
+          showPill(`💌 Note delivered to ${candidate.displayName}!`);
           if (isFiltering) {
             setSearchIndex((prev) => prev + 1);
           }
         }}
       />
+
+      {/* Floating Confirmation Pill Toast */}
+      {toastPill.visible && (
+        <Animated.View
+          style={[
+            styles.floatingToastPill,
+            {
+              opacity: toastPillAnim,
+              transform: [
+                {
+                  translateY: toastPillAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [15, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={styles.floatingToastPillText}>{toastPill.text}</Text>
+        </Animated.View>
+      )}
 
       {/* Paywall Modal */}
       <PaywallModal />
@@ -941,5 +1080,80 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 14,
     fontWeight: '600',
+  },
+  animatedCardWrapper: {
+    width: '100%',
+    flex: 1,
+    maxHeight: SCREEN_HEIGHT * 0.58,
+  },
+  likeStamp: {
+    position: 'absolute',
+    top: 36,
+    left: 24,
+    borderWidth: 3,
+    borderColor: '#4CD964',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    zIndex: 99,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  likeStampText: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#4CD964',
+    letterSpacing: 2,
+  },
+  nopeStamp: {
+    position: 'absolute',
+    top: 36,
+    right: 24,
+    borderWidth: 3,
+    borderColor: '#FF3B30',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    zIndex: 99,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+  },
+  nopeStampText: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: '#FF3B30',
+    letterSpacing: 2,
+  },
+  floatingToastPill: {
+    position: 'absolute',
+    bottom: 95,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(20, 18, 30, 0.94)',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 75, 110, 0.4)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+  },
+  floatingToastPillText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  unreadBadgeDot: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4B6E',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
   },
 });

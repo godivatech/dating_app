@@ -16,6 +16,8 @@ export class ChatSocketService {
   private connectionListeners: Set<(connected: boolean) => void> = new Set();
   private syncResponseListeners: Set<(data: { conversationId: string; messages: SafeMessage[] }) => void> = new Set();
   private errorListeners: Set<(err: { event?: string; clientMessageId?: string; message: string }) => void> = new Set();
+  private likeReceivedListeners: Set<(data: { hasNote: boolean; note?: string; actorDisplayName: string; actorProfileId: string }) => void> = new Set();
+  private matchFormedListeners: Set<(data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => void> = new Set();
 
   private constructor() {}
 
@@ -88,6 +90,14 @@ export class ChatSocketService {
 
     this.socket.on('error', (err: { event?: string; clientMessageId?: string; message: string }) => {
       this.errorListeners.forEach((listener) => listener(err));
+    });
+
+    this.socket.on('like.received', (data: { hasNote: boolean; note?: string; actorDisplayName: string; actorProfileId: string }) => {
+      this.likeReceivedListeners.forEach((listener) => listener(data));
+    });
+
+    this.socket.on('match.formed', (data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => {
+      this.matchFormedListeners.forEach((listener) => listener(data));
     });
   }
 
@@ -197,6 +207,16 @@ export class ChatSocketService {
   onError(fn: (err: { event?: string; clientMessageId?: string; message: string }) => void): () => void {
     this.errorListeners.add(fn);
     return () => this.errorListeners.delete(fn);
+  }
+
+  onLikeReceived(fn: (data: { hasNote: boolean; note?: string; actorDisplayName: string; actorProfileId: string }) => void): () => void {
+    this.likeReceivedListeners.add(fn);
+    return () => this.likeReceivedListeners.delete(fn);
+  }
+
+  onMatchFormed(fn: (data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => void): () => void {
+    this.matchFormedListeners.add(fn);
+    return () => this.matchFormedListeners.delete(fn);
   }
 
   private notifyConnection(connected: boolean): void {
