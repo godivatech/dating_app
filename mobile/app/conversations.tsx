@@ -43,8 +43,19 @@ export default function ConversationsScreen() {
     setRefreshing(false);
   }, [fetchConversations]);
 
-  const handleOpenConversation = (conversationId: string) => {
-    router.push(`/chat/${conversationId}` as any);
+  const handleOpenConversation = (item: SafeConversationSummary) => {
+    const candidate = item.matchedProfile;
+    const photoUrl =
+      candidate?.photos?.[0]?.thumbnailUrl ||
+      candidate?.photos?.[0]?.mediumUrl ||
+      '';
+    router.push({
+      pathname: `/chat/${item.id}`,
+      params: {
+        partnerName: candidate?.displayName || '',
+        partnerPhoto: photoUrl,
+      },
+    } as any);
   };
 
   const formatTimestamp = (dateStr?: string) => {
@@ -67,16 +78,24 @@ export default function ConversationsScreen() {
     const photoUrl =
       candidate?.photos?.[0]?.thumbnailUrl ||
       candidate?.photos?.[0]?.mediumUrl ||
-      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+      null;
 
     return (
       <TouchableOpacity
         style={styles.convCard}
-        onPress={() => handleOpenConversation(item.id)}
+        onPress={() => handleOpenConversation(item)}
         activeOpacity={0.8}
       >
         <View style={styles.avatarWrapper}>
-          <Image source={{ uri: photoUrl }} style={styles.avatar} />
+          {photoUrl ? (
+            <Image source={{ uri: photoUrl }} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarPlaceholder]}>
+              <Text style={styles.avatarInitial}>
+                {(candidate?.displayName || 'M').charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
           <View style={styles.onlineDot} />
         </View>
 
@@ -240,6 +259,16 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
+  },
+  avatarPlaceholder: {
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitial: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   onlineDot: {
     position: 'absolute',

@@ -9,6 +9,7 @@ import {
   MessageDeliveryStatus,
   MessageType,
 } from '../../../shared/src/types';
+import { useAuthStore } from './auth-store';
 
 interface ChatState {
   conversations: SafeConversationSummary[];
@@ -56,21 +57,28 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
 
     chatSocket.onMessageCreated(({ conversationId, message }) => {
+      const myUserId = useAuthStore.getState().user?.id;
+      const isMine = myUserId ? message.senderUserId === myUserId : message.senderUserId === 'me';
+      const normalizedMessage: SafeMessage = {
+        ...message,
+        isMine,
+      };
+
       const currentMessages = get().messages[conversationId] || [];
       // Deduplicate by id or clientMessageId
       const exists = currentMessages.some(
-        (m) => m.id === message.id || m.clientMessageId === message.clientMessageId,
+        (m) => m.id === normalizedMessage.id || m.clientMessageId === normalizedMessage.clientMessageId,
       );
 
       let updatedMessages = currentMessages;
       if (exists) {
         updatedMessages = currentMessages.map((m) =>
-          m.clientMessageId === message.clientMessageId || m.id === message.id
-            ? message
+          m.clientMessageId === normalizedMessage.clientMessageId || m.id === normalizedMessage.id
+            ? normalizedMessage
             : m,
         );
       } else {
-        updatedMessages = [...currentMessages, message].sort(
+        updatedMessages = [...currentMessages, normalizedMessage].sort(
           (a, b) => a.sequence - b.sequence,
         );
       }
@@ -84,20 +92,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
           c.id === conversationId
             ? {
                 ...c,
-                lastMessage: message,
+                lastMessage: normalizedMessage,
                 unreadCount:
-                  state.activeConversation?.id === conversationId || message.isMine
+                  state.activeConversation?.id === conversationId || isMine
                     ? c.unreadCount
                     : c.unreadCount + 1,
-                updatedAt: message.createdAt,
+                updatedAt: normalizedMessage.createdAt,
               }
             : c,
         ),
       }));
 
       // Send delivery ACK if not sent by me
-      if (!message.isMine) {
-        chatSocket.sendDeliveryAck(conversationId, message.id, message.sequence);
+      if (!isMine) {
+        chatSocket.sendDeliveryAck(conversationId, normalizedMessage.id, normalizedMessage.sequence);
         // If active conversation, auto mark read
         if (get().activeConversation?.id === conversationId) {
           get().markAsRead(conversationId);
@@ -234,11 +242,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         `/conversations/${conversationId}/messages`,
       );
 
+      const myUserId = useAuthStore.getState().user?.id;
+      const normalizedMessages = (msgsRes.data.messages || []).map((m) => ({
+        ...m,
+        isMine: myUserId ? m.senderUserId === myUserId : m.senderUserId === 'me',
+      }));
+
       set((state) => ({
         activeConversation: detailRes.data,
         messages: {
           ...state.messages,
-          [conversationId]: msgsRes.data.messages,
+          [conversationId]: normalizedMessages,
         },
         hasMore: {
           ...state.hasMore,
@@ -277,8 +291,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         { params: { cursor } },
       );
 
+      const myUserId = useAuthStore.getState().user?.id;
+      const normalizedOlder = (res.data.messages || []).map((m) => ({
+        ...m,
+        isMine: myUserId ? m.senderUserId === myUserId : m.senderUserId === 'me',
+      }));
+
       const existing = get().messages[conversationId] || [];
-      const merged = [...res.data.messages, ...existing].sort(
+      const merged = [...normalizedOlder, ...existing].sort(
         (a, b) => a.sequence - b.sequence,
       );
 
@@ -308,6 +328,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ isSending: true, error: null });
     const clientMessageId = `msg-cli-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+    const currentUserId = useAuthStore.getState().user?.id || 'me';
+
     // Optimistic message representation
     const optimisticSeq =
       ((get().messages[conversationId] || []).slice(-1)[0]?.sequence || 0) + 1;
@@ -315,7 +337,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const optimisticMsg: SafeMessage = {
       id: `temp-${clientMessageId}`,
       conversationId,
-      senderUserId: 'me',
+      senderUserId: currentUserId,
       clientMessageId,
       sequence: optimisticSeq,
       body: trimmed,

@@ -195,20 +195,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // 1. Authoritative ACK to sender
       client.emit('message.ack', {
         clientMessageId: data.clientMessageId,
-        message,
+        message: { ...message, isMine: true },
       });
 
       // 2. Real-time broadcast to conversation room & recipient's user room
+      // Omit isMine in room broadcast so clients determine ownership by senderUserId
+      const broadcastMessage = { ...message };
+      delete broadcastMessage.isMine;
+
       this.server
         .to(`conversation:${data.conversationId}`)
         .emit('message.created', {
           conversationId: data.conversationId,
-          message,
+          message: broadcastMessage,
         });
 
       this.server.to(`user:${recipientUserId}`).emit('conversation.activity', {
         conversationId: data.conversationId,
-        message,
+        message: broadcastMessage,
       });
     } catch (err: any) {
       client.emit('error', {

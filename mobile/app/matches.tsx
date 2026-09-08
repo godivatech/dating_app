@@ -146,9 +146,19 @@ export default function MatchesScreen() {
     try {
       setIsStartingChat(true);
       const conversationId = await createOrGetConversationByMatchId(matchId);
+      const match = matches.find((m) => m.id === matchId);
       setSelectedMatch(null);
       setIsStartingChat(false);
-      router.push(`/chat/${conversationId}` as any);
+      router.push({
+        pathname: `/chat/${conversationId}`,
+        params: {
+          partnerName: match?.matchedProfile?.displayName || '',
+          partnerPhoto:
+            match?.matchedProfile?.photos?.[0]?.thumbnailUrl ||
+            match?.matchedProfile?.photos?.[0]?.mediumUrl ||
+            '',
+        },
+      } as any);
     } catch (err: any) {
       setIsStartingChat(false);
       Alert.alert('Error', err.message || 'Failed to open chat.');

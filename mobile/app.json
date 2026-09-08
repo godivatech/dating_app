@@ -30,7 +30,8 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.INTERNET"
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "bundler": "metro",

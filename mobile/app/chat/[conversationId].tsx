@@ -11,8 +11,9 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useChatStore } from '../../src/stores/chat-store';
@@ -26,8 +27,17 @@ import { ReportModal } from '../../src/components/ReportModal';
 import { Colors } from '../../src/theme/colors';
 
 export default function ChatScreen() {
-  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
+  const {
+    conversationId,
+    partnerName: initialPartnerName,
+    partnerPhoto: initialPartnerPhoto,
+  } = useLocalSearchParams<{
+    conversationId: string;
+    partnerName?: string;
+    partnerPhoto?: string;
+  }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Enforce screenshot and screen recording protection in private chat
   useScreenCapturePrevention(true);
@@ -84,6 +94,21 @@ export default function ChatScreen() {
       Alert.alert('Message Blocked 🛡️', error);
     }
   }, [error]);
+
+  // Keep latest messages visible when keyboard appears
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 80);
+      },
+    );
+    return () => {
+      showSub.remove();
+    };
+  }, []);
 
   const handleTextChange = (text: string) => {
     setInputText(text);
@@ -190,15 +215,22 @@ export default function ChatScreen() {
     );
   };
 
-  const partnerName = matchedProfile?.displayName || 'Jane C. Carbone';
+  const partnerName =
+    matchedProfile?.displayName ||
+    initialPartnerName ||
+    (isLoadingMessages ? 'Loading...' : 'Match');
+
   const partnerPhoto =
     matchedProfile?.photos?.[0]?.thumbnailUrl ||
     matchedProfile?.photos?.[0]?.mediumUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80';
+    initialPartnerPhoto ||
+    null;
 
   const renderMessageItem = ({ item }: { item: SafeMessage }) => {
-    // Authoritative sender check: matches authenticated user ID or isMine flag
-    const isMe = (currentUserId && item.senderUserId === currentUserId) || item.isMine === true;
+    // Authoritative sender check: strictly matches authenticated user ID or optimistic 'me'
+    const isMe = currentUserId
+      ? item.senderUserId === currentUserId || item.senderUserId === 'me'
+      : item.isMine === true;
     const timeString = new Date(item.createdAt).toLocaleTimeString([], {
       hour: '2-digit',
       minute: '2-digit',
@@ -213,7 +245,15 @@ export default function ChatScreen() {
       >
         {/* Incoming partner avatar on the left */}
         {!isMe && (
-          <Image source={{ uri: partnerPhoto }} style={styles.bubbleAvatar} />
+          partnerPhoto ? (
+            <Image source={{ uri: partnerPhoto }} style={styles.bubbleAvatar} />
+          ) : (
+            <View style={styles.bubbleAvatarPlaceholder}>
+              <Text style={styles.bubbleAvatarInitial}>
+                {partnerName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )
         )}
 
         <View
@@ -260,7 +300,7 @@ export default function ChatScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Chat Top Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -274,7 +314,15 @@ export default function ChatScreen() {
         {/* Partner Info */}
         <View style={styles.headerPartnerInfo}>
           <View style={styles.partnerAvatarWrapper}>
-            <Image source={{ uri: partnerPhoto }} style={styles.partnerAvatar} />
+            {partnerPhoto ? (
+              <Image source={{ uri: partnerPhoto }} style={styles.partnerAvatar} />
+            ) : (
+              <View style={styles.partnerAvatarPlaceholder}>
+                <Text style={styles.partnerAvatarInitial}>
+                  {partnerName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
             <View
               style={[
                 styles.headerOnlineDot,
@@ -329,10 +377,10 @@ export default function ChatScreen() {
         </View>
       </View>
 
-      {/* Messages List */}
+      {/* Messages List & Input with Keyboard Avoidance */}
       <KeyboardAvoidingView
         style={styles.keyboardContainer}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {isLoadingMessages ? (
@@ -348,6 +396,8 @@ export default function ChatScreen() {
             contentContainerStyle={styles.messagesContent}
             onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: false })}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             ListEmptyComponent={
               <View style={styles.emptyMessagesBox}>
                 <View style={styles.emptyChatIcon}>
@@ -364,7 +414,7 @@ export default function ChatScreen() {
 
         {/* Message Input Bar */}
         {isMatchActive ? (
-          <View style={styles.inputBar}>
+          <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             <View style={styles.inputPill}>
               <TextInput
                 style={styles.textInput}
@@ -372,6 +422,11 @@ export default function ChatScreen() {
                 placeholderTextColor={Colors.textMuted}
                 value={inputText}
                 onChangeText={handleTextChange}
+                onFocus={() => {
+                  setTimeout(() => {
+                    flatListRef.current?.scrollToEnd({ animated: true });
+                  }, 120);
+                }}
                 multiline={false}
               />
               <TouchableOpacity
@@ -462,6 +517,19 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
+  },
+  partnerAvatarPlaceholder: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partnerAvatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   headerOnlineDot: {
     position: 'absolute',
@@ -580,6 +648,22 @@ const styles = StyleSheet.create({
     marginRight: 8,
     alignSelf: 'flex-end',
     marginBottom: 2,
+  },
+  bubbleAvatarPlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    alignSelf: 'flex-end',
+    marginBottom: 2,
+  },
+  bubbleAvatarInitial: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.primary,
   },
   headerOfflineDot: {
     backgroundColor: '#8E8E93',
