@@ -339,13 +339,24 @@ export default function DiscoveryScreen() {
           <Text style={styles.emptySubText}>
             Check back soon for more discoverable profiles near you.
           </Text>
-          <TouchableOpacity
-            style={styles.refreshBtn}
-            onPress={() => fetchDiscoveryFeed(true)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.refreshBtnText}>Refresh Feed</Text>
-          </TouchableOpacity>
+          <View style={styles.emptyActionRow}>
+            <TouchableOpacity
+              style={styles.refreshBtn}
+              onPress={() => fetchDiscoveryFeed(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.refreshBtnText}>Refresh Feed</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.adjustPrefBtn}
+              onPress={() => router.push('/(onboarding)/preferences' as any)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="options-outline" size={16} color={Colors.textPrimary} style={{ marginRight: 6 }} />
+              <Text style={styles.adjustPrefBtnText}>Filters</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         <View style={styles.cardContainer}>
@@ -898,10 +909,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-  refreshBtn: {
+  emptyActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginTop: 20,
+  },
+  refreshBtn: {
     backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
+    paddingHorizontal: 22,
     paddingVertical: 12,
     borderRadius: 24,
   },
@@ -909,5 +925,21 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     fontWeight: '700',
+  },
+  adjustPrefBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 24,
+  },
+  adjustPrefBtnText: {
+    color: Colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
