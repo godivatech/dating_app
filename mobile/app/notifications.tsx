@@ -10,10 +10,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useNotificationsStore } from '../src/stores/notifications-store';
 import { SafeNotification, NotificationType } from '../../shared/src/types';
 import { formatToIST } from '../src/utils/time.util';
 import { t } from '../src/i18n/strings';
+import { Colors } from '../src/theme/colors';
 
 export default function NotificationsScreen() {
   const router = useRouter();
@@ -46,7 +48,6 @@ export default function NotificationsScreen() {
       await markAsRead(item.id);
     }
 
-    // Revalidate and navigate based on notification type
     switch (item.type) {
       case NotificationType.NEW_MATCH:
         router.push('/matches');
@@ -66,17 +67,33 @@ export default function NotificationsScreen() {
     }
   };
 
-  const getNotificationIcon = (type: NotificationType) => {
+  const renderIcon = (type: NotificationType) => {
     switch (type) {
       case NotificationType.NEW_MATCH:
-        return '🎉';
+        return (
+          <View style={[styles.iconContainer, { backgroundColor: Colors.primaryLight }]}>
+            <Ionicons name="heart" size={20} color={Colors.primary} />
+          </View>
+        );
       case NotificationType.NEW_MESSAGE:
-        return '💬';
+        return (
+          <View style={[styles.iconContainer, { backgroundColor: '#EFF6FF' }]}>
+            <Ionicons name="chatbubble-ellipses" size={20} color="#3B82F6" />
+          </View>
+        );
       case NotificationType.SAFETY_UPDATE:
-        return '🛡️';
+        return (
+          <View style={[styles.iconContainer, { backgroundColor: '#ECFDF5' }]}>
+            <Ionicons name="shield-checkmark" size={20} color="#10B981" />
+          </View>
+        );
       case NotificationType.SYSTEM:
       default:
-        return '🔔';
+        return (
+          <View style={[styles.iconContainer, { backgroundColor: '#F5F3FF' }]}>
+            <Ionicons name="notifications" size={20} color="#8B5CF6" />
+          </View>
+        );
     }
   };
 
@@ -90,12 +107,12 @@ export default function NotificationsScreen() {
       onPress={() => handleNotificationPress(item)}
       activeOpacity={0.7}
     >
-      <View style={styles.iconContainer}>
-        <Text style={styles.iconText}>{getNotificationIcon(item.type)}</Text>
-      </View>
+      {renderIcon(item.type)}
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
-          <Text style={[styles.title, !item.isRead && styles.unreadTitle]}>{item.title}</Text>
+          <Text style={[styles.title, !item.isRead && styles.unreadTitle]} numberOfLines={1}>
+            {item.title}
+          </Text>
           <Text style={styles.timeText}>{formatToIST(item.createdAt)}</Text>
         </View>
         <Text style={styles.bodyText} numberOfLines={2}>
@@ -107,51 +124,65 @@ export default function NotificationsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Top Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Text style={styles.backButtonText}>←</Text>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={20} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('notificationsTitle')}</Text>
         {unreadCount > 0 ? (
-          <TouchableOpacity onPress={() => markAllAsRead()} style={styles.markAllButton}>
-            <Text style={styles.markAllText}>Mark all</Text>
+          <TouchableOpacity
+            onPress={() => markAllAsRead()}
+            style={styles.markAllButton}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.markAllText}>Mark all read</Text>
           </TouchableOpacity>
         ) : (
-          <View style={{ width: 60 }} />
+          <View style={styles.headerSpacer} />
         )}
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.tabsRow}>
-        <TouchableOpacity
-          style={[styles.tabButton, filter === 'ALL' && styles.activeTabButton]}
-          onPress={() => setFilter('ALL')}
-        >
-          <Text style={[styles.tabText, filter === 'ALL' && styles.activeTabText]}>
-            {t('allNotifications')} ({notifications.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, filter === 'UNREAD' && styles.activeTabButton]}
-          onPress={() => setFilter('UNREAD')}
-        >
-          <Text style={[styles.tabText, filter === 'UNREAD' && styles.activeTabText]}>
-            {t('unreadNotifications')} ({unreadCount})
-          </Text>
-        </TouchableOpacity>
+      {/* Filter Segmented Bar */}
+      <View style={styles.tabBarContainer}>
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tabButton, filter === 'ALL' && styles.activeTabButton]}
+            onPress={() => setFilter('ALL')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, filter === 'ALL' && styles.activeTabText]}>
+              {t('allNotifications')} ({notifications.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, filter === 'UNREAD' && styles.activeTabButton]}
+            onPress={() => setFilter('UNREAD')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.tabText, filter === 'UNREAD' && styles.activeTabText]}>
+              {t('unreadNotifications')} ({unreadCount})
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Notifications List */}
+      {/* Notifications Content */}
       {isLoading && notifications.length === 0 ? (
         <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color="#FF4458" />
+          <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>{t('loading')}</Text>
         </View>
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.centerBox}>
-          <Text style={styles.emptyEmoji}>🔕</Text>
+          <View style={styles.emptyIconBox}>
+            <Ionicons name="notifications-outline" size={36} color={Colors.textMuted} />
+          </View>
           <Text style={styles.emptyTitle}>{t('noNotifications')}</Text>
           <Text style={styles.emptySubtitle}>{t('noNotificationsSubtitle')}</Text>
         </View>
@@ -165,7 +196,7 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              tintColor="#FF4458"
+              tintColor={Colors.primary}
             />
           }
           onEndReached={() => {
@@ -177,7 +208,7 @@ export default function NotificationsScreen() {
           ListFooterComponent={
             isFetchingMore ? (
               <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#FF4458" />
+                <ActivityIndicator size="small" color={Colors.primary} />
               </View>
             ) : null
           }
@@ -190,94 +221,107 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F1117',
+    backgroundColor: Colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#161922',
+    paddingVertical: 12,
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#242836',
+    borderBottomColor: Colors.borderLight,
   },
   backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 22,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
   },
   markAllButton: {
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 6,
-    backgroundColor: '#242836',
+    borderRadius: 14,
+    backgroundColor: Colors.primaryLight,
   },
   markAllText: {
-    color: '#FF6B7D',
+    color: Colors.primary,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  tabsRow: {
-    flexDirection: 'row',
+  headerSpacer: {
+    width: 38,
+  },
+  tabBarContainer: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: '#161922',
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#242836',
-    gap: 12,
+    borderBottomColor: Colors.borderLight,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 12,
+    padding: 3,
   },
   tabButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    backgroundColor: '#1E2330',
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeTabButton: {
-    backgroundColor: '#FF4458',
+    backgroundColor: Colors.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   tabText: {
     fontSize: 13,
-    color: '#8E94A5',
-    fontWeight: '600',
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
   activeTabText: {
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
+    fontWeight: '700',
   },
   listContent: {
-    paddingVertical: 8,
+    paddingBottom: 24,
   },
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 14,
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1E29',
-    backgroundColor: '#0F1117',
+    borderBottomColor: Colors.borderLight,
   },
   unreadCard: {
-    backgroundColor: 'rgba(255, 68, 88, 0.04)',
+    backgroundColor: '#FFF9F9',
   },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#1E2330',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
-  },
-  iconText: {
-    fontSize: 20,
   },
   contentContainer: {
     flex: 1,
@@ -289,29 +333,32 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
-    color: '#CCD0DC',
+    color: Colors.textPrimary,
+    flex: 1,
+    marginRight: 8,
   },
   unreadTitle: {
-    color: '#FFFFFF',
     fontWeight: '700',
+    color: Colors.textPrimary,
   },
   timeText: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 11,
+    color: Colors.textMuted,
+    fontWeight: '500',
   },
   bodyText: {
     fontSize: 13,
-    color: '#8E94A5',
+    color: Colors.textSecondary,
     lineHeight: 18,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#FF4458',
-    marginLeft: 8,
+    backgroundColor: Colors.primary,
+    marginLeft: 10,
   },
   centerBox: {
     flex: 1,
@@ -321,24 +368,30 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    color: '#8E94A5',
+    color: Colors.textSecondary,
     fontSize: 14,
   },
-  emptyEmoji: {
-    fontSize: 48,
+  emptyIconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 6,
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: '#8E94A5',
+    fontSize: 13,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 19,
+    maxWidth: 260,
   },
   footerLoader: {
     paddingVertical: 16,

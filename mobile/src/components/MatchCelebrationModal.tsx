@@ -6,17 +6,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  Dimensions,
   Animated,
+  Dimensions,
   Vibration,
 } from 'react-native';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useChatStore } from '../stores/chat-store';
+import { Colors } from '../theme/colors';
 
 const { width } = Dimensions.get('window');
 
 export interface MatchedUserInfo {
-  displayName: string;
+  userId?: string;
   profileId?: string;
+  displayName: string;
   photoUrl?: string | null;
 }
 
@@ -41,7 +45,6 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
 
   useEffect(() => {
     if (visible) {
-      // Celebratory vibration rhythm
       try {
         Vibration.vibrate([0, 60, 80, 120]);
       } catch {}
@@ -63,7 +66,7 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
           useNativeDriver: true,
         }),
         Animated.sequence([
-          Animated.delay(200),
+          Animated.delay(180),
           Animated.spring(heartScale, {
             toValue: 1,
             friction: 4,
@@ -75,18 +78,39 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
     }
   }, [visible]);
 
+  const router = useRouter();
+  const { conversations, createOrGetConversationByMatchId } = useChatStore();
+
   if (!visible || !matchedUser) return null;
 
-  const handleStartChat = () => {
+  const name = matchedUser.displayName || 'Your Match';
+
+  const handleStartChat = async () => {
     onClose();
     if (onSendMessage) {
       onSendMessage();
-    } else {
-      router.push('/conversations' as any);
+      return;
+    }
+
+    try {
+      const existing = conversations.find(
+        (c) => c.matchedProfile?.userId === matchedUser.userId,
+      );
+      if (existing) {
+        router.push({
+          pathname: `/chat/${existing.id}`,
+          params: {
+            partnerName: name,
+            partnerPhoto: matchedUser.photoUrl || '',
+          },
+        } as any);
+      } else {
+        router.push('/conversations');
+      }
+    } catch {
+      router.push('/conversations');
     }
   };
-
-  const name = matchedUser.displayName || 'Someone';
 
   return (
     <Modal
@@ -105,11 +129,16 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
             },
           ]}
         >
-          {/* Confetti / Title Header */}
-          <Text style={styles.badgeText}>✨ IT'S A MATCH! ✨</Text>
+          {/* Badge */}
+          <View style={styles.badgeRow}>
+            <Ionicons name="sparkles" size={15} color={Colors.primary} style={{ marginRight: 6 }} />
+            <Text style={styles.badgeText}>IT'S A MATCH!</Text>
+            <Ionicons name="sparkles" size={15} color={Colors.primary} style={{ marginLeft: 6 }} />
+          </View>
+
           <Text style={styles.heading}>You & {name}</Text>
           <Text style={styles.subheading}>
-            You both liked each other! Start the conversation now.
+            You both liked each other! Break the ice and start a wonderful conversation.
           </Text>
 
           {/* Avatars Display */}
@@ -129,14 +158,14 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
               )}
             </View>
 
-            {/* Pulsing Heart between avatars */}
+            {/* Center Heart between avatars */}
             <Animated.View
               style={[
                 styles.heartCircle,
                 { transform: [{ scale: heartScale }] },
               ]}
             >
-              <Text style={styles.heartIcon}>❤️</Text>
+              <Ionicons name="heart" size={22} color={Colors.white} />
             </Animated.View>
 
             {/* Matched user avatar */}
@@ -163,7 +192,8 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
             onPress={handleStartChat}
             activeOpacity={0.88}
           >
-            <Text style={styles.primaryButtonText}>Say Hello 👋</Text>
+            <Ionicons name="chatbubble-ellipses" size={18} color={Colors.white} style={{ marginRight: 8 }} />
+            <Text style={styles.primaryButtonText}>Send a Message</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -182,7 +212,7 @@ export const MatchCelebrationModal: React.FC<MatchCelebrationModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(15, 12, 30, 0.88)',
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -190,66 +220,74 @@ const styles = StyleSheet.create({
   card: {
     width: width - 48,
     maxWidth: 380,
-    backgroundColor: '#1E1B2E',
-    borderRadius: 28,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
     paddingVertical: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
-    shadowColor: '#E1306C',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255, 75, 110, 0.25)',
+    borderColor: Colors.borderLight,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: 12,
   },
   badgeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#FF4B6E',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 8,
+    color: Colors.primary,
+    letterSpacing: 1.5,
   },
   heading: {
-    fontSize: 28,
-    fontWeight: '900',
-    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '800',
+    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   subheading: {
-    fontSize: 14,
-    color: '#B0A8C0',
+    fontSize: 13,
+    color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 28,
-    paddingHorizontal: 12,
+    lineHeight: 19,
+    marginBottom: 26,
+    paddingHorizontal: 8,
   },
   avatarsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 32,
-    height: 120,
+    marginBottom: 28,
+    height: 110,
     position: 'relative',
     width: '100%',
   },
   avatarWrapper: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    borderWidth: 4,
-    borderColor: '#FF4B6E',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3.5,
+    borderColor: Colors.primary,
     overflow: 'hidden',
-    backgroundColor: '#2A2540',
+    backgroundColor: Colors.primaryLight,
   },
   leftAvatar: {
-    marginRight: -16,
+    marginRight: -14,
     zIndex: 1,
   },
   rightAvatar: {
-    marginLeft: -16,
+    marginLeft: -14,
     zIndex: 1,
   },
   avatar: {
@@ -259,57 +297,60 @@ const styles = StyleSheet.create({
   placeholderAvatar: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#352D54',
+    backgroundColor: Colors.primaryLight,
   },
   placeholderAvatarText: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: Colors.primary,
   },
   heartCircle: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
     zIndex: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
     shadowRadius: 6,
-    elevation: 8,
-  },
-  heartIcon: {
-    fontSize: 22,
+    elevation: 6,
+    borderWidth: 2.5,
+    borderColor: Colors.white,
   },
   primaryButton: {
+    flexDirection: 'row',
     width: '100%',
-    backgroundColor: '#FF4B6E',
-    paddingVertical: 16,
-    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    paddingVertical: 15,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-    shadowColor: '#FF4B6E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 6,
+    marginBottom: 10,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: Colors.white,
+    fontSize: 15,
     fontWeight: '700',
-    letterSpacing: 0.5,
   },
   secondaryButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    width: '100%',
+    backgroundColor: Colors.backgroundSecondary,
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   secondaryButtonText: {
-    color: '#A098B2',
+    color: Colors.textSecondary,
     fontSize: 14,
     fontWeight: '600',
   },

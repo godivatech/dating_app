@@ -11,6 +11,8 @@ import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../src/theme/colors';
 import { useAuthStore } from '../src/stores/auth-store';
 import { useNotificationsStore } from '../src/stores/notifications-store';
 import { useCallStore } from '../src/stores/call-store';
@@ -124,7 +126,7 @@ export default function RootLayout() {
           Vibration.vibrate(35);
         } catch {}
         useNotificationsStore.getState().fetchUnreadCount();
-        const title = data.hasNote ? 'New Note 💌' : 'New Like! ✨';
+        const title = data.hasNote ? 'New Note' : 'New Like';
         const subtitle = data.note
           ? `"${data.note.slice(0, 50)}${data.note.length > 50 ? '...' : ''}"`
           : `${data.actorDisplayName} liked your profile!`;
@@ -179,7 +181,7 @@ export default function RootLayout() {
               }}
             >
               <View style={styles.toastIconBox}>
-                <Text style={styles.toastIcon}>❤️</Text>
+                <Ionicons name="heart" size={18} color={Colors.primary} />
               </View>
               <View style={styles.toastTextBox}>
                 <Text style={styles.toastTitle}>{likeToast.title}</Text>
@@ -221,29 +223,26 @@ const styles = StyleSheet.create({
   toastInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E1B2E',
+    backgroundColor: Colors.white,
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 18,
-    shadowColor: '#FF4B6E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 75, 110, 0.35)',
+    borderColor: Colors.border,
   },
   toastIconBox: {
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255, 75, 110, 0.15)',
+    backgroundColor: Colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
-  },
-  toastIcon: {
-    fontSize: 18,
   },
   toastTextBox: {
     flex: 1,
@@ -252,17 +251,17 @@ const styles = StyleSheet.create({
   toastTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 2,
   },
   toastSubtitle: {
     fontSize: 12,
-    color: '#B0A8C0',
+    color: Colors.textSecondary,
   },
   toastActionText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FF4B6E',
+    color: Colors.primary,
     marginLeft: 6,
   },
 });
