@@ -54,6 +54,17 @@ function normalizeDateInput(input: string): { normalized: string; error?: string
     return { normalized: '', error: 'Please enter a valid calendar date' };
   }
 
+  // Exact calendar validation (catches Feb 30, April 31, leap year mismatches)
+  const testDate = new Date(year, month - 1, day);
+  if (
+    isNaN(testDate.getTime()) ||
+    testDate.getFullYear() !== year ||
+    testDate.getMonth() !== month - 1 ||
+    testDate.getDate() !== day
+  ) {
+    return { normalized: '', error: 'Please enter a valid calendar date' };
+  }
+
   const mm = month.toString().padStart(2, '0');
   const dd = day.toString().padStart(2, '0');
   const normalized = `${year}-${mm}-${dd}`;
@@ -84,8 +95,13 @@ export default function IdentityScreen() {
   const { profile, saveIdentity, isLoading, error: storeError, clearError } = useProfileStore();
 
   const [name, setName] = useState(profile?.displayName || '');
-  const [email, setEmail] = useState('');
-  const [birthdate, setBirthdate] = useState('2000-01-15');
+  const [birthdate, setBirthdate] = useState(
+    (profile as any)?.dateOfBirth
+      ? (profile as any).dateOfBirth.split('T')[0]
+      : profile?.age
+        ? `${new Date().getFullYear() - profile.age}-01-15`
+        : '2000-01-15',
+  );
   const [gender, setGender] = useState<Gender>(profile?.gender || Gender.WOMAN);
   const [showGenderModal, setShowGenderModal] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -153,25 +169,12 @@ export default function IdentityScreen() {
                 placeholder="e.g. Ananya / Kavitha / Karthik"
                 placeholderTextColor={Colors.textMuted}
                 value={name}
+                maxLength={50}
                 onChangeText={(text) => {
                   setName(text);
                   if (validationError) setValidationError(null);
                   if (storeError) clearError();
                 }}
-              />
-            </View>
-
-            {/* Email Address (Optional) */}
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="example@gmail.com"
-                placeholderTextColor={Colors.textMuted}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
               />
             </View>
 

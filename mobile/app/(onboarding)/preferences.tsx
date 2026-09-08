@@ -95,11 +95,7 @@ export default function PreferencesScreen() {
     });
 
     if (success) {
-      if (!profile?.bio || !profile?.locationCity) {
-        router.push('/(onboarding)/about-location');
-      } else {
-        router.back();
-      }
+      router.push('/(onboarding)/about-location');
     }
   };
 

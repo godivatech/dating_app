@@ -26,7 +26,7 @@ export default function ReadyScreen() {
     primaryPhotoObj?.largeUrl ||
     primaryPhotoObj?.mediumUrl ||
     primaryPhotoObj?.thumbnailUrl ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80';
+    null;
 
   const handleFinish = () => {
     router.replace('/discovery');
@@ -52,11 +52,26 @@ export default function ReadyScreen() {
 
         {/* Profile Card Preview */}
         <View style={styles.cardPreview}>
-          <Image
-            source={{ uri: photoUrl }}
-            style={styles.cardPhoto}
-            resizeMode="cover"
-          />
+          {photoUrl ? (
+            <Image
+              source={{ uri: photoUrl }}
+              style={styles.cardPhoto}
+              resizeMode="cover"
+            />
+          ) : (
+            <View
+              style={[
+                styles.cardPhoto,
+                {
+                  backgroundColor: Colors.backgroundSecondary,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="person" size={72} color={Colors.textMuted} />
+            </View>
+          )}
 
           <View style={styles.cardOverlay}>
             <Text style={styles.cardName}>

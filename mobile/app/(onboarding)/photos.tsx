@@ -101,14 +101,16 @@ export default function PhotosScreen() {
 
         {/* Big Primary Photo Container */}
         <View style={styles.primaryPhotoCard}>
-          {primaryPhoto ? (
+          {primaryPhoto &&
+          (primaryPhoto.largeUrl ||
+            primaryPhoto.mediumUrl ||
+            primaryPhoto.thumbnailUrl) ? (
             <Image
               source={{
                 uri:
                   primaryPhoto.largeUrl ||
                   primaryPhoto.mediumUrl ||
-                  primaryPhoto.thumbnailUrl ||
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80',
+                  primaryPhoto.thumbnailUrl!,
               }}
               style={styles.primaryPhoto}
               resizeMode="cover"
