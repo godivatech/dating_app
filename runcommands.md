@@ -119,8 +119,9 @@ cd android
 eas build -p android --profile preview
 ```
 
-# To publish instant Over-The-Air (OTA) updates (NO APK rebuild or reinstall needed!)
+# To publish instant Over-The-Air (OTA) updates (NO APK rebuild or reinstall needed!):
+# (Updates JavaScript bundle and UI screens directly to installed apps within seconds)
 ```bash
 cd mobile
-$env:CI="1"; npx eas-cli update --channel preview --environment preview -m "Your update description"
+npx eas update --channel preview --platform android --environment preview --message "Your update description" --non-interactive
 ```
