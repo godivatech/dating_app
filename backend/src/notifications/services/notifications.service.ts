@@ -104,12 +104,15 @@ export class NotificationsService {
         let priority: 'high' | 'normal' = 'high';
         if (
           dto.type === NotificationType.NEW_MATCH ||
-          dto.type === NotificationType.LIKE_RECEIVED
+          (dto.type as any) === 'LIKE_RECEIVED'
         ) {
           channelId = 'matches';
           priority = 'high';
         } else if (dto.type === NotificationType.NEW_MESSAGE) {
           channelId = 'messages';
+          priority = 'high';
+        } else if (dto.type === NotificationType.SAFETY_UPDATE) {
+          channelId = 'default';
           priority = 'high';
         } else if (dto.type === NotificationType.SYSTEM) {
           channelId = 'default';
