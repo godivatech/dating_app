@@ -175,9 +175,39 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 }
 
 /**
+ * Helper to dispatch deep-link navigation based on notification payload
+ */
+function handleNotificationNavigation(
+  data: any,
+  onNavigate?: (screenPath: string) => void,
+): void {
+  if (!onNavigate || !data) return;
+
+  const conversationId =
+    data.conversationId || (data.type === 'NEW_MESSAGE' ? data.referenceId : null);
+  const matchId =
+    data.matchId || (data.type === 'NEW_MATCH' ? data.referenceId : null);
+
+  if (conversationId) {
+    console.log('[PUSH_NAV] Navigating directly to chat:', `/chat/${conversationId}`);
+    onNavigate(`/chat/${conversationId}`);
+  } else if (matchId) {
+    console.log('[PUSH_NAV] Navigating to match chat:', `/chat/${matchId}`);
+    onNavigate(`/chat/${matchId}`);
+  } else if (data.type === 'INCOMING_CALL') {
+    onNavigate('/matches');
+  } else if (data.type === 'SYSTEM' || data.type === 'SAFETY_WARNING') {
+    onNavigate('/notifications');
+  } else if (data.screen) {
+    onNavigate(data.screen);
+  }
+}
+
+/**
  * Enterprise Push Notification Listeners & Deep Link Handler
  * - Listens for incoming notifications in foreground -> refreshes unread count badge.
  * - Listens for user taps/clicks on notifications -> routes directly to the chat/match.
+ * - Handles COLD START taps when the app was completely killed/closed!
  */
 export function setupPushNotificationListeners(
   onNavigate?: (screenPath: string) => void,
@@ -197,28 +227,34 @@ export function setupPushNotificationListeners(
       },
     );
 
-    // 2. Notification Response (Tap / Click / Lock screen action) Listener
+    // 2. Notification Response (Tap / Click / Lock screen action) Listener (Warm start)
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       (response: any) => {
         const data = response?.notification?.request?.content?.data;
         console.log('[PUSH_INTERACTION_TAPPED]', data);
-
-        if (!onNavigate || !data) return;
-
-        // Smart deep link routing (Zomato/Swiggy patterns)
-        if (data.type === 'NEW_MATCH' && data.matchId) {
-          onNavigate(`/chat/${data.matchId}`);
-        } else if (data.type === 'NEW_MESSAGE' && data.conversationId) {
-          onNavigate(`/chat/${data.conversationId}`);
-        } else if (data.type === 'INCOMING_CALL') {
-          onNavigate('/matches');
-        } else if (data.type === 'SYSTEM' || data.type === 'SAFETY_WARNING') {
-          onNavigate('/notifications');
-        } else if (data.screen) {
-          onNavigate(data.screen);
-        }
+        handleNotificationNavigation(data, onNavigate);
       },
     );
+
+    // 3. Cold Start Notification Tap Listener (When app was completely closed/killed)
+    if (Notifications.getLastNotificationResponseAsync) {
+      Notifications.getLastNotificationResponseAsync()
+        .then((response: any) => {
+          if (response) {
+            const data = response.notification?.request?.content?.data;
+            console.log('[PUSH_INTERACTION_COLD_START]', data);
+            if (data && onNavigate) {
+              // Give root router a brief moment to finish mounting before pushing the route
+              setTimeout(() => {
+                handleNotificationNavigation(data, onNavigate);
+              }, 400);
+            }
+          }
+        })
+        .catch((e: any) => {
+          console.log('[PUSH_COLD_START_ERR]', e.message);
+        });
+    }
 
     return () => {
       receivedSubscription?.remove();
