@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { DevicePlatform } from '../../../shared/src/types';
 import { useNotificationsStore } from '../stores/notifications-store';
+import { useChatStore } from '../stores/chat-store';
 
 /**
  * Enterprise Push Notification Registration Service
@@ -79,6 +80,10 @@ export async function setupNotificationChannelsAsync(NotificationsModule?: any):
  * Configure Foreground Notification Presentation
  * Ensures notifications display banners, play custom sounds, and update badges
  * when the app is actively in use (Tinder/FRND behavior).
+ * 
+ * INTELLIGENT SUPPRESSION:
+ * If both users are actively conversing inside the chat screen, notification banners
+ * and sound are suppressed. Messages arrive seamlessly via real-time WebSockets.
  */
 export function initPushNotificationHandler(): void {
   if (Platform.OS === 'web') return;
@@ -87,11 +92,36 @@ export function initPushNotificationHandler(): void {
     const Notifications = require('expo-notifications');
     if (Notifications?.setNotificationHandler) {
       Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        }),
+        handleNotification: async (notification: any) => {
+          const data = notification?.request?.content?.data;
+          const activeConversationId = useChatStore.getState().activeConversation?.id;
+          const incomingConversationId =
+            data?.conversationId || (data?.type === 'NEW_MESSAGE' ? data?.referenceId : null);
+
+          // If the recipient is actively viewing this specific chat room, suppress banner & sound
+          if (
+            activeConversationId &&
+            incomingConversationId &&
+            activeConversationId === incomingConversationId
+          ) {
+            console.log(
+              '[PUSH_SUPPRESSION] User is actively inside chat room',
+              activeConversationId,
+              '— suppressing notification banner & sound',
+            );
+            return {
+              shouldShowAlert: false,
+              shouldPlaySound: false,
+              shouldSetBadge: false,
+            };
+          }
+
+          return {
+            shouldShowAlert: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+          };
+        },
       });
     }
 
