@@ -6,6 +6,8 @@ import {
   StyleSheet,
   Animated,
   Vibration,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -144,9 +146,20 @@ export default function RootLayout() {
         });
       });
 
+      // Listen for app coming to foreground (resuming from background / screen lock)
+      const handleAppStateChange = (nextAppState: AppStateStatus) => {
+        if (nextAppState === 'active') {
+          console.log('[APP_LIFECYCLE] App active: verifying call and chat sockets...');
+          callSocket.ensureConnected();
+          chatSocket.ensureConnected();
+        }
+      };
+      const appStateSub = AppState.addEventListener('change', handleAppStateChange);
+
       return () => {
         unsubLike();
         unsubMatch();
+        appStateSub.remove();
       };
     } else if (status === 'UNAUTHENTICATED') {
       chatSocket.disconnect();

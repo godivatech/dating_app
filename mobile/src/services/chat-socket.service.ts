@@ -43,12 +43,20 @@ export class ChatSocketService {
     const host = API_BASE_URL.replace(/\/api\/v1\/?$/, '');
 
     this.socket = io(`${host}/chat`, {
-      auth: { token: `Bearer ${token}` },
+      auth: async (cb) => {
+        try {
+          const freshToken = await SecureStorage.getAccessToken();
+          cb({ token: freshToken ? `Bearer ${freshToken}` : '' });
+        } catch {
+          cb({ token: '' });
+        }
+      },
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      timeout: 10000,
     });
 
     this.socket.on('connect', () => {
@@ -56,9 +64,14 @@ export class ChatSocketService {
       this.notifyConnection(true);
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
       this.isConnecting = false;
       this.notifyConnection(false);
+      if (reason === 'io server disconnect') {
+        setTimeout(() => {
+          this.reconnect();
+        }, 1500);
+      }
     });
 
     this.socket.on('connect_error', () => {
@@ -118,6 +131,56 @@ export class ChatSocketService {
     }
     this.isConnecting = false;
     this.notifyConnection(false);
+  }
+
+  async reconnect(): Promise<void> {
+    if (this.socket) {
+      try {
+        const token = await SecureStorage.getAccessToken();
+        if (token) {
+          (this.socket as any).auth = { token: `Bearer ${token}` };
+        }
+      } catch {}
+      this.socket.connect();
+    } else {
+      await this.connect();
+    }
+  }
+
+  async ensureConnected(timeoutMs = 5000): Promise<boolean> {
+    if (this.socket?.connected) return true;
+
+    this.connect();
+
+    return new Promise((resolve) => {
+      if (this.socket?.connected) {
+        return resolve(true);
+      }
+
+      const timer = setTimeout(() => {
+        cleanup();
+        resolve(!!this.socket?.connected);
+      }, timeoutMs);
+
+      const onConnect = () => {
+        cleanup();
+        resolve(true);
+      };
+
+      const onError = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.socket?.off('connect', onConnect);
+        this.socket?.off('connect_error', onError);
+      };
+
+      this.socket?.once('connect', onConnect);
+      this.socket?.once('connect_error', onError);
+    });
   }
 
   joinConversation(conversationId: string): void {

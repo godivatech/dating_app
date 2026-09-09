@@ -69,7 +69,24 @@ export class CallService {
     // 1. Check if caller already has an active call
     const callerActiveCallId = await this.redisService.get(`user:call_state:${callerUserId}`);
     if (callerActiveCallId) {
-      throw new BadRequestException('You are already in an active call session.');
+      const activeCall = await this.prisma.callLog.findUnique({
+        where: { id: callerActiveCallId },
+        select: { status: true },
+      });
+      if (
+        !activeCall ||
+        activeCall.status === CallStatus.ENDED ||
+        activeCall.status === CallStatus.REJECTED ||
+        activeCall.status === CallStatus.MISSED ||
+        activeCall.status === CallStatus.BUSY
+      ) {
+        this.logger.warn(
+          `[CALL_STALE_CLEANUP] Clearing stale caller call state ${callerActiveCallId} for user ${callerUserId}`,
+        );
+        await this.redisService.del(`user:call_state:${callerUserId}`);
+      } else {
+        throw new BadRequestException('You are already in an active call session.');
+      }
     }
 
     // 2. Validate Match & Participant Safety
@@ -109,24 +126,41 @@ export class CallService {
     // 4. Check if receiver is already in an active call (Busy state)
     const receiverActiveCallId = await this.redisService.get(`user:call_state:${dto.receiverUserId}`);
     if (receiverActiveCallId) {
-      this.logger.log(`[CALL_BUSY] Receiver ${dto.receiverUserId} is already on call ${receiverActiveCallId}`);
-      const busyCall = await this.prisma.callLog.create({
-        data: {
-          matchId: dto.matchId,
-          callerUserId,
-          receiverUserId: dto.receiverUserId,
-          callType: dto.callType || CallType.VIDEO,
-          status: CallStatus.BUSY,
-          channelName: `busy_${Date.now()}`,
-          endReason: CallEndReason.BUSY,
-        },
+      const activeCall = await this.prisma.callLog.findUnique({
+        where: { id: receiverActiveCallId },
+        select: { status: true },
       });
+      if (
+        !activeCall ||
+        activeCall.status === CallStatus.ENDED ||
+        activeCall.status === CallStatus.REJECTED ||
+        activeCall.status === CallStatus.MISSED ||
+        activeCall.status === CallStatus.BUSY
+      ) {
+        this.logger.warn(
+          `[CALL_STALE_CLEANUP] Clearing stale receiver call state ${receiverActiveCallId} for user ${dto.receiverUserId}`,
+        );
+        await this.redisService.del(`user:call_state:${dto.receiverUserId}`);
+      } else {
+        this.logger.log(`[CALL_BUSY] Receiver ${dto.receiverUserId} is genuinely on call ${receiverActiveCallId}`);
+        const busyCall = await this.prisma.callLog.create({
+          data: {
+            matchId: dto.matchId,
+            callerUserId,
+            receiverUserId: dto.receiverUserId,
+            callType: dto.callType || CallType.VIDEO,
+            status: CallStatus.BUSY,
+            channelName: `busy_${Date.now()}`,
+            endReason: CallEndReason.BUSY,
+          },
+        });
 
-      return {
-        callId: busyCall.id,
-        status: CallStatus.BUSY,
-        message: 'The user is currently busy on another call.',
-      };
+        return {
+          callId: busyCall.id,
+          status: CallStatus.BUSY,
+          message: 'The user is currently busy on another call.',
+        };
+      }
     }
 
     // 5. Glare Condition Check: Did receiver initiate a call to caller in last 10 seconds?
@@ -304,6 +338,8 @@ export class CallService {
 
     return {
       callId: updated.id,
+      callerUserId: callLog.callerUserId,
+      receiverUserId: callLog.receiverUserId,
       status: CallStatus.REJECTED,
       reason: dto.reason || 'Call rejected by user.',
     };
@@ -356,6 +392,8 @@ export class CallService {
 
     return {
       callId: updated.id,
+      callerUserId: callLog.callerUserId,
+      receiverUserId: callLog.receiverUserId,
       durationSeconds,
       endReason,
       status: CallStatus.ENDED,

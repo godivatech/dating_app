@@ -20,6 +20,8 @@ import { CallStatus } from '@prisma/client';
     credentials: true,
   },
   namespace: '/call',
+  pingInterval: 10000,
+  pingTimeout: 10000,
 })
 @UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -114,6 +116,13 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
+      // Check active socket count in receiver's room
+      const receiverSockets = await this.server.in(`user:${dto.receiverUserId}`).fetchSockets();
+      this.logger.log(`[CALL_INITIATE] Receiver ${dto.receiverUserId} has ${receiverSockets.length} active socket(s) in room`);
+      if (receiverSockets.length === 0) {
+        this.logger.warn(`[CALL_INITIATE_RECEIVER_OFFLINE] Receiver ${dto.receiverUserId} has NO active call socket connected.`);
+      }
+
       // Notify caller that call is ringing
       client.emit('call:outgoing', result);
 
@@ -198,7 +207,9 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const result = await this.callService.rejectCall(userId, dto);
-      client.emit('call:rejected', result);
+      // Broadcast call:rejected to BOTH users so caller immediately stops ringing
+      this.server.to(`user:${result.callerUserId}`).emit('call:rejected', result);
+      this.server.to(`user:${result.receiverUserId}`).emit('call:rejected', result);
     } catch (err: any) {
       client.emit('call:error', { message: err.message });
     }
@@ -220,7 +231,9 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const result = await this.callService.endCall(userId, dto);
-      client.emit('call:ended', result);
+      // Broadcast call:ended to BOTH users so neither user is left ringing or hung
+      this.server.to(`user:${result.callerUserId}`).emit('call:ended', result);
+      this.server.to(`user:${result.receiverUserId}`).emit('call:ended', result);
     } catch (err: any) {
       client.emit('call:error', { message: err.message });
     }

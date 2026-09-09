@@ -59,6 +59,7 @@ interface CallStoreState {
 }
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+let pendingCancelledMatchId: string | null = null;
 
 export const useCallStore = create<CallStoreState>((set, get) => ({
   callState: 'IDLE',
@@ -95,6 +96,14 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
 
     callSocket.onOutgoingCall((data: any) => {
+      if (pendingCancelledMatchId && (data.matchId === pendingCancelledMatchId || !pendingCancelledMatchId) && data.callId) {
+        console.log('[CALL_STORE] User hung up before callId was assigned; ending call now:', data.callId);
+        callSocket.endCall(data.callId, CallEndReason.CALLER_HANGUP);
+        pendingCancelledMatchId = null;
+        get().resetCall();
+        return;
+      }
+
       set((state) => ({
         statusMessage: 'Ringing...',
         activeCall: state.activeCall
@@ -171,6 +180,15 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       }, 2500);
     });
 
+    callSocket.onCallError((data: { message: string }) => {
+      set({
+        statusMessage: data.message || 'Call failed. Please try again.',
+      });
+      setTimeout(() => {
+        get().resetCall();
+      }, 2500);
+    });
+
     callSocket.onCallTimeout(() => {
       set({
         statusMessage: 'Call Unanswered (Missed)',
@@ -211,7 +229,11 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   startCall: async (matchId, receiverUserId, partnerName, partnerAvatarUrl, callType = CallType.VIDEO) => {
+    pendingCancelledMatchId = null;
     get().initCallSocket();
+
+    // Ensure socket is actively connected before initiating
+    await callSocket.ensureConnected(4000);
 
     const granted = await requestCallingPermissions(callType === CallType.VIDEO);
     if (!granted) return;
@@ -257,9 +279,12 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   hangupCall: () => {
-    const { activeCall } = get();
+    const { activeCall, callState } = get();
     if (activeCall?.callId) {
       callSocket.endCall(activeCall.callId, CallEndReason.CALLER_HANGUP);
+    } else if (callState === 'OUTGOING_RINGING' && activeCall?.matchId) {
+      // User cancelled before callId arrived from backend
+      pendingCancelledMatchId = activeCall.matchId;
     }
     agoraRtcService.leaveChannel();
     if (timerInterval) {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Platform,
+  Vibration,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallStore } from '../../stores/call-store';
@@ -26,6 +27,25 @@ export const IncomingCallModal: React.FC = () => {
 
   // Block screenshots and screen recordings on incoming call screens
   useScreenCapturePrevention(isVisible);
+
+  // Trigger continuous ringing vibration while incoming call modal is visible
+  useEffect(() => {
+    if (isVisible) {
+      try {
+        Vibration.vibrate([0, 1000, 1000], true);
+      } catch {}
+    } else {
+      try {
+        Vibration.cancel();
+      } catch {}
+    }
+
+    return () => {
+      try {
+        Vibration.cancel();
+      } catch {}
+    };
+  }, [isVisible]);
 
   if (!isVisible || !activeCall) return null;
 
