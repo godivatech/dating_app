@@ -22,6 +22,7 @@ import { BottomTabBar } from '../src/components/BottomTabBar';
 import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
+import { WelcomeScreen } from '../src/components/WelcomeScreen';
 import { Colors } from '../src/theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -73,30 +74,13 @@ export default function IndexScreen() {
     );
   }
 
-  // Unauthenticated Welcome / Splash Screen
+  // Unauthenticated Welcome / Editorial Landing Screen
   if (authStatus === 'UNAUTHENTICATED' || !user) {
     return (
-      <SafeAreaView style={styles.splashContainer}>
-        <View style={styles.splashContent}>
-          <View style={styles.splashLogoSection}>
-            <ButterflyLogo size={64} />
-            <Text style={styles.splashBrandTitle}>Truelove</Text>
-            <Text style={styles.splashBrandSubtitle}>
-              Find authentic connections and match with people nearby.
-            </Text>
-          </View>
-
-          <View style={styles.splashActionSection}>
-            <TouchableOpacity
-              style={styles.splashButton}
-              onPress={() => router.push('/(auth)/login' as any)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.splashButtonText}>Get Started</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </SafeAreaView>
+      <WelcomeScreen
+        onGetStarted={() => router.push('/(auth)/login' as any)}
+        onSignIn={() => router.push('/(auth)/login' as any)}
+      />
     );
   }
 
