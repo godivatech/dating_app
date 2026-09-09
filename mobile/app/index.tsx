@@ -40,6 +40,9 @@ const SAMPLE_NEAR_YOU = [
   { id: '3', name: 'Ananya', distance: 'Nearby', image: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&auto=format&fit=crop&q=80' },
 ];
 
+// Global module-level flag so the splash screen only runs ONCE on initial app cold boot, never on in-app tab returns
+let globalHasShownSplash = false;
+
 export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -51,22 +54,29 @@ export default function IndexScreen() {
 
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<ProfileDetailData | null>(null);
 
-  // Splash display timer to guarantee exactly 4 seconds minimum presentation
-  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
-  const [isSplashDone, setIsSplashDone] = useState(false);
+  // Splash display state: only active on initial cold launch
+  const [minSplashElapsed, setMinSplashElapsed] = useState(globalHasShownSplash);
+  const [isSplashDone, setIsSplashDone] = useState(globalHasShownSplash);
 
   useEffect(() => {
+    if (globalHasShownSplash) return;
+
     const timer = setTimeout(() => {
       setMinSplashElapsed(true);
-    }, 4000); // Exactly 4.0 seconds
+    }, 4000); // Exactly 4.0 seconds on initial cold launch
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    if (globalHasShownSplash) {
+      if (!isSplashDone) setIsSplashDone(true);
+      return;
+    }
     if (minSplashElapsed && authStatus !== 'IDLE' && authStatus !== 'CHECKING_SESSION') {
+      globalHasShownSplash = true;
       setIsSplashDone(true);
     }
-  }, [minSplashElapsed, authStatus]);
+  }, [minSplashElapsed, authStatus, isSplashDone]);
 
   useFocusEffect(
     useCallback(() => {
