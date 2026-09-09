@@ -27,6 +27,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 
   const getEffectiveActiveTab = (): TabRoute => {
     if (activeTab) return activeTab;
+    if (pathname.includes('/discovery')) return 'center';
     if (pathname.includes('/explore')) return 'explore';
     if (pathname.includes('/conversations') || pathname.includes('/chat') || pathname.includes('/matches')) return 'chat';
     if (pathname.includes('/profile') || pathname.includes('/premium')) return 'profile';
@@ -38,7 +39,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const handleNavigate = (tab: TabRoute) => {
     switch (tab) {
       case 'home':
-        router.push('/discovery' as any);
+        router.push('/' as any);
         break;
       case 'explore':
         router.push('/explore' as any);

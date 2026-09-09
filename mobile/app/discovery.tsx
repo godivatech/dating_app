@@ -664,7 +664,7 @@ export default function DiscoveryScreen() {
       )}
 
       {/* Floating Bottom Tab Bar */}
-      <BottomTabBar activeTab="home" />
+      <BottomTabBar activeTab="center" />
 
       {/* Profile Detail Bottom Sheet Modal */}
       <ProfileDetailModal
