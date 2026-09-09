@@ -56,21 +56,28 @@ export default function RootLayout() {
     matchedUser: MatchedUserInfo | null;
   }>({ visible: false, matchedUser: null });
 
-  // In-app Like notification toast state
-  const [likeToast, setLikeToast] = useState<{
+  // In-app interactive notification toast state (Likes, Matches, Messages)
+  const [inAppToast, setInAppToast] = useState<{
     visible: boolean;
+    type: 'like' | 'message' | 'match';
     title: string;
     subtitle: string;
-  }>({ visible: false, title: '', subtitle: '' });
+    route?: string;
+  }>({ visible: false, type: 'like', title: '', subtitle: '' });
 
   const toastTranslateY = useRef(new Animated.Value(-120)).current;
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showLikeToast = (title: string, subtitle: string) => {
+  const showNotificationToast = (
+    type: 'like' | 'message' | 'match',
+    title: string,
+    subtitle: string,
+    route?: string,
+  ) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
-    setLikeToast({ visible: true, title, subtitle });
+    setInAppToast({ visible: true, type, title, subtitle, route });
     Animated.spring(toastTranslateY, {
       toValue: 0,
       friction: 6,
@@ -84,9 +91,9 @@ export default function RootLayout() {
         duration: 250,
         useNativeDriver: true,
       }).start(() => {
-        setLikeToast({ visible: false, title: '', subtitle: '' });
+        setInAppToast({ visible: false, type: 'like', title: '', subtitle: '' });
       });
-    }, 4000);
+    }, 4500);
   };
 
   useEffect(() => {
@@ -133,7 +140,26 @@ export default function RootLayout() {
         const subtitle = data.note
           ? `"${data.note.slice(0, 50)}${data.note.length > 50 ? '...' : ''}"`
           : `${data.actorDisplayName} liked your profile!`;
-        showLikeToast(title, subtitle);
+        showNotificationToast('like', title, subtitle, '/matches');
+      });
+
+      // Listen for real-time incoming messages
+      const unsubMessage = chatSocket.onMessageCreated((data) => {
+        // Only notify if message is from the other person
+        if (!data.message.isMine) {
+          try {
+            Vibration.vibrate([0, 60, 40, 60]);
+          } catch {}
+          useNotificationsStore.getState().fetchUnreadCount();
+          const title = 'New Message';
+          const subtitle = data.message.body?.slice(0, 60) || 'Sent you a message';
+          showNotificationToast(
+            'message',
+            title,
+            subtitle,
+            `/chat/${data.conversationId}`,
+          );
+        }
       });
 
       // Listen for real-time matches formed
@@ -159,6 +185,7 @@ export default function RootLayout() {
 
       return () => {
         unsubLike();
+        unsubMessage();
         unsubMatch();
         appStateSub.remove();
       };
@@ -174,12 +201,12 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: 'fade',
+            contentStyle: { backgroundColor: Colors.primary },
           }}
         />
 
         {/* Global In-App Notification Toast */}
-        {likeToast.visible && (
+        {inAppToast.visible && (
           <Animated.View
             style={[
               styles.toastBanner,
@@ -190,20 +217,37 @@ export default function RootLayout() {
               style={styles.toastInner}
               activeOpacity={0.9}
               onPress={() => {
-                setLikeToast({ visible: false, title: '', subtitle: '' });
-                router.push('/matches' as any);
+                const targetRoute = inAppToast.route || '/matches';
+                setInAppToast({ visible: false, type: 'like', title: '', subtitle: '' });
+                router.push(targetRoute as any);
               }}
             >
-              <View style={styles.toastIconBox}>
-                <Ionicons name="heart" size={18} color={Colors.primary} />
+              <View
+                style={[
+                  styles.toastIconBox,
+                  inAppToast.type === 'message' && { backgroundColor: '#E6F4FE' },
+                ]}
+              >
+                <Ionicons
+                  name={inAppToast.type === 'message' ? 'chatbubble-ellipses' : 'heart'}
+                  size={18}
+                  color={inAppToast.type === 'message' ? '#007AFF' : Colors.primary}
+                />
               </View>
               <View style={styles.toastTextBox}>
-                <Text style={styles.toastTitle}>{likeToast.title}</Text>
+                <Text style={styles.toastTitle}>{inAppToast.title}</Text>
                 <Text style={styles.toastSubtitle} numberOfLines={1}>
-                  {likeToast.subtitle}
+                  {inAppToast.subtitle}
                 </Text>
               </View>
-              <Text style={styles.toastActionText}>View</Text>
+              <Text
+                style={[
+                  styles.toastActionText,
+                  inAppToast.type === 'message' && { color: '#007AFF' },
+                ]}
+              >
+                {inAppToast.type === 'message' ? 'Reply' : 'View'}
+              </Text>
             </TouchableOpacity>
           </Animated.View>
         )}
