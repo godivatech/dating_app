@@ -7,12 +7,12 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore } from '../src/stores/billing-store';
-import { PaywallModal } from '../src/components/PaywallModal';
 import { t } from '../src/i18n/strings';
 import { SubscriptionTier } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
@@ -80,7 +80,6 @@ export default function PremiumScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <PaywallModal />
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -236,6 +235,7 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
+    paddingTop: Platform.OS === 'android' ? 6 : 0,
   },
   container: {
     paddingHorizontal: 20,

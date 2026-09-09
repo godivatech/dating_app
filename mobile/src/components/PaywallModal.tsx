@@ -7,8 +7,10 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore } from '../stores/billing-store';
 import { t } from '../i18n/strings';
@@ -33,10 +35,10 @@ export const PaywallModal: React.FC = () => {
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (paywallVisible) {
+    if (paywallVisible && products.length === 0) {
       fetchProducts();
     }
-  }, [paywallVisible]);
+  }, [paywallVisible, products.length]);
 
   useEffect(() => {
     // Select default product for current tier
@@ -86,9 +88,11 @@ export const PaywallModal: React.FC = () => {
       visible={paywallVisible}
       animationType="slide"
       transparent={false}
+      statusBarTranslucent={false}
       onRequestClose={closePaywall}
     >
-      <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <ScrollView contentContainerStyle={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
           {/* Header & Close Button */}
           <View style={styles.header}>

@@ -24,6 +24,7 @@ import { MatchCelebrationModal, MatchedUserInfo } from '../src/components/MatchC
 
 import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
+import { PaywallModal } from '../src/components/PaywallModal';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
 import {
@@ -218,6 +219,7 @@ export default function RootLayout() {
 
         <IncomingCallModal />
         <ActiveCallModal />
+        <PaywallModal />
         <StatusBar style="dark" />
       </QueryClientProvider>
     </SafeAreaProvider>

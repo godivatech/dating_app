@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
 
       try {
-        const response = await apiClient.get<SafeUser>('/auth/me', { timeout: 6000 });
+        const response = await apiClient.get<SafeUser>('/auth/me', { timeout: 15000 });
         set({
           status: 'AUTHENTICATED',
           user: response.data,
@@ -79,13 +79,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
           error: null,
         });
       } catch (error: any) {
-        // If /auth/me fails or times out, clear and set unauthenticated
-        await SecureStorage.clearTokens();
-        set({
-          status: 'UNAUTHENTICATED',
-          user: null,
-          isLoading: false,
-        });
+        // ONLY clear tokens if the backend explicitly returned a 401 Unauthorized (refresh failed/invalid)
+        if (error.response?.status === 401) {
+          console.warn('[AUTH_CHECK] Unauthorized session (401); clearing stored tokens');
+          await SecureStorage.clearTokens();
+          set({
+            status: 'UNAUTHENTICATED',
+            user: null,
+            isLoading: false,
+          });
+        } else {
+          // If network timed out or server is cold-starting, PRESERVE the session!
+          console.warn('[AUTH_CHECK] Network or timeout during session check. Preserving session:', error.message);
+          set({
+            status: 'AUTHENTICATED',
+            isLoading: false,
+            error: null,
+          });
+        }
       }
     },
 

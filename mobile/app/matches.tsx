@@ -28,7 +28,6 @@ import {
 } from '../../shared/src/types';
 import { ReportModal } from '../src/components/ReportModal';
 import { useBillingStore } from '../src/stores/billing-store';
-import { PaywallModal } from '../src/components/PaywallModal';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { apiClient } from '../src/services/api-client';
@@ -458,7 +457,6 @@ export default function MatchesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <PaywallModal />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity

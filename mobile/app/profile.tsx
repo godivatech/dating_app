@@ -17,7 +17,6 @@ import { useAuthStore } from '../src/stores/auth-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
 import { BottomTabBar } from '../src/components/BottomTabBar';
-import { PaywallModal } from '../src/components/PaywallModal';
 import { Colors } from '../src/theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -259,9 +258,6 @@ export default function ProfileScreen() {
 
       {/* Floating Bottom Tab Bar */}
       <BottomTabBar activeTab="profile" />
-
-      {/* Paywall Modal */}
-      <PaywallModal />
 
       {/* Trust & Safety Modal */}
       <Modal

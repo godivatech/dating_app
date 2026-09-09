@@ -18,7 +18,6 @@ import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
 import { useNotificationsStore } from '../src/stores/notifications-store';
-import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileDetailModal } from '../src/components/ProfileDetailModal';
 import { SendNoteModal } from '../src/components/SendNoteModal';
 import { BottomTabBar } from '../src/components/BottomTabBar';
@@ -711,8 +710,7 @@ export default function DiscoveryScreen() {
         </Animated.View>
       )}
 
-      {/* Paywall Modal */}
-      <PaywallModal />
+      {/* Discovery End */}
     </SafeAreaView>
   );
 }

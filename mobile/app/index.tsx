@@ -19,7 +19,6 @@ import { useNotificationsStore } from '../src/stores/notifications-store';
 import { useBillingStore } from '../src/stores/billing-store';
 import { ButterflyLogo } from '../src/components/ButterflyLogo';
 import { BottomTabBar } from '../src/components/BottomTabBar';
-import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
 import { WelcomeScreen } from '../src/components/WelcomeScreen';
@@ -51,6 +50,23 @@ export default function IndexScreen() {
 
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<ProfileDetailData | null>(null);
 
+  // Splash display timer to guarantee exactly 4 seconds minimum presentation
+  const [minSplashElapsed, setMinSplashElapsed] = useState(false);
+  const [isSplashDone, setIsSplashDone] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMinSplashElapsed(true);
+    }, 4000); // Exactly 4.0 seconds
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (minSplashElapsed && authStatus !== 'IDLE' && authStatus !== 'CHECKING_SESSION') {
+      setIsSplashDone(true);
+    }
+  }, [minSplashElapsed, authStatus]);
+
   useFocusEffect(
     useCallback(() => {
       if (authStatus === 'AUTHENTICATED') {
@@ -63,10 +79,8 @@ export default function IndexScreen() {
   );
 
   // Branded Loading / Splash State (Zomato/Swiggy-style)
-  if (
-    authStatus === 'CHECKING_SESSION' ||
-    (authStatus === 'AUTHENTICATED' && isProfileLoading && !profile)
-  ) {
+  // Stays for at least 4 seconds without any double-render or screen flickering
+  if (!isSplashDone) {
     return (
       <BrandedSplashScreen
         locationCity={profile?.locationCity}
@@ -337,9 +351,6 @@ export default function IndexScreen() {
           router.push('/conversations' as any);
         }}
       />
-
-      {/* Paywall Modal */}
-      <PaywallModal />
     </SafeAreaView>
   );
 }
