@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { NotificationsService } from './services/notifications.service';
 import { NotificationsQueryDto } from './dto/notifications-query.dto';
 import { RegisterDeviceDto } from './dto/register-device.dto';
+import { RetentionScheduler } from './schedulers/retention.scheduler';
 import {
   NotificationsListResponse,
   SafeNotification,
@@ -26,7 +27,10 @@ import {
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly retentionScheduler: RetentionScheduler,
+  ) {}
 
   /**
    * Retrieves paginated notifications for the authenticated user.
@@ -95,5 +99,16 @@ export class NotificationsController {
   ): Promise<{ success: boolean }> {
     const userId = req.user.userId;
     return this.notificationsService.unregisterDevice(userId, token);
+  }
+
+  /**
+   * Manually triggers the retention re-engagement campaign scan.
+   * Useful for administrative triggers or operational test validation.
+   */
+  @Post('retention/trigger')
+  @HttpCode(HttpStatus.OK)
+  async triggerRetention(@Req() req: any): Promise<any> {
+    const force = req.query?.force === 'true' || true;
+    return this.retentionScheduler.safeExecute(force);
   }
 }

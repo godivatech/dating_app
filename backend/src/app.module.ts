@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { HealthController } from './health.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
@@ -19,7 +20,7 @@ import { AdminModule } from './admin/admin.module';
 /**
  * Root application module — Phase 12.
  *
- * Configured with ConfigModule, PrismaModule, RedisModule,
+ * Configured with ConfigModule, ScheduleModule, PrismaModule, RedisModule,
  * SmsModule, AuthModule, ProfileModule, MediaModule, DiscoveryModule, MatchingModule, ChatModule, SafetyModule, NotificationsModule, BillingModule, CallModule, and AdminModule.
  */
 @Module({
@@ -28,6 +29,7 @@ import { AdminModule } from './admin/admin.module';
       isGlobal: true,
       envFilePath: ['.env', '.env.development'],
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     RedisModule,
     SmsModule,
