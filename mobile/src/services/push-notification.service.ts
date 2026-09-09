@@ -175,7 +175,14 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 }
 
 /**
- * Helper to dispatch deep-link navigation based on notification payload
+ * Helper to dispatch smart deep-link navigation based on notification payload
+ * Matches Tinder & Bumble patterns:
+ * - NEW_MESSAGE: Opens directly into the specific chat room (/chat/[conversationId])
+ * - NEW_MATCH: Opens the Matches screen (/matches) to see the celebratory match card
+ * - LIKE_RECEIVED / DIRECT_NOTE: Opens Matches screen (/matches)
+ * - FRESH_FEED: Opens Discovery swipe deck (/discovery)
+ * - INCOMPLETE_PROFILE: Opens Profile editor (/profile)
+ * - SAFETY / SYSTEM: Opens Notifications inbox (/notifications)
  */
 function handleNotificationNavigation(
   data: any,
@@ -183,24 +190,64 @@ function handleNotificationNavigation(
 ): void {
   if (!onNavigate || !data) return;
 
-  const conversationId =
-    data.conversationId || (data.type === 'NEW_MESSAGE' ? data.referenceId : null);
-  const matchId =
-    data.matchId || (data.type === 'NEW_MATCH' ? data.referenceId : null);
-
-  if (conversationId) {
-    console.log('[PUSH_NAV] Navigating directly to chat:', `/chat/${conversationId}`);
-    onNavigate(`/chat/${conversationId}`);
-  } else if (matchId) {
-    console.log('[PUSH_NAV] Navigating to match chat:', `/chat/${matchId}`);
-    onNavigate(`/chat/${matchId}`);
-  } else if (data.type === 'INCOMING_CALL') {
-    onNavigate('/matches');
-  } else if (data.type === 'SYSTEM' || data.type === 'SAFETY_WARNING') {
-    onNavigate('/notifications');
-  } else if (data.screen) {
-    onNavigate(data.screen);
+  // 1. New Message or Unreplied Chat reminder -> Direct Chat Room
+  if (data.type === 'NEW_MESSAGE' || data.conversationId) {
+    const conversationId = data.conversationId || data.referenceId;
+    if (conversationId) {
+      console.log('[PUSH_NAV] Navigating directly to chat:', `/chat/${conversationId}`);
+      onNavigate(`/chat/${conversationId}`);
+      return;
+    }
   }
+
+  // 2. New Match or Direct Note -> Matches Tab
+  if (data.type === 'NEW_MATCH' || data.type === 'DIRECT_NOTE' || data.matchId) {
+    console.log('[PUSH_NAV] Navigating to matches screen');
+    onNavigate('/matches');
+    return;
+  }
+
+  // 3. Like Received or Pending Likes Campaign -> Matches Tab
+  if (data.type === 'LIKE_RECEIVED' || data.campaign === 'PENDING_LIKES') {
+    console.log('[PUSH_NAV] Navigating to likes/matches');
+    onNavigate('/matches');
+    return;
+  }
+
+  // 4. Fresh Feed / Discovery Campaign -> Discovery Swipe Deck
+  if (data.campaign === 'FRESH_FEED' || data.screen === '/discovery') {
+    console.log('[PUSH_NAV] Navigating to discovery feed');
+    onNavigate('/discovery');
+    return;
+  }
+
+  // 5. Incomplete Profile Nudge -> Profile Editor
+  if (data.campaign === 'INCOMPLETE_PROFILE' || data.screen === '/profile') {
+    console.log('[PUSH_NAV] Navigating to profile');
+    onNavigate('/profile');
+    return;
+  }
+
+  // 6. Incoming Call -> Matches screen
+  if (data.type === 'INCOMING_CALL') {
+    onNavigate('/matches');
+    return;
+  }
+
+  // 7. Explicit screen specified in payload
+  if (data.screen) {
+    onNavigate(data.screen);
+    return;
+  }
+
+  // 8. General / Safety / System notifications
+  if (data.type === 'SYSTEM' || data.type === 'SAFETY_WARNING' || data.type === 'SAFETY_UPDATE') {
+    onNavigate('/notifications');
+    return;
+  }
+
+  // Default fallback
+  onNavigate('/matches');
 }
 
 /**
