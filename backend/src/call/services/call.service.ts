@@ -71,7 +71,7 @@ export class CallService {
     if (callerActiveCallId) {
       const activeCall = await this.prisma.callLog.findUnique({
         where: { id: callerActiveCallId },
-        select: { status: true },
+        select: { id: true, status: true, callerUserId: true, receiverUserId: true },
       });
       if (
         !activeCall ||
@@ -85,7 +85,17 @@ export class CallService {
         );
         await this.redisService.del(`user:call_state:${callerUserId}`);
       } else {
-        throw new BadRequestException('You are already in an active call session.');
+        // The caller is explicitly initiating a new call.
+        // Instead of rejecting the user with "already in call", gracefully terminate the previous call
+        // (handling race conditions where the user just hung up or is redialing/switching call types).
+        this.logger.log(
+          `[CALL_REPLACE] Caller ${callerUserId} initiating new call while prior call ${callerActiveCallId} active. Auto-terminating prior call.`,
+        );
+        try {
+          await this.endCall(callerUserId, { callId: callerActiveCallId, reason: CallEndReason.CALLER_HANGUP });
+        } catch {
+          await this.redisService.del(`user:call_state:${callerUserId}`);
+        }
       }
     }
 
@@ -128,7 +138,7 @@ export class CallService {
     if (receiverActiveCallId) {
       const activeCall = await this.prisma.callLog.findUnique({
         where: { id: receiverActiveCallId },
-        select: { status: true },
+        select: { id: true, status: true, callerUserId: true, receiverUserId: true },
       });
       if (
         !activeCall ||
@@ -141,6 +151,19 @@ export class CallService {
           `[CALL_STALE_CLEANUP] Clearing stale receiver call state ${receiverActiveCallId} for user ${dto.receiverUserId}`,
         );
         await this.redisService.del(`user:call_state:${dto.receiverUserId}`);
+      } else if (
+        (activeCall.callerUserId === callerUserId && activeCall.receiverUserId === dto.receiverUserId) ||
+        (activeCall.callerUserId === dto.receiverUserId && activeCall.receiverUserId === callerUserId)
+      ) {
+        // The receiver was in a prior call with the SAME caller (e.g. caller just hung up and is redialing/switching to video).
+        this.logger.log(
+          `[CALL_REPLACE] Receiver ${dto.receiverUserId} was in prior call ${receiverActiveCallId} with same caller ${callerUserId}. Auto-terminating prior call session.`,
+        );
+        try {
+          await this.endCall(callerUserId, { callId: receiverActiveCallId, reason: CallEndReason.CALLER_HANGUP });
+        } catch {
+          await this.redisService.del(`user:call_state:${dto.receiverUserId}`);
+        }
       } else {
         this.logger.log(`[CALL_BUSY] Receiver ${dto.receiverUserId} is genuinely on call ${receiverActiveCallId}`);
         const busyCall = await this.prisma.callLog.create({

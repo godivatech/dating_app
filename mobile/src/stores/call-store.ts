@@ -59,7 +59,15 @@ interface CallStoreState {
 }
 
 let timerInterval: ReturnType<typeof setInterval> | null = null;
+let resetTimeout: ReturnType<typeof setTimeout> | null = null;
 let pendingCancelledMatchId: string | null = null;
+
+const clearPendingResetTimeout = () => {
+  if (resetTimeout) {
+    clearTimeout(resetTimeout);
+    resetTimeout = null;
+  }
+};
 
 export const useCallStore = create<CallStoreState>((set, get) => ({
   callState: 'IDLE',
@@ -79,6 +87,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     callSocket.connect();
 
     callSocket.onIncomingCall((data: IncomingCallPayload) => {
+      clearPendingResetTimeout();
       set({
         callState: 'INCOMING_RINGING',
         activeCall: {
@@ -96,6 +105,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
 
     callSocket.onOutgoingCall((data: any) => {
+      clearPendingResetTimeout();
       if (pendingCancelledMatchId && (data.matchId === pendingCancelledMatchId || !pendingCancelledMatchId) && data.callId) {
         console.log('[CALL_STORE] User hung up before callId was assigned; ending call now:', data.callId);
         callSocket.endCall(data.callId, CallEndReason.CALLER_HANGUP);
@@ -117,6 +127,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
 
     callSocket.onCallConnected(async (data: CallConnectedPayload) => {
+      clearPendingResetTimeout();
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         set((state) => ({ durationSeconds: state.durationSeconds + 1 }));
@@ -163,42 +174,47 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
 
     callSocket.onCallRejected((data: any) => {
+      clearPendingResetTimeout();
       set({
         statusMessage: data.reason || 'Call Declined',
       });
-      setTimeout(() => {
+      resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 2000);
     });
 
     callSocket.onCallBusy((data: any) => {
+      clearPendingResetTimeout();
       set({
         statusMessage: data.message || 'User is busy on another call',
       });
-      setTimeout(() => {
+      resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 2500);
     });
 
     callSocket.onCallError((data: { message: string }) => {
+      clearPendingResetTimeout();
       set({
         statusMessage: data.message || 'Call failed. Please try again.',
       });
-      setTimeout(() => {
+      resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 2500);
     });
 
     callSocket.onCallTimeout(() => {
+      clearPendingResetTimeout();
       set({
         statusMessage: 'Call Unanswered (Missed)',
       });
-      setTimeout(() => {
+      resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 2000);
     });
 
     callSocket.onCallEnded((data: CallEndedNotification) => {
+      clearPendingResetTimeout();
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -207,9 +223,9 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         callState: 'ENDED',
         statusMessage: `Call Ended (${data.durationSeconds}s)`,
       });
-      setTimeout(() => {
+      resetTimeout = setTimeout(() => {
         get().resetCall();
-      }, 2000);
+      }, 1500);
     });
 
     callSocket.onPartnerMediaChanged((data: any) => {
@@ -229,6 +245,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   startCall: async (matchId, receiverUserId, partnerName, partnerAvatarUrl, callType = CallType.VIDEO) => {
+    clearPendingResetTimeout();
     pendingCancelledMatchId = null;
     get().initCallSocket();
 
@@ -257,6 +274,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   acceptIncomingCall: async () => {
+    clearPendingResetTimeout();
     const { activeCall } = get();
     if (!activeCall || !activeCall.callId) return;
 
@@ -268,6 +286,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   rejectIncomingCall: (reason?: string) => {
+    clearPendingResetTimeout();
     const { activeCall } = get();
     if (!activeCall || !activeCall.callId) {
       get().resetCall();
@@ -279,6 +298,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   hangupCall: () => {
+    clearPendingResetTimeout();
     const { activeCall, callState } = get();
     if (activeCall?.callId) {
       callSocket.endCall(activeCall.callId, CallEndReason.CALLER_HANGUP);
@@ -326,6 +346,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   resetCall: () => {
+    clearPendingResetTimeout();
     agoraRtcService.leaveChannel();
     if (timerInterval) {
       clearInterval(timerInterval);

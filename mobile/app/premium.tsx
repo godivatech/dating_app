@@ -8,8 +8,9 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  StatusBar as RNStatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore } from '../src/stores/billing-store';
@@ -19,6 +20,11 @@ import { Colors } from '../src/theme/colors';
 
 export default function PremiumScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 36) : 0,
+  );
   const {
     billingStatus,
     isLoading,
@@ -79,7 +85,7 @@ export default function PremiumScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <View style={[styles.safeArea, { paddingTop: topInset + 6 }]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -227,7 +233,7 @@ export default function PremiumScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -235,7 +241,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: Colors.background,
-    paddingTop: Platform.OS === 'android' ? 6 : 0,
   },
   container: {
     paddingHorizontal: 20,

@@ -8,8 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   Platform,
+  StatusBar as RNStatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore } from '../stores/billing-store';
@@ -30,6 +31,12 @@ export const PaywallModal: React.FC = () => {
     restorePurchases,
     fetchProducts,
   } = useBillingStore();
+
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 36) : 0,
+  );
 
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier>(SubscriptionTier.GOLD);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -92,18 +99,26 @@ export const PaywallModal: React.FC = () => {
       onRequestClose={closePaywall}
     >
       <StatusBar style="dark" />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-        <ScrollView contentContainerStyle={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
-          {/* Header & Close Button */}
+      <View style={[styles.safeArea, { paddingTop: topInset + 10 }]}>
+        {/* Dedicated Navigation Bar Row for Close Button */}
+        <View style={styles.navBar}>
+          <TouchableOpacity
+            onPress={closePaywall}
+            style={styles.closeButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color={Colors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView
+          contentContainerStyle={[styles.container, { paddingBottom: Math.max(insets.bottom, 24) + 20 }]}
+          bounces={false}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity
-              onPress={closePaywall}
-              style={styles.closeButton}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="close" size={20} color={Colors.textPrimary} />
-            </TouchableOpacity>
             <View style={styles.headerIconCircle}>
               <Ionicons name="sparkles" size={28} color={Colors.primary} />
             </View>
@@ -295,7 +310,7 @@ export const PaywallModal: React.FC = () => {
             Prices shown in INR (₹) inclusive of applicable taxes. Auto-renews until canceled in store settings.
           </Text>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
@@ -305,20 +320,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  navBar: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+  },
   container: {
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
   header: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 4,
     marginBottom: 20,
-    position: 'relative',
   },
   closeButton: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
     width: 38,
     height: 38,
     borderRadius: 12,
@@ -327,7 +345,6 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 10,
   },
   headerIconCircle: {
     width: 60,
