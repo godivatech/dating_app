@@ -241,6 +241,51 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       set({ isSpeakerOn: routing === 3 });
     });
 
+    // Auto-terminate call when remote partner disconnects or kills the app
+    agoraRtcService.onUserOffline((remoteUid: number) => {
+      const { activeCall, callState } = get();
+      if (callState === 'CONNECTED' && activeCall) {
+        console.log(`[CALL_STORE] Remote partner ${remoteUid} went offline in Agora.`);
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+        }
+        set({
+          callState: 'ENDED',
+          statusMessage: 'Partner Disconnected',
+        });
+        if (activeCall.callId) {
+          callSocket.endCall(activeCall.callId, CallEndReason.NETWORK_FAILURE);
+        }
+        clearPendingResetTimeout();
+        resetTimeout = setTimeout(() => {
+          get().resetCall();
+        }, 1500);
+      }
+    });
+
+    // Handle unexpected RTC connection failure
+    agoraRtcService.onConnectionStateChanged((state: string) => {
+      if (state === '5') {
+        const { activeCall, callState } = get();
+        if (callState === 'CONNECTED' && activeCall) {
+          console.warn('[CALL_STORE] Agora connection failed unexpectedly.');
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+          set({
+            callState: 'ENDED',
+            statusMessage: 'Connection Lost',
+          });
+          clearPendingResetTimeout();
+          resetTimeout = setTimeout(() => {
+            get().resetCall();
+          }, 1500);
+        }
+      }
+    });
+
     set({ isInitialized: true });
   },
 

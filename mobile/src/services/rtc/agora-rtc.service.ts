@@ -136,9 +136,13 @@ export class AgoraRtcService implements IRtcEngine {
       this.engine.adjustRecordingSignalVolume(100);
       this.engine.adjustPlaybackSignalVolume(100);
 
-      // Set default audio route: hands-free speakerphone if no headset; automatically switches to Bluetooth/wired headset if connected
-      this.engine.setDefaultAudioRouteToSpeakerphone(true);
-      this.engine.setEnableSpeakerphone(true);
+      // Set default audio route: hands-free speakerphone
+      if (Platform.OS === 'android') {
+        this.engine.setRouteInCommunicationMode(3);
+      } else {
+        this.engine.setDefaultAudioRouteToSpeakerphone(true);
+        this.engine.setEnableSpeakerphone(true);
+      }
 
       const result = this.engine.joinChannel(token, channelName, uid, {
         clientRoleType: ClientRoleType.ClientRoleBroadcaster,
@@ -207,10 +211,14 @@ export class AgoraRtcService implements IRtcEngine {
     if (!this.engine || !this.isAvailable) return;
 
     try {
-      this.engine.setEnableSpeakerphone(speakerOn);
       if (Platform.OS === 'android') {
-        // 3: built-in loudspeaker; -1: system default route (Bluetooth headset or earpiece)
-        this.engine.setRouteInCommunicationMode(speakerOn ? 3 : -1);
+        // In react-native-agora on Android, setRouteInCommunicationMode selects the route:
+        // 3: Built-in speaker (loudspeaker)
+        // 1: Earpiece (phone against ear)
+        const route = speakerOn ? 3 : 1;
+        this.engine.setRouteInCommunicationMode(route);
+      } else {
+        this.engine.setEnableSpeakerphone(speakerOn);
       }
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error toggling speaker: ${error.message}`);

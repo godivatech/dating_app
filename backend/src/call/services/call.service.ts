@@ -455,6 +455,13 @@ export class CallService {
   }
 
   /**
+   * Retrieves active call ID for user if stored in Redis.
+   */
+  async getActiveCallIdForUser(userId: string): Promise<string | null> {
+    return this.redisService.get(`user:call_state:${userId}`);
+  }
+
+  /**
    * Retrieves user's call history logs.
    */
   async getCallHistory(userId: string, limit = 20) {

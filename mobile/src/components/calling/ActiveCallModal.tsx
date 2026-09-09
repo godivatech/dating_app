@@ -235,16 +235,16 @@ export const ActiveCallModal: React.FC = () => {
                 </TouchableOpacity>
               )}
 
-              {/* Speaker Toggle */}
+              {/* Speaker / Earpiece Toggle */}
               <TouchableOpacity
-                style={[styles.toolBtn, !isSpeakerOn && styles.toolBtnActive]}
+                style={[styles.toolBtn, isSpeakerOn && styles.toolBtnSpeakerActive]}
                 onPress={toggleSpeaker}
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name={isSpeakerOn ? 'volume-high' : 'volume-mute'}
+                  name={isSpeakerOn ? 'volume-high' : 'phone-portrait-outline'}
                   size={24}
-                  color="#FFFFFF"
+                  color={isSpeakerOn ? '#38BDF8' : '#94A3B8'}
                 />
               </TouchableOpacity>
 
@@ -460,6 +460,11 @@ const styles = StyleSheet.create({
   },
   toolBtnActive: {
     backgroundColor: 'rgba(239, 68, 68, 0.25)',
+  },
+  toolBtnSpeakerActive: {
+    backgroundColor: 'rgba(56, 189, 248, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.4)',
   },
   endCallBtn: {
     width: 64,

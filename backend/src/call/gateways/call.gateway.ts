@@ -12,7 +12,7 @@ import { Logger, UsePipes, ValidationPipe } from '@nestjs/common';
 import { TokenService } from '../../auth/services/token.service';
 import { CallService } from '../services/call.service';
 import { InitiateCallDto, AcceptCallDto, RejectCallDto, EndCallDto } from '../dto/call.dto';
-import { CallStatus } from '@prisma/client';
+import { CallStatus, CallEndReason } from '@prisma/client';
 
 @WebSocketGateway({
   cors: {
@@ -68,8 +68,45 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
-    this.logger.log(`[CALL_SOCKET_DISCONNECTED] Socket ${client.id} (user: ${client.data?.userId})`);
+  async handleDisconnect(client: Socket) {
+    const userId = client.data?.userId;
+    this.logger.log(`[CALL_SOCKET_DISCONNECTED] Socket ${client.id} (user: ${userId})`);
+    if (!userId) return;
+
+    // Check if the user has any remaining socket connections (e.g. reconnecting or another tab)
+    const sockets = await this.server.in(`user:${userId}`).fetchSockets();
+    if (sockets.length > 0) {
+      return;
+    }
+
+    // Check if user was in an active call
+    const activeCallId = await this.callService.getActiveCallIdForUser(userId);
+    if (!activeCallId) return;
+
+    // Give a 3.5-second grace period for temporary mobile handoffs / re-connects
+    setTimeout(async () => {
+      try {
+        const remainingSockets = await this.server.in(`user:${userId}`).fetchSockets();
+        if (remainingSockets.length > 0) {
+          return;
+        }
+
+        const currentCallId = await this.callService.getActiveCallIdForUser(userId);
+        if (currentCallId === activeCallId) {
+          this.logger.log(`[CALL_ABRUPT_DISCONNECT] Terminating call ${activeCallId} because user ${userId} closed app/disconnected.`);
+          const result = await this.callService.endCall(userId, {
+            callId: activeCallId,
+            reason: CallEndReason.NETWORK_FAILURE,
+          });
+
+          // Broadcast call:ended to partner so their timer stops and modal closes
+          this.server.to(`user:${result.callerUserId}`).emit('call:ended', result);
+          this.server.to(`user:${result.receiverUserId}`).emit('call:ended', result);
+        }
+      } catch (err: any) {
+        this.logger.warn(`[CALL_DISCONNECT_CLEANUP_ERR] ${err?.message}`);
+      }
+    }, 3500);
   }
 
   @SubscribeMessage('call:initiate')
