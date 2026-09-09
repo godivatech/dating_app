@@ -57,6 +57,16 @@ describe('ExclusionService', () => {
     expect(suppressed.has('unseen-profile')).toBe(false);
   });
 
+  it('should categorize suppression data into hard exclusions and soft recent impressions', async () => {
+    const data = await service.getSuppressionData('user-1', 30);
+    expect(data.hardExcludedIds.has('liked-profile-1')).toBe(true);
+    expect(data.hardExcludedIds.has('matched-profile-1')).toBe(true);
+    expect(data.hardExcludedIds.has('blocked-profile-1')).toBe(true);
+    expect(data.hardExcludedIds.has('seen-profile-1')).toBe(false);
+    expect(data.recentImpressionIds.has('seen-profile-1')).toBe(true);
+    expect(data.recentImpressionIds.has('seen-profile-2')).toBe(true);
+  });
+
   it('should filter out self and all suppressed profiles', () => {
     const suppressed = new Set([
       'seen-profile-1',

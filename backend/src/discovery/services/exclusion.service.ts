@@ -3,6 +3,13 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SafetyPolicyService } from '../../safety/services/safety-policy.service';
 
 export const IMPRESSION_SUPPRESSION_DAYS = 7;
+export const IMPRESSION_SUPPRESSION_MINUTES = 30;
+
+export interface SuppressionData {
+  hardExcludedIds: Set<string>;
+  recentImpressionIds: Set<string>;
+  allSuppressedIds: Set<string>;
+}
 
 @Injectable()
 export class ExclusionService {
@@ -12,19 +19,21 @@ export class ExclusionService {
   ) {}
 
   /**
-   * Retrieves profile IDs that must be excluded from discovery for the requesting user:
-   * 1. Profiles presented within the recent impression suppression window (7 days)
-   * 2. Profiles the user has already acted upon (LIKE or PASS)
-   * 3. Profiles of users with whom a Match exists (ACTIVE or UNMATCHED)
-   * 4. Profiles of users mutually blocked via SafetyPolicyService
+   * Retrieves profile IDs categorized into hard exclusions (permanent) and soft recent impressions.
+   *
+   * Hard Exclusions:
+   * 1. Profiles the user has already acted upon (LIKE or PASS)
+   * 2. Profiles of users with whom a Match exists (ACTIVE or UNMATCHED)
+   * 3. Profiles of users mutually blocked via SafetyPolicyService
+   *
+   * Soft Exclusions:
+   * 4. Profiles presented within the short recent impression window (default 30 min)
    */
-  async getSuppressedProfileIds(
+  async getSuppressionData(
     requestingUserId: string,
-    suppressionDays: number = IMPRESSION_SUPPRESSION_DAYS,
-  ): Promise<Set<string>> {
-    const cutoffDate = new Date(
-      Date.now() - suppressionDays * 24 * 60 * 60 * 1000,
-    );
+    suppressionMinutes: number = IMPRESSION_SUPPRESSION_MINUTES,
+  ): Promise<SuppressionData> {
+    const cutoffDate = new Date(Date.now() - suppressionMinutes * 60 * 1000);
 
     const [
       recentImpressions,
@@ -63,19 +72,24 @@ export class ExclusionService {
       this.safetyPolicyService.getMutualBlockedUserIds(requestingUserId),
     ]);
 
-    const excludedIds = new Set<string>();
-
-    for (const imp of recentImpressions) {
-      excludedIds.add(imp.targetProfileId);
-    }
+    const hardExcludedIds = new Set<string>();
+    const recentImpressionIds = new Set<string>();
+    const allSuppressedIds = new Set<string>();
 
     for (const action of existingActions) {
-      excludedIds.add(action.targetProfileId);
+      hardExcludedIds.add(action.targetProfileId);
+      allSuppressedIds.add(action.targetProfileId);
     }
 
     for (const match of existingMatches) {
-      if (match.user1?.profile?.id) excludedIds.add(match.user1.profile.id);
-      if (match.user2?.profile?.id) excludedIds.add(match.user2.profile.id);
+      if (match.user1?.profile?.id) {
+        hardExcludedIds.add(match.user1.profile.id);
+        allSuppressedIds.add(match.user1.profile.id);
+      }
+      if (match.user2?.profile?.id) {
+        hardExcludedIds.add(match.user2.profile.id);
+        allSuppressedIds.add(match.user2.profile.id);
+      }
     }
 
     if (blockedUserIds.size > 0) {
@@ -86,11 +100,33 @@ export class ExclusionService {
         select: { id: true },
       });
       for (const bp of blockedProfiles) {
-        excludedIds.add(bp.id);
+        hardExcludedIds.add(bp.id);
+        allSuppressedIds.add(bp.id);
       }
     }
 
-    return excludedIds;
+    for (const imp of recentImpressions) {
+      recentImpressionIds.add(imp.targetProfileId);
+      allSuppressedIds.add(imp.targetProfileId);
+    }
+
+    return {
+      hardExcludedIds,
+      recentImpressionIds,
+      allSuppressedIds,
+    };
+  }
+
+  /**
+   * Retrieves profile IDs that must be excluded from discovery for the requesting user (all combined).
+   */
+  async getSuppressedProfileIds(
+    requestingUserId: string,
+    suppressionDays: number = IMPRESSION_SUPPRESSION_DAYS,
+  ): Promise<Set<string>> {
+    const suppressionMinutes = suppressionDays * 24 * 60;
+    const data = await this.getSuppressionData(requestingUserId, suppressionMinutes);
+    return data.allSuppressedIds;
   }
 
   /**

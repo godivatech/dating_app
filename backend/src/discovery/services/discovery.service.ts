@@ -117,15 +117,34 @@ export class DiscoveryService {
       this.mutualCompatibility.isMutuallyCompatible(userProfile, candidate),
     );
 
-    // 6. Exclusion Filtering (Self, recent impressions suppression)
-    const suppressedIds =
-      await this.exclusionService.getSuppressedProfileIds(userId);
-    const eligibleCandidates = this.exclusionService.filterExclusions(
+    // 6. Exclusion Filtering (Hard exclusions + Smart Impression Recycling)
+    const { hardExcludedIds, recentImpressionIds } =
+      await this.exclusionService.getSuppressionData(userId, 30);
+
+    // Filter hard exclusions (self, swiped actions, matches, blocks, shadowbans)
+    const unswipedCompatibleCandidates = this.exclusionService.filterExclusions(
       compatibleCandidates,
       userId,
       userProfile.id,
-      suppressedIds,
+      hardExcludedIds,
     );
+
+    // Apply soft suppression (recently viewed within current session / last 30 min)
+    let eligibleCandidates = unswipedCompatibleCandidates.filter(
+      (c) => !recentImpressionIds.has(c.id),
+    );
+
+    // Smart Deck Recycler: If recent impressions suppressed all candidates, but unswiped candidates exist,
+    // recycle unswiped candidates so the user is never prematurely locked out with "You're all caught up"
+    if (
+      eligibleCandidates.length === 0 &&
+      unswipedCompatibleCandidates.length > 0
+    ) {
+      this.logger.log(
+        `[DISCOVERY_RECYCLE] User ${userId} had 0 unseen candidates but ${unswipedCompatibleCandidates.length} unswiped candidates. Recycling deck to maintain discovery flow.`,
+      );
+      eligibleCandidates = unswipedCompatibleCandidates;
+    }
 
     // 7. Baseline Multi-Criteria Ranking
     const rankedCandidates = this.rankingStrategy.rankCandidates(

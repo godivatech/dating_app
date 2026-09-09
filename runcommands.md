@@ -116,6 +116,7 @@ cd android
 
 # To build apk using expo (Only needed when native modules change)
 ```bash
+cd mobile
 eas build -p android --profile preview
 ```
 

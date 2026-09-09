@@ -210,4 +210,19 @@ describe('DiscoveryService', () => {
     expect(feed.eligibility.reason).toBe('PROFILE_HIDDEN');
     expect(feed.candidates.length).toBe(0);
   });
+
+  it('should recycle unswiped candidates when soft recent impressions would otherwise empty the deck', async () => {
+    // Simulate candidate had a recent impression, but was never swiped (no userAction)
+    mockPrisma.discoveryImpression.findMany.mockResolvedValue([
+      { targetProfileId: 'profile-candidate' },
+    ]);
+
+    const feed = await service.getDiscoveryFeed('user-requester', {
+      limit: 20,
+    });
+
+    expect(feed.eligibility.eligible).toBe(true);
+    expect(feed.candidates.length).toBe(1);
+    expect(feed.candidates[0].profileId).toBe('profile-candidate');
+  });
 });
