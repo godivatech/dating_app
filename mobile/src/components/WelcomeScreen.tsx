@@ -47,7 +47,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           <View style={styles.topHeader}>
             <Text style={styles.brandTitle}>TRUELOVE</Text>
             <View style={styles.topCapsuleBadge}>
-              <Text style={styles.topCapsuleText}>AUTHENTIC</Text>
+              <Text style={styles.topCapsuleText}>VERIFIED</Text>
             </View>
           </View>
 
@@ -61,7 +61,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 color="#FFFFFF"
                 style={styles.pillIcon}
               />
-              <Text style={styles.pillText}>CURATED DATING IN CHENNAI</Text>
+              <Text style={styles.pillText}>REAL DATING IN TAMIL NADU</Text>
             </View>
 
             {/* Massive Bold Editorial Headline (Option B) */}
@@ -71,7 +71,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
             {/* Subtitle / Tagline */}
             <Text style={styles.heroSubtitle}>
-              Curated dating for intentional singles in Chennai. Verified profiles, real connections, zero games.
+              Genuine dating for singles across Tamil Nadu. Verified profiles, real connections, zero games.
             </Text>
 
             {/* Action Buttons */}

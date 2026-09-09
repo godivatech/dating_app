@@ -213,7 +213,7 @@ export default function IndexScreen() {
           <View style={styles.locationRow}>
             <Ionicons name="location-sharp" size={14} color={Colors.textMuted} />
             <Text style={styles.locationText}>
-              {profile?.locationCity ? `${profile.locationCity}, ${profile.locationRegion || 'TN'}` : 'Chennai, Tamil Nadu'}
+              {profile?.locationCity ? `${profile.locationCity}, ${profile.locationRegion || 'TN'}` : 'Tamil Nadu, India'}
             </Text>
           </View>
           <Text style={styles.mainTitle}>Find the one for you</Text>

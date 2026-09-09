@@ -83,7 +83,7 @@ export const BrandedSplashScreen: React.FC<BrandedSplashScreenProps> = ({
 
   const locationDisplay = locationCity
     ? `${locationCity}${locationRegion ? `, ${locationRegion}` : ''}`
-    : 'Chennai, India';
+    : 'Tamil Nadu, India';
 
   return (
     <View style={styles.container}>
