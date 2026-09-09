@@ -8,7 +8,7 @@ import {
   TextInput,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { BottomTabBar } from '../src/components/BottomTabBar';
@@ -80,6 +80,7 @@ const CATEGORIES: InterestCategory[] = [
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile: myProfile } = useProfileStore();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -139,7 +140,7 @@ export default function ExploreScreen() {
 
       {/* Categories List */}
       <ScrollView
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 110 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {filteredCategories.map((item) => (

@@ -9,7 +9,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/auth-store';
@@ -42,6 +42,7 @@ const SAMPLE_NEAR_YOU = [
 
 export default function IndexScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { status: authStatus, user } = useAuthStore();
   const { profile, completion, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
   const { candidates, fetchDiscoveryFeed } = useDiscoveryStore();
@@ -206,7 +207,7 @@ export default function IndexScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 + insets.bottom }]}
       >
         {/* Location & Title */}
         <View style={styles.headlineSection}>

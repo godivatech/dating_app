@@ -10,7 +10,7 @@ import {
   Dimensions,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/auth-store';
@@ -23,6 +23,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { profile, toggleVisibility } = useProfileStore();
   const { billingStatus, openPaywall } = useBillingStore();
@@ -120,7 +121,7 @@ export default function ProfileScreen() {
         </View>
 
         <ScrollView
-          contentContainerStyle={styles.menuScrollContent}
+          contentContainerStyle={[styles.menuScrollContent, { paddingBottom: 110 + insets.bottom }]}
           showsVerticalScrollIndicator={false}
         >
           {/* Settings Menu List Items */}

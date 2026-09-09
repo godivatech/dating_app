@@ -11,7 +11,7 @@ import {
   Animated,
   Vibration,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
@@ -30,6 +30,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function DiscoveryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { profile: myProfile, completion, fetchProfile } = useProfileStore();
   const { openPaywall } = useBillingStore();
   const {
@@ -360,7 +361,7 @@ export default function DiscoveryScreen() {
           />
         </View>
       ) : error ? (
-        <View style={styles.emptyContainer}>
+        <View style={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}>
           <View style={styles.emptyIconCircle}>
             <Ionicons name="cloud-offline-outline" size={32} color={Colors.error} />
           </View>
@@ -375,7 +376,7 @@ export default function DiscoveryScreen() {
           </TouchableOpacity>
         </View>
       ) : isFiltering && !candidate ? (
-        <View style={styles.emptyContainer}>
+        <View style={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}>
           <View style={styles.emptyIconCircle}>
             <Ionicons name="search-outline" size={32} color={Colors.primary} />
           </View>
@@ -392,7 +393,7 @@ export default function DiscoveryScreen() {
           </TouchableOpacity>
         </View>
       ) : !candidate ? (
-        <View style={styles.emptyContainer}>
+        <View style={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}>
           <View style={styles.emptyIconCircle}>
             <Ionicons name="sparkles" size={32} color={Colors.primary} />
           </View>
@@ -420,7 +421,7 @@ export default function DiscoveryScreen() {
           </View>
         </View>
       ) : (
-        <View style={styles.cardContainer}>
+        <View style={[styles.cardContainer, { paddingBottom: 80 + insets.bottom }]}>
           {/* Swiping Card with smooth slide & stamps */}
           <Animated.View
             style={[

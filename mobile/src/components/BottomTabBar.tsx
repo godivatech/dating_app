@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../theme/colors';
 import { useNotificationsStore } from '../stores/notifications-store';
 
@@ -19,6 +20,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   const router = useRouter();
   const pathname = usePathname();
   const unreadCount = useNotificationsStore((s) => s.unreadCount);
+  const insets = useSafeAreaInsets();
+
+  // Dynamic bottom offset ensures the bar floats above Android 3-button nav, gesture bars, and iOS home indicators
+  const bottomOffset = Math.max(insets.bottom, 12) + (Platform.OS === 'ios' ? 8 : 10);
 
   const getEffectiveActiveTab = (): TabRoute => {
     if (activeTab) return activeTab;
@@ -55,7 +60,7 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
   };
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { bottom: bottomOffset }]}>
       <View style={styles.container}>
         {/* Tab 1: Home */}
         <TouchableOpacity
@@ -130,10 +135,10 @@ export const BottomTabBar: React.FC<BottomTabBarProps> = ({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 24 : 16,
     left: 20,
     right: 20,
     alignItems: 'center',
+    zIndex: 90,
   },
   container: {
     flexDirection: 'row',

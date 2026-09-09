@@ -9,7 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useChatStore } from '../src/stores/chat-store';
@@ -20,6 +20,7 @@ import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevent
 
 export default function ConversationsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const {
     conversations,
     isLoadingConversations,
@@ -156,7 +157,7 @@ export default function ConversationsScreen() {
           data={conversations}
           keyExtractor={(item) => item.id}
           renderItem={renderConversationItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 110 + insets.bottom }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
