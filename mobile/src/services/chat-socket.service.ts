@@ -305,6 +305,12 @@ export class ChatSocketService {
   queryPresence(targetUserId: string): void {
     if (this.socket?.connected) {
       this.socket.emit('presence.query', { targetUserId });
+    } else {
+      this.ensureConnected().then((connected) => {
+        if (connected && this.socket?.connected) {
+          this.socket.emit('presence.query', { targetUserId });
+        }
+      });
     }
   }
 

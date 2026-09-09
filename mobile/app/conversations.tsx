@@ -17,6 +17,7 @@ import { SafeConversationSummary } from '../../shared/src/types';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { Colors } from '../src/theme/colors';
 import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevention';
+import { chatSocket } from '../src/services/chat-socket.service';
 
 export default function ConversationsScreen() {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function ConversationsScreen() {
   } = useChatStore();
 
   const [refreshing, setRefreshing] = useState(false);
+  const [presenceMap, setPresenceMap] = useState<Record<string, boolean>>({});
 
   // Prevent screenshots and screen recording of conversation lists and previews
   useScreenCapturePrevention(true);
@@ -37,6 +39,32 @@ export default function ConversationsScreen() {
     initSocket();
     fetchConversations();
   }, []);
+
+  // Real-time presence listener for conversation list
+  useEffect(() => {
+    const unsubResult = chatSocket.onPresenceResult((data) => {
+      setPresenceMap((prev) => ({ ...prev, [data.userId]: data.isOnline }));
+    });
+
+    const unsubChange = chatSocket.onPresenceChange((data) => {
+      setPresenceMap((prev) => ({ ...prev, [data.userId]: data.isOnline }));
+    });
+
+    return () => {
+      unsubResult();
+      unsubChange();
+    };
+  }, []);
+
+  // Query presence for all matched partners whenever conversations list updates
+  useEffect(() => {
+    conversations.forEach((c) => {
+      const uId = c.matchedProfile?.userId;
+      if (uId) {
+        chatSocket.queryPresence(uId);
+      }
+    });
+  }, [conversations]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -55,6 +83,7 @@ export default function ConversationsScreen() {
       params: {
         partnerName: candidate?.displayName || '',
         partnerPhoto: photoUrl,
+        partnerUserId: candidate?.userId || '',
       },
     } as any);
   };
@@ -97,7 +126,14 @@ export default function ConversationsScreen() {
               </Text>
             </View>
           )}
-          <View style={styles.onlineDot} />
+          {candidate?.userId && (
+            <View
+              style={[
+                styles.onlineDot,
+                !presenceMap[candidate.userId] && styles.offlineDot,
+              ]}
+            />
+          )}
         </View>
 
         <View style={styles.convInfo}>
@@ -281,6 +317,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
     borderWidth: 2,
     borderColor: Colors.white,
+  },
+  offlineDot: {
+    backgroundColor: '#94A3B8', // Sleek slate grey
   },
   convInfo: {
     flex: 1,

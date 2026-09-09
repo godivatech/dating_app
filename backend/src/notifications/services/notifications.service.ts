@@ -282,6 +282,19 @@ export class NotificationsService {
     userId: string,
     dto: RegisterDeviceDto,
   ): Promise<DeviceRegistrationResponse> {
+    // Enterprise Token Hygiene: If this physical device token was previously registered to another user,
+    // deactivate it for that user so cross-user push notifications are strictly prevented.
+    await this.prisma.deviceRegistration.updateMany({
+      where: {
+        token: dto.token,
+        userId: { not: userId },
+        isActive: true,
+      },
+      data: {
+        isActive: false,
+      },
+    });
+
     const device = await this.prisma.deviceRegistration.upsert({
       where: {
         userId_token: {

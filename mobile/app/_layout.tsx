@@ -9,7 +9,7 @@ import {
   AppState,
   AppStateStatus,
 } from 'react-native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -47,6 +47,12 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   const router = useRouter();
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
   const checkSession = useAuthStore((state) => state.checkSession);
   const status = useAuthStore((state) => state.status);
 
@@ -145,21 +151,35 @@ export default function RootLayout() {
 
       // Listen for real-time incoming messages
       const unsubMessage = chatSocket.onMessageCreated((data) => {
-        // Only notify if message is from the other person
-        if (!data.message.isMine) {
-          try {
-            Vibration.vibrate([0, 60, 40, 60]);
-          } catch {}
-          useNotificationsStore.getState().fetchUnreadCount();
-          const title = 'New Message';
-          const subtitle = data.message.body?.slice(0, 60) || 'Sent you a message';
-          showNotificationToast(
-            'message',
-            title,
-            subtitle,
-            `/chat/${data.conversationId}`,
-          );
+        const currentUserId = useAuthStore.getState().user?.id;
+        // Strictly exclude own messages: check senderUserId and isMine flag
+        const isFromMe =
+          (currentUserId && data.message.senderUserId === currentUserId) ||
+          data.message.senderUserId === 'me' ||
+          data.message.isMine === true;
+
+        if (isFromMe) {
+          return; // Sender must NEVER receive a notification/toast/vibration for their own message!
         }
+
+        // Do not display banner toast if user is already inside this specific chat screen
+        const currentPath = pathnameRef.current || '';
+        if (currentPath.includes(data.conversationId)) {
+          return;
+        }
+
+        try {
+          Vibration.vibrate([0, 60, 40, 60]);
+        } catch {}
+        useNotificationsStore.getState().fetchUnreadCount();
+        const title = 'New Message';
+        const subtitle = data.message.body?.slice(0, 60) || 'Sent you a message';
+        showNotificationToast(
+          'message',
+          title,
+          subtitle,
+          `/chat/${data.conversationId}`,
+        );
       });
 
       // Listen for real-time matches formed

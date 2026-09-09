@@ -31,10 +31,12 @@ export default function ChatScreen() {
     conversationId,
     partnerName: initialPartnerName,
     partnerPhoto: initialPartnerPhoto,
+    partnerUserId: initialPartnerUserId,
   } = useLocalSearchParams<{
     conversationId: string;
     partnerName?: string;
     partnerPhoto?: string;
+    partnerUserId?: string;
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -140,30 +142,44 @@ export default function ChatScreen() {
   };
 
   const matchedProfile = activeConversation?.matchedProfile;
+  const targetPartnerUserId = matchedProfile?.userId || initialPartnerUserId;
 
   // Real-time partner presence tracking
   useEffect(() => {
-    if (!matchedProfile?.userId) return;
+    if (!targetPartnerUserId) return;
 
-    chatSocket.queryPresence(matchedProfile.userId);
+    chatSocket.queryPresence(targetPartnerUserId);
 
     const unsubResult = chatSocket.onPresenceResult((data) => {
-      if (data.userId === matchedProfile.userId) {
+      if (data.userId === targetPartnerUserId) {
         setIsPartnerOnline(data.isOnline);
       }
     });
 
     const unsubChange = chatSocket.onPresenceChange((data) => {
-      if (data.userId === matchedProfile.userId) {
+      if (data.userId === targetPartnerUserId) {
         setIsPartnerOnline(data.isOnline);
       }
     });
 
+    const unsubConn = chatSocket.onConnectionChange((connected) => {
+      if (connected) {
+        chatSocket.queryPresence(targetPartnerUserId);
+      }
+    });
+
+    // Refresh presence every 15s to guarantee fresh online/offline state
+    const presenceInterval = setInterval(() => {
+      chatSocket.queryPresence(targetPartnerUserId);
+    }, 15000);
+
     return () => {
       unsubResult();
       unsubChange();
+      unsubConn();
+      clearInterval(presenceInterval);
     };
-  }, [matchedProfile?.userId]);
+  }, [targetPartnerUserId]);
 
   const handleMicPress = () => {
     Alert.alert(
@@ -326,7 +342,7 @@ export default function ChatScreen() {
             <View
               style={[
                 styles.headerOnlineDot,
-                !isPartnerOnline && styles.headerOfflineDot,
+                isPartnerOnline ? styles.headerDotOnline : styles.headerDotOffline,
               ]}
             />
           </View>
@@ -335,7 +351,11 @@ export default function ChatScreen() {
             <Text
               style={[
                 styles.partnerStatusText,
-                !isPartnerOnline && !isPartnerTyping && styles.partnerStatusOffline,
+                isPartnerTyping
+                  ? styles.partnerStatusTyping
+                  : isPartnerOnline
+                    ? styles.partnerStatusOnline
+                    : styles.partnerStatusOffline,
               ]}
             >
               {isPartnerTyping ? 'Typing...' : isPartnerOnline ? 'Online' : 'Offline'}
@@ -535,12 +555,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.success,
-    borderWidth: 1.5,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    borderWidth: 2,
     borderColor: Colors.white,
+  },
+  headerDotOnline: {
+    backgroundColor: '#10B981', // Vibrant emerald green
+  },
+  headerDotOffline: {
+    backgroundColor: '#94A3B8', // Sleek slate grey
   },
   partnerNameCol: {
     marginLeft: 10,
@@ -553,9 +578,18 @@ const styles = StyleSheet.create({
   },
   partnerStatusText: {
     fontSize: 12,
-    color: Colors.success,
     fontWeight: '500',
     marginTop: 1,
+  },
+  partnerStatusOnline: {
+    color: '#10B981', // Emerald green text
+  },
+  partnerStatusOffline: {
+    color: Colors.textMuted, // Slate grey text
+  },
+  partnerStatusTyping: {
+    color: Colors.primary, // Vibrant coral
+    fontWeight: '600',
   },
   headerRightActions: {
     flexDirection: 'row',
@@ -664,12 +698,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Colors.primary,
-  },
-  headerOfflineDot: {
-    backgroundColor: '#8E8E93',
-  },
-  partnerStatusOffline: {
-    color: Colors.textMuted,
   },
   emptyMessagesBox: {
     alignItems: 'center',

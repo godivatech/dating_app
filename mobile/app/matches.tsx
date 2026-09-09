@@ -156,6 +156,7 @@ export default function MatchesScreen() {
             match?.matchedProfile?.photos?.[0]?.thumbnailUrl ||
             match?.matchedProfile?.photos?.[0]?.mediumUrl ||
             '',
+          partnerUserId: match?.matchedProfile?.userId || '',
         },
       } as any);
     } catch (err: any) {

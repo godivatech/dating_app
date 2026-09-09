@@ -203,23 +203,25 @@ export class MessagesService {
 
     // 7. Decoupled Post-Transaction Notification Dispatch (Safe event boundary)
     try {
-      const senderProfile = await this.prisma.datingProfile.findUnique({
-        where: { userId },
-        select: { displayName: true },
-      });
-      const senderDisplayName = senderProfile?.displayName || 'Your match';
+      if (recipient.id !== userId) {
+        const senderProfile = await this.prisma.datingProfile.findUnique({
+          where: { userId },
+          select: { displayName: true },
+        });
+        const senderDisplayName = senderProfile?.displayName || 'Your match';
 
-      await this.notificationsService.createNotification(
-        recipient.id,
-        {
-          type: NotificationType.NEW_MESSAGE,
-          referenceId: conversationId,
-          title: `New message from ${senderDisplayName}`,
-          body: 'Sent you a message',
-          metadata: { conversationId, senderUserId: userId },
-        },
-        `msg:${result.id}:user:${recipient.id}`,
-      );
+        await this.notificationsService.createNotification(
+          recipient.id,
+          {
+            type: NotificationType.NEW_MESSAGE,
+            referenceId: conversationId,
+            title: `New message from ${senderDisplayName}`,
+            body: 'Sent you a message',
+            metadata: { conversationId, senderUserId: userId },
+          },
+          `msg:${result.id}:user:${recipient.id}`,
+        );
+      }
     } catch (notifErr: any) {
       this.logger.warn(
         `[NOTIF_MESSAGE_FAILED] Failed to dispatch message notification: ${notifErr.message}`,
