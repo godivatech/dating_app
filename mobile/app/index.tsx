@@ -23,6 +23,7 @@ import { PaywallModal } from '../src/components/PaywallModal';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
 import { WelcomeScreen } from '../src/components/WelcomeScreen';
+import { BrandedSplashScreen } from '../src/components/BrandedSplashScreen';
 import { Colors } from '../src/theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -61,16 +62,16 @@ export default function IndexScreen() {
     }, [authStatus, fetchProfile, fetchUnreadCount, fetchBillingStatus, fetchDiscoveryFeed]),
   );
 
-  // Loading state
+  // Branded Loading / Splash State (Zomato/Swiggy-style)
   if (
     authStatus === 'CHECKING_SESSION' ||
     (authStatus === 'AUTHENTICATED' && isProfileLoading && !profile)
   ) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading Truelove...</Text>
-      </View>
+      <BrandedSplashScreen
+        locationCity={profile?.locationCity}
+        locationRegion={profile?.locationRegion}
+      />
     );
   }
 
