@@ -14,9 +14,71 @@ import { useNotificationsStore } from '../stores/notifications-store';
 let cachedPushToken: string | null = null;
 
 /**
+ * Configure Android Notification Channels for Heads-Up Floating Banners
+ * Following Tinder, Bumble, Anbe, and FRND system designs:
+ * - Importance MUST be MAX (Level 5) to peek over other active apps (YouTube, Instagram, WhatsApp).
+ * - Lockscreen visibility MUST be PUBLIC so user can preview their match on lockscreen.
+ * - Vibration pattern and sound MUST be active for OS heads-up triggering.
+ */
+export async function setupNotificationChannelsAsync(NotificationsModule?: any): Promise<void> {
+  if (Platform.OS !== 'android') return;
+
+  try {
+    const Notifications = NotificationsModule || require('expo-notifications');
+    if (!Notifications?.setNotificationChannelAsync) return;
+
+    // 1. Chat Messages -> IMPORTANCE_MAX (Floating Heads-Up Popup)
+    await Notifications.setNotificationChannelAsync('messages', {
+      name: 'Chat Messages',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 200, 100, 200],
+      lightColor: '#FD5D65',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+      enableLights: true,
+    });
+
+    // 2. New Matches & Likes -> IMPORTANCE_MAX (Floating Heads-Up Popup)
+    await Notifications.setNotificationChannelAsync('matches', {
+      name: 'New Matches & Likes',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FD5D65',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+      enableLights: true,
+    });
+
+    // 3. General & System Updates -> IMPORTANCE_MAX
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Dating App Notifications',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FD5D65',
+      sound: 'default',
+      enableVibrate: true,
+      showBadge: true,
+      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+      bypassDnd: false,
+      enableLights: true,
+    });
+
+    console.log('[PUSH_CHANNELS] Android heads-up notification channels configured with IMPORTANCE_MAX');
+  } catch (err: any) {
+    console.log('[PUSH_CHANNELS_ERROR] Failed to configure Android channels:', err.message);
+  }
+}
+
+/**
  * Configure Foreground Notification Presentation
  * Ensures notifications display banners, play custom sounds, and update badges
- * when the app is actively in use (Swiggy/Zomato behavior).
+ * when the app is actively in use (Tinder/FRND behavior).
  */
 export function initPushNotificationHandler(): void {
   if (Platform.OS === 'web') return;
@@ -32,6 +94,14 @@ export function initPushNotificationHandler(): void {
         }),
       });
     }
+
+    // Pre-register Android channels at app launch so incoming background notifications
+    // always find the MAX-importance channel registered in Android OS
+    if (Platform.OS === 'android') {
+      setupNotificationChannelsAsync(Notifications).catch((e) =>
+        console.log('[PUSH_CHANNELS_BOOT_ERR]', e.message),
+      );
+    }
   } catch (err: any) {
     console.log('[PUSH_HANDLER_INIT] Foreground notification handler init error:', err.message);
   }
@@ -39,7 +109,7 @@ export function initPushNotificationHandler(): void {
 
 /**
  * Enterprise Push Notification Registration Service
- * Designed following Zomato/Swiggy patterns:
+ * Designed following Zomato/Swiggy/Tinder patterns:
  * 1. Safe detection: Works gracefully whether running on Expo Go, physical Android, or iOS.
  * 2. Dynamic token capture without crashing if notifications package is optional.
  * 3. Automatic channel configuration (Vibration, High Priority, Heads-up popup).
@@ -63,37 +133,9 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
     if (!Notifications) return null;
 
-    // Configure high-importance notification channels for Android (Zomato/Swiggy standard)
+    // Configure MAX-importance notification channels for Android heads-up peeking
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'Dating App Notifications',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF2D55',
-        sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
-      });
-
-      await Notifications.setNotificationChannelAsync('matches', {
-        name: 'New Matches & Likes',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 200, 100, 200],
-        lightColor: '#FF2D55',
-        sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
-      });
-
-      await Notifications.setNotificationChannelAsync('messages', {
-        name: 'Chat Messages',
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 150, 100, 150],
-        lightColor: '#FF2D55',
-        sound: 'default',
-        enableVibrate: true,
-        showBadge: true,
-      });
+      await setupNotificationChannelsAsync(Notifications);
     }
 
     // Check existing permissions
