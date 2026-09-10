@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Dating App",
+    "name": "Truelove",
     "slug": "dating-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,8 +16,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.godivatech.dating-app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Dating App requires camera access for in-app video calling with your matches.",
-        "NSMicrophoneUsageDescription": "Dating App requires microphone access for audio and video calling with your matches."
+        "NSCameraUsageDescription": "Truelove requires camera access for in-app video calling with your matches.",
+        "NSMicrophoneUsageDescription": "Truelove requires microphone access for audio and video calling with your matches."
       }
     },
     "android": {

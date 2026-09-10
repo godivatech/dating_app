@@ -35,6 +35,8 @@ export default function EditProfileScreen() {
   const [intent, setIntent] = useState<RelationshipIntent>(RelationshipIntent.LONG_TERM);
   const [minAge, setMinAge] = useState<string>('21');
   const [maxAge, setMaxAge] = useState<string>('35');
+  const [genderMode, setGenderMode] = useState<PreferredGenderMode>(PreferredGenderMode.SELECTED);
+  const [selectedGenders, setSelectedGenders] = useState<Gender[]>([Gender.WOMAN]);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export default function EditProfileScreen() {
     const p = await fetchProfile();
     if (p) {
       setDisplayName(p.displayName || '');
+      setDateOfBirth(p.dateOfBirth ? p.dateOfBirth.split('T')[0] : '');
       setGender(p.gender || Gender.MAN);
       setBio(p.bio || '');
       setLocationCity(p.locationCity || '');
@@ -55,6 +58,12 @@ export default function EditProfileScreen() {
         setIntent(p.preferences.relationshipIntent || RelationshipIntent.LONG_TERM);
         setMinAge(String(p.preferences.minAge || 21));
         setMaxAge(String(p.preferences.maxAge || 35));
+        setGenderMode(p.preferences.preferredGenderMode || PreferredGenderMode.SELECTED);
+        if (p.preferences.preferredGenders && p.preferences.preferredGenders.length > 0) {
+          setSelectedGenders(p.preferences.preferredGenders);
+        } else {
+          setSelectedGenders(p.gender === Gender.WOMAN ? [Gender.MAN] : [Gender.WOMAN]);
+        }
       }
     }
   };
@@ -90,6 +99,19 @@ export default function EditProfileScreen() {
       }
     }
 
+    const trimmedCity = locationCity.trim();
+    if (!trimmedCity || trimmedCity.length < 2) {
+      setError('Please enter a valid city name (at least 2 characters).');
+      return;
+    }
+
+    const parsedMin = parseInt(minAge, 10) || 18;
+    const parsedMax = parseInt(maxAge, 10) || 50;
+    if (parsedMin < 18 || parsedMax > 99 || parsedMin > parsedMax) {
+      setError('Please enter a valid age preference range between 18 and 99.');
+      return;
+    }
+
     setIsSaving(true);
     try {
       if (dateOfBirth) {
@@ -102,18 +124,16 @@ export default function EditProfileScreen() {
 
       await saveAboutLocation({
         bio: bio.trim() || undefined,
-        locationCity: locationCity.trim() || 'Chennai',
+        locationCity: trimmedCity,
         locationRegion: locationRegion.trim() || undefined,
       });
 
-      const parsedMin = parseInt(minAge, 10) || 18;
-      const parsedMax = parseInt(maxAge, 10) || 50;
       await savePreferences({
         relationshipIntent: intent,
         minAge: Math.max(18, parsedMin),
         maxAge: Math.min(99, Math.max(parsedMin, parsedMax)),
-        preferredGenderMode: PreferredGenderMode.SELECTED,
-        preferredGenders: [Gender.WOMAN],
+        preferredGenderMode: genderMode,
+        preferredGenders: selectedGenders,
       });
 
       Alert.alert('Success', 'Profile updated successfully!', [
@@ -242,6 +262,96 @@ export default function EditProfileScreen() {
             placeholder="e.g. Tamil Nadu"
             placeholderTextColor={Colors.textMuted}
           />
+        </View>
+
+        {/* Dating Preferences Section */}
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionHeader}>Dating Preferences</Text>
+
+          {/* Interested In */}
+          <Text style={styles.inputLabel}>Interested In</Text>
+          <View style={styles.genderRow}>
+            {[
+              { label: 'Women', genders: [Gender.WOMAN], mode: PreferredGenderMode.SELECTED },
+              { label: 'Men', genders: [Gender.MAN], mode: PreferredGenderMode.SELECTED },
+              { label: 'Everyone', genders: [Gender.WOMAN, Gender.MAN, Gender.NON_BINARY], mode: PreferredGenderMode.EVERYONE },
+            ].map((item) => {
+              const isSelected =
+                item.mode === PreferredGenderMode.EVERYONE
+                  ? genderMode === PreferredGenderMode.EVERYONE
+                  : genderMode !== PreferredGenderMode.EVERYONE &&
+                    selectedGenders.length === item.genders.length &&
+                    selectedGenders.every((g) => item.genders.includes(g));
+
+              return (
+                <TouchableOpacity
+                  key={item.label}
+                  style={[styles.genderChip, isSelected && styles.activeGenderChip]}
+                  onPress={() => {
+                    setGenderMode(item.mode);
+                    setSelectedGenders(item.genders);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.genderChipText, isSelected && styles.activeGenderChipText]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Relationship Intent */}
+          <Text style={[styles.inputLabel, { marginTop: 14 }]}>Looking For</Text>
+          <View style={styles.intentGrid}>
+            {[
+              { label: 'Long-term', val: RelationshipIntent.LONG_TERM },
+              { label: 'Casual', val: RelationshipIntent.CASUAL },
+              { label: 'Friendship', val: RelationshipIntent.FRIENDSHIP },
+              { label: 'Marriage', val: RelationshipIntent.MARRIAGE },
+            ].map((item) => (
+              <TouchableOpacity
+                key={item.val}
+                style={[styles.intentChip, intent === item.val && styles.activeIntentChip]}
+                onPress={() => setIntent(item.val)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.intentChipText, intent === item.val && styles.activeIntentChipText]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* Age Preference */}
+          <Text style={[styles.inputLabel, { marginTop: 14 }]}>Age Preference Range</Text>
+          <View style={styles.ageRangeRow}>
+            <View style={styles.ageInputCol}>
+              <Text style={styles.ageInputSublabel}>Min Age</Text>
+              <TextInput
+                style={styles.textInput}
+                value={minAge}
+                onChangeText={setMinAge}
+                keyboardType="numeric"
+                maxLength={2}
+                placeholder="18"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+            <Text style={styles.ageDivider}>to</Text>
+            <View style={styles.ageInputCol}>
+              <Text style={styles.ageInputSublabel}>Max Age</Text>
+              <TextInput
+                style={styles.textInput}
+                value={maxAge}
+                onChangeText={setMaxAge}
+                keyboardType="numeric"
+                maxLength={2}
+                placeholder="35"
+                placeholderTextColor={Colors.textMuted}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Photos Link */}
@@ -406,6 +516,53 @@ const styles = StyleSheet.create({
   activeGenderChipText: {
     color: Colors.primary,
     fontWeight: '700',
+  },
+  intentGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  intentChip: {
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  activeIntentChip: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  intentChipText: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  activeIntentChipText: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  ageRangeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  ageInputCol: {
+    flex: 1,
+  },
+  ageInputSublabel: {
+    fontSize: 11,
+    color: Colors.textMuted,
+    marginBottom: 4,
+  },
+  ageDivider: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    fontWeight: '600',
+    marginTop: 16,
   },
   photoLinkCard: {
     flexDirection: 'row',
