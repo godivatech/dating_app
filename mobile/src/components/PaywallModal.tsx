@@ -155,7 +155,7 @@ export const PaywallModal: React.FC = () => {
                   selectedTier === SubscriptionTier.PLUS && styles.tierTabTextActive,
                 ]}
               >
-                Spark Plus
+                Truelove Plus
               </Text>
             </TouchableOpacity>
 
@@ -176,7 +176,7 @@ export const PaywallModal: React.FC = () => {
                   selectedTier === SubscriptionTier.GOLD && styles.tierTabTextActive,
                 ]}
               >
-                Spark Gold
+                Truelove Gold
               </Text>
             </TouchableOpacity>
           </View>
@@ -219,7 +219,7 @@ export const PaywallModal: React.FC = () => {
           {/* Feature Matrix */}
           <View style={styles.featuresCard}>
             <Text style={styles.featuresHeader}>
-              Included in {selectedTier === SubscriptionTier.GOLD ? 'Spark Gold' : 'Spark Plus'}
+              Included in {selectedTier === SubscriptionTier.GOLD ? 'Truelove Gold' : 'Truelove Plus'}
             </Text>
 
             <View style={styles.featureRow}>

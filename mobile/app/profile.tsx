@@ -52,6 +52,15 @@ export default function ProfileScreen() {
   };
 
   const isGoldMember = !!billingStatus?.activeSubscription;
+  const userAccountStatus = user?.status || 'ACTIVE';
+  const isGoodStanding = userAccountStatus === 'ACTIVE';
+  const standingBadgeLabel = isGoodStanding
+    ? 'Good Standing'
+    : userAccountStatus === 'SUSPENDED'
+    ? 'Suspended'
+    : userAccountStatus === 'BANNED'
+    ? 'Banned'
+    : 'Inactive';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -110,13 +119,13 @@ export default function ProfileScreen() {
         {/* User Name & Location */}
         <View style={styles.nameBlock}>
           <Text style={styles.userName}>
-            {profile?.displayName || 'Dating Member'}
+            {profile?.displayName || (user?.phoneNumber ? `Member (${user.phoneNumber.slice(-4)})` : 'Member')}
             {profile?.age ? `, ${profile.age}` : ''}
           </Text>
           <Text style={styles.userLocation}>
             {profile?.locationCity
               ? `${profile.locationCity}${profile?.locationRegion ? `, ${profile.locationRegion}` : ''}`
-              : 'Chennai, India'}
+              : 'Location not set'}
           </Text>
         </View>
 
@@ -192,7 +201,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuRightValue}>
                 <Text style={styles.tierBadgeText}>
-                  {isGoldMember ? 'Spark Gold' : 'Free Tier'}
+                  {isGoldMember ? 'Truelove Gold' : 'Free Tier'}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
               </View>
@@ -213,7 +222,14 @@ export default function ProfileScreen() {
                 <Text style={styles.menuText}>Trust & Safety Center</Text>
               </View>
               <View style={styles.menuRightValue}>
-                <Text style={styles.safetyGoodStandingBadge}>Good Standing</Text>
+                <Text
+                  style={[
+                    styles.safetyGoodStandingBadge,
+                    !isGoodStanding && { color: Colors.warning, backgroundColor: '#FEF3C7' },
+                  ]}
+                >
+                  {standingBadgeLabel}
+                </Text>
                 <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
               </View>
             </TouchableOpacity>
@@ -286,12 +302,25 @@ export default function ProfileScreen() {
               We enforce strict community standards to ensure a respectful and secure dating environment.
             </Text>
 
-            <View style={styles.safetyStatusBox}>
+            <View
+              style={[
+                styles.safetyStatusBox,
+                !isGoodStanding && { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' },
+              ]}
+            >
               <View style={styles.safetyStatusRow}>
-                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                <Text style={styles.safetyStatusText}>Account Status: Good Standing</Text>
+                <Ionicons
+                  name={isGoodStanding ? 'checkmark-circle' : 'alert-circle'}
+                  size={20}
+                  color={isGoodStanding ? '#10B981' : Colors.warning}
+                />
+                <Text style={styles.safetyStatusText}>Account Status: {standingBadgeLabel}</Text>
               </View>
-              <Text style={styles.safetyStatusSub}>0 Safety Strikes • All privileges active</Text>
+              <Text style={styles.safetyStatusSub}>
+                {isGoodStanding
+                  ? '0 Safety Strikes • All privileges active'
+                  : 'Your account has active restrictions or is under review'}
+              </Text>
             </View>
 
             <View style={styles.safetyPillarsList}>

@@ -24,7 +24,7 @@ export function useScreenCapturePrevention(enabled: boolean = true) {
         subscription = ScreenCapture.addScreenshotListener(() => {
           Alert.alert(
             'Screenshots Prohibited 🛡️',
-            'To protect our members’ privacy and safety, taking screenshots or screen recordings is not permitted on Spark.',
+            'To protect our members’ privacy and safety, taking screenshots or screen recordings is not permitted on Truelove.',
             [{ text: 'I Understand', style: 'default' }],
           );
         });

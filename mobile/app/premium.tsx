@@ -198,7 +198,7 @@ export default function PremiumScreen() {
                       <Ionicons name="card-outline" size={20} color={Colors.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.actionCardTitle}>Explore Spark Plus & Gold Plans</Text>
+                      <Text style={styles.actionCardTitle}>Explore Truelove Plus & Gold Plans</Text>
                       <Text style={styles.actionCardSub}>
                         Plans start from ₹299/month with regional pricing
                       </Text>

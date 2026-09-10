@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { DevicePlatform } from '../../../shared/src/types';
 import { useNotificationsStore } from '../stores/notifications-store';
 import { useChatStore } from '../stores/chat-store';
@@ -182,9 +183,14 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
       return null;
     }
 
-    // Get Expo Push Token
+    // Get Expo Push Token dynamically from Expo Constants
+    const projectId =
+      Constants.expoConfig?.extra?.eas?.projectId ??
+      (Constants as any).easConfig?.projectId ??
+      'd4c09e6f-f682-43c9-a1b4-86cb8a7c5f58';
+
     const tokenData = await Notifications.getExpoPushTokenAsync({
-      projectId: 'd4c09e6f-f682-43c9-a1b4-86cb8a7c5f58',
+      projectId,
     });
 
     const token = tokenData?.data;

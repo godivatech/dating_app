@@ -249,7 +249,7 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
       const errorMsg =
         err.response?.data?.message ||
         err.message ||
-        'Rewind is a Spark Plus perk.';
+        'Rewind is a Truelove Plus perk.';
       return {
         success: false,
         error: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg,

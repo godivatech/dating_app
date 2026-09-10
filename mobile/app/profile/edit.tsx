@@ -49,7 +49,7 @@ export default function EditProfileScreen() {
     const p = await fetchProfile();
     if (p) {
       setDisplayName(p.displayName || '');
-      setDateOfBirth(p.dateOfBirth ? p.dateOfBirth.split('T')[0] : '');
+      setDateOfBirth((p as any).dateOfBirth ? String((p as any).dateOfBirth).split('T')[0] : '');
       setGender(p.gender || Gender.MAN);
       setBio(p.bio || '');
       setLocationCity(p.locationCity || '');
@@ -274,12 +274,12 @@ export default function EditProfileScreen() {
             {[
               { label: 'Women', genders: [Gender.WOMAN], mode: PreferredGenderMode.SELECTED },
               { label: 'Men', genders: [Gender.MAN], mode: PreferredGenderMode.SELECTED },
-              { label: 'Everyone', genders: [Gender.WOMAN, Gender.MAN, Gender.NON_BINARY], mode: PreferredGenderMode.EVERYONE },
+              { label: 'Everyone', genders: [Gender.WOMAN, Gender.MAN, Gender.NON_BINARY], mode: PreferredGenderMode.ANY },
             ].map((item) => {
               const isSelected =
-                item.mode === PreferredGenderMode.EVERYONE
-                  ? genderMode === PreferredGenderMode.EVERYONE
-                  : genderMode !== PreferredGenderMode.EVERYONE &&
+                item.mode === PreferredGenderMode.ANY
+                  ? genderMode === PreferredGenderMode.ANY
+                  : genderMode !== PreferredGenderMode.ANY &&
                     selectedGenders.length === item.genders.length &&
                     selectedGenders.every((g) => item.genders.includes(g));
 
@@ -306,9 +306,10 @@ export default function EditProfileScreen() {
           <View style={styles.intentGrid}>
             {[
               { label: 'Long-term', val: RelationshipIntent.LONG_TERM },
-              { label: 'Casual', val: RelationshipIntent.CASUAL },
-              { label: 'Friendship', val: RelationshipIntent.FRIENDSHIP },
               { label: 'Marriage', val: RelationshipIntent.MARRIAGE },
+              { label: 'Serious Dating', val: RelationshipIntent.SERIOUS_DATING },
+              { label: 'Open to Explore', val: RelationshipIntent.OPEN_TO_EXPLORE },
+              { label: 'Casual', val: RelationshipIntent.CASUAL },
             ].map((item) => (
               <TouchableOpacity
                 key={item.val}
