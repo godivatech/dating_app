@@ -72,7 +72,7 @@ export default function NotificationsScreen() {
         break;
 
       case NotificationType.SAFETY_UPDATE:
-        router.push('/(onboarding)/readiness' as any);
+        router.push('/profile');
         break;
 
       case NotificationType.SYSTEM:
