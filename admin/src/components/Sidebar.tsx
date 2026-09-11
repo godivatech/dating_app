@@ -100,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               gap: '6px',
             }}
           >
-            SPARK <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>OPS</span>
+            TRUELOVE <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>ADMIN</span>
           </div>
         </div>
       </div>

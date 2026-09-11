@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ShieldAlert,
   AlertTriangle,
@@ -6,63 +6,27 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { DisciplineModal, DisciplineAction } from '../components/DisciplineModal';
-import { api } from '../services/api';
-
-interface AbuseReport {
-  id: string;
-  reporterName: string;
-  reporterId: string;
-  targetName: string;
-  targetUserId: string;
-  reason: string;
-  status: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED';
-  reportedContentSnippet: string;
-  targetStrikeCount: number;
-  reportedAt: string;
-}
+import { api, AbuseReportItem } from '../services/api';
 
 export const ModerationView: React.FC = () => {
-  const [reports, setReports] = useState<AbuseReport[]>([
-    {
-      id: 'rep-981',
-      reporterName: 'Priya Iyer',
-      reporterId: 'usr-mum-03',
-      targetName: 'Vikram Malhotra',
-      targetUserId: 'usr-blr-02',
-      reason: 'Harassment & Inappropriate Language',
-      status: 'OPEN',
-      reportedContentSnippet:
-        '"Why did you stop replying? If you don\'t give me your WhatsApp right now I will keep pinging you."',
-      targetStrikeCount: 2,
-      reportedAt: '2026-03-05T07:15:00.000Z',
-    },
-    {
-      id: 'rep-982',
-      reporterName: 'Aanya Sharma',
-      reporterId: 'usr-blr-01',
-      targetName: 'Rhea Sen',
-      targetUserId: 'usr-blr-05',
-      reason: 'Commercial Solicitation / Third-party Link',
-      status: 'OPEN',
-      reportedContentSnippet:
-        '"Hey check my exclusive private album on t.me/datingblr premium discounts today only!"',
-      targetStrikeCount: 1,
-      reportedAt: '2026-03-04T18:30:00.000Z',
-    },
-    {
-      id: 'rep-983',
-      reporterName: 'Rhea Sen',
-      reporterId: 'usr-blr-05',
-      targetName: 'Kabir Oberoi',
-      targetUserId: 'usr-del-04',
-      reason: 'Abusive & Threatening Behavior',
-      status: 'RESOLVED',
-      reportedContentSnippet:
-        '"You think you can just unmatch me like that? I know which café you go to in Indiranagar."',
-      targetStrikeCount: 4,
-      reportedAt: '2026-02-28T11:40:00.000Z',
-    },
-  ]);
+  const [reports, setReports] = useState<AbuseReportItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchReports = async () => {
+    setIsLoading(true);
+    try {
+      const data = await api.getReports();
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to load reports', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
 
   const [selectedDisciplineTarget, setSelectedDisciplineTarget] = useState<{
     id: string;
@@ -70,7 +34,8 @@ export const ModerationView: React.FC = () => {
     reportId: string;
   } | null>(null);
 
-  const handleDismiss = (reportId: string) => {
+  const handleDismiss = async (reportId: string) => {
+    await api.dismissReport(reportId);
     setReports((prev) =>
       prev.map((r) => (r.id === reportId ? { ...r, status: 'DISMISSED' } : r)),
     );

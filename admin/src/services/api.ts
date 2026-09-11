@@ -120,8 +120,21 @@ export interface AuditLogItem {
   timestamp: string;
 }
 
-const STORAGE_KEY_TOKEN = 'spark_admin_token';
-const STORAGE_KEY_MODE = 'spark_admin_mode'; // 'live' | 'mock'
+export interface AbuseReportItem {
+  id: string;
+  reporterName: string;
+  reporterId: string;
+  targetName: string;
+  targetUserId: string;
+  reason: string;
+  status: 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'DISMISSED';
+  reportedContentSnippet: string;
+  targetStrikeCount: number;
+  reportedAt: string;
+}
+
+const STORAGE_KEY_TOKEN = 'truelove_admin_token';
+const STORAGE_KEY_MODE = 'truelove_admin_mode'; // 'live' | 'mock'
 
 // High-fidelity fallback state for realistic offline interactive demonstration
 let mockUsers: AdminUserListItem[] = [
@@ -342,6 +355,48 @@ let mockTransactions: PurchaseTransactionItem[] = [
     platform: 'IOS',
     provider: 'APPLE',
     createdAt: '2026-03-01T18:40:00.000Z',
+  },
+];
+
+let mockReports: AbuseReportItem[] = [
+  {
+    id: 'rep-981',
+    reporterName: 'Priya Iyer',
+    reporterId: 'usr-mum-03',
+    targetName: 'Vikram Malhotra',
+    targetUserId: 'usr-blr-02',
+    reason: 'Harassment & Inappropriate Language',
+    status: 'OPEN',
+    reportedContentSnippet:
+      '"Why did you stop replying? If you don\'t give me your WhatsApp right now I will keep pinging you."',
+    targetStrikeCount: 2,
+    reportedAt: '2026-03-05T07:15:00.000Z',
+  },
+  {
+    id: 'rep-982',
+    reporterName: 'Aanya Sharma',
+    reporterId: 'usr-blr-01',
+    targetName: 'Rhea Sen',
+    targetUserId: 'usr-blr-05',
+    reason: 'Commercial Solicitation / Third-party Link',
+    status: 'OPEN',
+    reportedContentSnippet:
+      '"Hey check my exclusive private album on t.me/datingblr premium discounts today only!"',
+    targetStrikeCount: 1,
+    reportedAt: '2026-03-04T18:30:00.000Z',
+  },
+  {
+    id: 'rep-983',
+    reporterName: 'Rhea Sen',
+    reporterId: 'usr-blr-05',
+    targetName: 'Kabir Oberoi',
+    targetUserId: 'usr-del-04',
+    reason: 'Abusive & Threatening Behavior',
+    status: 'RESOLVED',
+    reportedContentSnippet:
+      '"You think you can just unmatch me like that? I know which café you go to in Indiranagar."',
+    targetStrikeCount: 4,
+    reportedAt: '2026-02-28T11:40:00.000Z',
   },
 ];
 
@@ -667,7 +722,75 @@ class AdminApiService {
     return [...mockTransactions];
   }
 
-  async getAuditLogs(): Promise<AuditLogItem[]> {
+  async getReports(params?: {
+    status?: string;
+    reason?: string;
+  }): Promise<AbuseReportItem[]> {
+    if (this.mode === 'live') {
+      try {
+        const q = new URLSearchParams();
+        if (params?.status) q.append('status', params.status);
+        if (params?.reason) q.append('reason', params.reason);
+        const res = await this.fetchWithAuth(`/moderation/reports?${q.toString()}`);
+        if (res && res.reports) {
+          return res.reports.map((r: any) => ({
+            id: r.id,
+            reporterName: `User (${r.reporterUserId.slice(-4)})`,
+            reporterId: r.reporterUserId,
+            targetName: `Member (${r.reportedUserId.slice(-4)})`,
+            targetUserId: r.reportedUserId,
+            reason: r.reason || 'Guidelines Violation',
+            status: r.status,
+            reportedContentSnippet:
+              r.description || 'Reported profile or conversation violation',
+            targetStrikeCount: 1,
+            reportedAt: r.createdAt,
+          }));
+        }
+      } catch (err) {
+        console.warn('Live reports failed, returning simulation records', err);
+      }
+    }
+    let list = [...mockReports];
+    if (params?.status) {
+      list = list.filter((r) => r.status === params.status);
+    }
+    return list;
+  }
+
+  async dismissReport(reportId: string): Promise<{ success: boolean }> {
+    const r = mockReports.find((item) => item.id === reportId);
+    if (r) {
+      r.status = 'DISMISSED';
+    }
+    return { success: true };
+  }
+
+  async getAuditLogs(params?: {
+    targetUserId?: string;
+    actionType?: string;
+  }): Promise<AuditLogItem[]> {
+    if (this.mode === 'live') {
+      try {
+        const q = new URLSearchParams();
+        if (params?.targetUserId) q.append('targetUserId', params.targetUserId);
+        if (params?.actionType) q.append('actionType', params.actionType);
+        const res = await this.fetchWithAuth(`/moderation/audit-logs?${q.toString()}`);
+        if (res && res.logs) {
+          return res.logs.map((l: any) => ({
+            id: l.id,
+            adminId: l.moderatorUserId || 'System Admin',
+            targetUserId: l.targetUserId,
+            targetUserName: `Member (${l.targetUserId.slice(-4)})`,
+            actionType: l.actionType,
+            reason: l.reason,
+            timestamp: l.createdAt,
+          }));
+        }
+      } catch (err) {
+        console.warn('Live audit logs failed, returning simulation records', err);
+      }
+    }
     return [...mockAuditLogs];
   }
 }

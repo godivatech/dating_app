@@ -27,14 +27,14 @@ export const RevenueView: React.FC = () => {
 
   const revenueStreams = [
     {
-      name: 'Spark Gold Tier',
+      name: 'Truelove Gold Tier',
       price: '₹499 / mo',
       description: 'See Who Liked You, 5 Direct Notes/wk, 1 Boost/wk, Incognito',
       subscribers: 240,
       monthlyTotal: '₹1,19,760',
     },
     {
-      name: 'Spark Plus Tier',
+      name: 'Truelove Plus Tier',
       price: '₹299 / mo',
       description: 'Unlimited Swipes, Rewind Pass, Passport location travel',
       subscribers: 185,
