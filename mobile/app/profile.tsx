@@ -437,6 +437,25 @@ export default function ProfileScreen() {
                     thumbColor={Colors.white}
                   />
                 </View>
+                <View style={styles.divider} />
+                <TouchableOpacity
+                  style={styles.linkRow}
+                  onPress={() => {
+                    setShowSettingsModal(false);
+                    router.push('/(onboarding)/preferences?fromProfile=true' as any);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.settingTextCol}>
+                    <Text style={styles.settingLabel}>Match Preferences</Text>
+                    <Text style={styles.settingDesc}>
+                      {profile?.preferences
+                        ? `${profile.preferences.preferredGenders?.map((g) => (g === 'WOMAN' ? 'Women' : g === 'MAN' ? 'Men' : 'Everyone')).join(', ') || 'Everyone'} • Age ${profile.preferences.minAge || 18}-${profile.preferences.maxAge || 99}`
+                        : 'Gender, Age & Intent filters'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+                </TouchableOpacity>
               </View>
 
               {/* Section: Notifications */}

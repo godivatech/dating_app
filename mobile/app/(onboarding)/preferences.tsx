@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { StepperHeader } from '../../src/components/StepperHeader';
@@ -23,6 +23,8 @@ import { Colors } from '../../src/theme/colors';
 
 export default function PreferencesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromProfile?: string }>();
+  const isFromProfile = params.fromProfile === 'true';
   const { profile, savePreferences, isLoading, error, clearError } = useProfileStore();
 
   const [genderMode, setGenderMode] = useState<PreferredGenderMode>(
@@ -95,7 +97,11 @@ export default function PreferencesScreen() {
     });
 
     if (success) {
-      router.push('/(onboarding)/about-location');
+      if (isFromProfile) {
+        router.back();
+      } else {
+        router.push('/(onboarding)/about-location');
+      }
     }
   };
 
@@ -111,14 +117,18 @@ export default function PreferencesScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TrueloveHeader showBack={true} title="Dating Preferences" showLogo={false} />
+      <TrueloveHeader
+        showBack={true}
+        title={isFromProfile ? 'Match Preferences' : 'Dating Preferences'}
+        showLogo={false}
+      />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stepper Progress Bar: 04 active */}
-        <StepperHeader currentStep={4} />
+        {/* Stepper Progress Bar: only shown during onboarding */}
+        {!isFromProfile && <StepperHeader currentStep={4} />}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Interested In</Text>
           <View style={styles.pillsRow}>
