@@ -156,7 +156,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
                 Monetization &amp; Direct Note Performance
               </h2>
               <div style={{ fontSize: '13.5px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
-                Spark Plus (₹299) • Spark Gold (₹499) • Direct Note Packs (₹99 / ₹199 / ₹349)
+                Truelove Plus (₹299) • Truelove Gold (₹499) • Direct Note Packs (₹99 / ₹199 / ₹349)
               </div>
             </div>
             <button

@@ -568,7 +568,36 @@ async function seed() {
     console.log(`✅ Seeded profile: ${profileData.displayName} (${profileData.city}, ${profileData.gender})`);
   }
 
-  console.log('🎉 All sample Tamil profiles successfully seeded!');
+  // 6. Seed Official System Admin Account
+  const adminPhone = '+919999999999';
+  const existingAdmin = await prisma.user.findUnique({
+    where: { phoneNumber: adminPhone },
+  });
+  if (!existingAdmin) {
+    await prisma.user.create({
+      data: {
+        phoneNumber: adminPhone,
+        role: UserRole.ADMIN,
+        status: UserStatus.ACTIVE,
+        phoneVerifiedAt: new Date(),
+        profile: {
+          create: {
+            displayName: 'System Administrator',
+            gender: Gender.NON_BINARY,
+            bio: 'Truelove Staff System Administrator',
+            dateOfBirth: new Date('1990-01-01'),
+            locationCity: 'Chennai',
+            locationRegion: 'Tamil Nadu',
+            status: ProfileStatus.READY,
+            visibility: ProfileVisibility.HIDDEN,
+          },
+        },
+      },
+    });
+    console.log(`🛡️ Seeded official ADMIN user: ${adminPhone}`);
+  }
+
+  console.log('🎉 All sample Tamil profiles and admin account successfully seeded!');
 }
 
 seed()

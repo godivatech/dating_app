@@ -8,6 +8,7 @@ interface NavbarProps {
   onToggleMode: () => void;
   onRefresh: () => void;
   isRefreshing: boolean;
+  onOpenAuth: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -17,6 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMode,
   onRefresh,
   isRefreshing,
+  onOpenAuth,
 }) => {
   return (
     <header
@@ -76,6 +78,19 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span style={{ color: 'var(--text-muted)' }}>•</span>
           <span>AES-256</span>
         </div>
+
+        {/* Auth Credentials Modal Trigger */}
+        <button
+          onClick={onOpenAuth}
+          className="btn btn-glass"
+          style={{
+            fontSize: '13px',
+            padding: '7px 13px',
+          }}
+          title="Manage live admin bearer credentials & authentication"
+        >
+          <span>Gateway Auth</span>
+        </button>
 
         {/* API Gateway Mode Toggle */}
         <button

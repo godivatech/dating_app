@@ -427,6 +427,41 @@ class AdminApiService {
     }
   }
 
+  async loginWithPhone(
+    phoneNumber: string,
+  ): Promise<{ success: boolean; token?: string; user?: any; error?: string }> {
+    try {
+      const response = await fetch('/auth/dev-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        return { success: false, error: `Login failed: ${text}` };
+      }
+      const data = await response.json();
+      if (data && data.accessToken) {
+        this.setToken(data.accessToken);
+        this.setMode('live');
+        return { success: true, token: data.accessToken, user: data.user };
+      }
+      return { success: false, error: 'No access token returned' };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error' };
+    }
+  }
+
+  async verifyAuth(): Promise<{ isAuthenticated: boolean; user?: any }> {
+    if (!this.token) return { isAuthenticated: false };
+    try {
+      const user = await this.fetchWithAuth('/auth/me');
+      return { isAuthenticated: true, user };
+    } catch {
+      return { isAuthenticated: false };
+    }
+  }
+
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

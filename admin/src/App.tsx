@@ -7,6 +7,7 @@ import { ModerationView } from './views/ModerationView';
 import { PhotosView } from './views/PhotosView';
 import { RevenueView } from './views/RevenueView';
 import { AuditLogsView } from './views/AuditLogsView';
+import { AdminAuthModal } from './components/AdminAuthModal';
 import { api } from './services/api';
 
 export const App: React.FC = () => {
@@ -14,6 +15,7 @@ export const App: React.FC = () => {
   const [apiMode, setApiMode] = useState<'live' | 'mock'>(api.getMode());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState(0);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const refreshGlobalMetrics = async () => {
     setIsRefreshing(true);
@@ -93,6 +95,7 @@ export const App: React.FC = () => {
           onToggleMode={handleToggleMode}
           onRefresh={refreshGlobalMetrics}
           isRefreshing={isRefreshing}
+          onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
         <main className="view-viewport">
@@ -106,6 +109,16 @@ export const App: React.FC = () => {
           {activeTab === 'audit' && <AuditLogsView />}
         </main>
       </div>
+
+      {/* Admin Gateway Authentication Modal */}
+      <AdminAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onAuthChanged={() => {
+          setApiMode(api.getMode());
+          refreshGlobalMetrics();
+        }}
+      />
     </div>
   );
 };
