@@ -262,6 +262,7 @@ export interface DiscoveryCandidate {
   algorithmVersion: string;
   distanceKm?: number | null;
   distanceDisplay?: string;
+  isBoosted?: boolean;
 }
 
 export type DiscoveryIneligibleReason =
@@ -775,12 +776,27 @@ export interface SafeUserEntitlement {
   isActive: boolean;
 }
 
+export interface UserCreditBalanceDto {
+  directNotes: number;
+  profileBoosts: number;
+  callPassMinutes: number;
+  boostExpiresAt: string | null;
+}
+
 export interface BillingStatusResponse {
   activeSubscription: SafeUserSubscription | null;
   entitlements: SafeUserEntitlement[];
   tier: SubscriptionTier;
   dailyLikesRemaining: number | null; // null means unlimited
   isSubscribed: boolean;
+  creditBalance?: UserCreditBalanceDto;
+}
+
+export interface ActivateBoostResponse {
+  success: boolean;
+  expiresAt: string;
+  remainingBoosts: number;
+  message: string;
 }
 
 export interface VerifyPurchaseDto {
@@ -860,6 +876,7 @@ export enum CallEndReason {
   BUSY = 'BUSY',
   NETWORK_FAILURE = 'NETWORK_FAILURE',
   SAFETY_TERMINATED = 'SAFETY_TERMINATED',
+  VIBE_CHECK_COMPLETE = 'VIBE_CHECK_COMPLETE',
 }
 
 export interface SafeCallLog {
@@ -892,6 +909,8 @@ export interface IncomingCallPayload {
   callerAvatarUrl: string | null;
   callType: CallType;
   channelName: string;
+  isVibeCheck?: boolean;
+  maxDurationSeconds?: number;
 }
 
 export interface AcceptCallPayload {
@@ -917,6 +936,9 @@ export interface CallConnectedPayload {
   agoraUid: number;
   callType: CallType;
   startedAt: string;
+  connectedAt?: string;
+  isVibeCheck?: boolean;
+  maxDurationSeconds?: number;
 }
 
 export interface CallEndedNotification {

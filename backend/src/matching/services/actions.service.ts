@@ -12,6 +12,7 @@ import { RedisService } from '../../redis/redis.service';
 import { SafetyPolicyService } from '../../safety/services/safety-policy.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { EntitlementService } from '../../billing/services/entitlement.service';
+import { CreditService } from '../../billing/services/credit.service';
 import { DAILY_FREE_LIKES_LIMIT } from '../../billing/services/subscription.service';
 import type { StorageService } from '../../media/storage/storage.interface';
 import { STORAGE_SERVICE } from '../../media/storage/storage.interface';
@@ -51,6 +52,7 @@ export class ActionsService {
     private readonly safetyPolicyService: SafetyPolicyService,
     private readonly notificationsService: NotificationsService,
     private readonly entitlementService: EntitlementService,
+    private readonly creditService: CreditService,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StorageService,
     private readonly contentFilterService: ContentFilterService,
@@ -170,14 +172,15 @@ export class ActionsService {
       );
 
       if (!hasUnlimitedLikes) {
-        const todayKey = `billing:daily-likes:${userId}:${new Date().toISOString().slice(0, 10)}`;
+        const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+        const todayKey = `billing:daily-likes:${userId}:${istDate}`;
         if (typeof this.redisService.get === 'function') {
           const currentLikesStr = await this.redisService.get(todayKey);
           const currentLikes = currentLikesStr ? parseInt(currentLikesStr, 10) : 0;
 
           if (currentLikes >= DAILY_FREE_LIKES_LIMIT) {
             throw new BadRequestException(
-              `Daily free like limit reached (${DAILY_FREE_LIKES_LIMIT}/day). Upgrade to Spark Plus for unlimited likes.`,
+              `Daily free like limit reached (${DAILY_FREE_LIKES_LIMIT}/day). Upgrade to Truelove Plus for unlimited likes.`,
             );
           }
 
@@ -188,7 +191,7 @@ export class ActionsService {
       }
     }
 
-    // 4. Direct Note Quota & Safety Check (Max 150 chars, 5 free notes for free tier)
+    // 4. Direct Note Quota & Safety Check (Max 150 chars)
     const cleanNote = dto.note?.trim();
     if (cleanNote && dto.actionType === ActionType.LIKE) {
       if (cleanNote.length > 150) {
@@ -209,7 +212,7 @@ export class ActionsService {
         );
       }
 
-      // Content Moderation check on Direct Note
+      // Content Moderation check on Direct Note (Fails fast before touching credit balances)
       try {
         this.contentFilterService.validateOrThrow(cleanNote, 'DIRECT_NOTE');
       } catch (filterError: any) {
@@ -221,23 +224,66 @@ export class ActionsService {
         throw filterError;
       }
 
+      // Tier 1: Truelove Gold members hold UNLIMITED_DIRECT_NOTES
       const hasUnlimitedNotes = await this.entitlementService.hasEntitlement(
         userId,
         EntitlementKey.UNLIMITED_DIRECT_NOTES,
       );
 
-      if (!hasUnlimitedNotes) {
-        const notesSentCount = await this.prisma.userAction.count({
-          where: {
-            actorUserId: userId,
-            note: { not: null },
-          },
-        });
+      let allowedToSendNote = false;
 
-        const FREE_DIRECT_NOTES_LIMIT = 5;
-        if (notesSentCount >= FREE_DIRECT_NOTES_LIMIT) {
+      if (hasUnlimitedNotes) {
+        allowedToSendNote = true;
+      } else {
+        // Tier 2: Truelove Plus members get 5 Direct Notes daily
+        const hasPlus = await this.entitlementService.hasEntitlement(
+          userId,
+          EntitlementKey.REWIND_PASS,
+        );
+
+        if (hasPlus) {
+          const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+          const dailyNotesKey = `billing:daily-notes:${userId}:${istDate}`;
+          if (typeof this.redisService.get === 'function') {
+            const currentDailyNotesStr = await this.redisService.get(dailyNotesKey);
+            const currentDailyNotes = currentDailyNotesStr ? parseInt(currentDailyNotesStr, 10) : 0;
+
+            if (currentDailyNotes < 5) {
+              if (typeof this.redisService.set === 'function') {
+                await this.redisService.set(dailyNotesKey, (currentDailyNotes + 1).toString(), 86400);
+              }
+              allowedToSendNote = true;
+            }
+          }
+        }
+
+        // Tier 3: Consumable Purchased Direct Note Credits
+        if (!allowedToSendNote) {
+          const deducted = await this.creditService.deductDirectNote(userId);
+          if (deducted) {
+            allowedToSendNote = true;
+          }
+        }
+
+        // Tier 4: Lifetime Free Trial (5 free notes total for new members)
+        if (!allowedToSendNote) {
+          const notesSentCount = await this.prisma.userAction.count({
+            where: {
+              actorUserId: userId,
+              note: { not: null },
+            },
+          });
+
+          const FREE_DIRECT_NOTES_LIMIT = 5;
+          if (notesSentCount < FREE_DIRECT_NOTES_LIMIT) {
+            allowedToSendNote = true;
+          }
+        }
+
+        // Tier 5: All quotas exhausted -> Trigger paywall
+        if (!allowedToSendNote) {
           throw new BadRequestException(
-            `You have used all ${FREE_DIRECT_NOTES_LIMIT} free direct notes. Upgrade to Spark Gold or buy a Note Pack to send more direct messages.`,
+            'You have used all free direct notes. Upgrade to Truelove Gold or buy a Note Pack to send more direct messages.',
           );
         }
       }

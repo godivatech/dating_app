@@ -139,6 +139,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
           agoraToken: glare.caller.agoraToken,
           agoraUid: glare.caller.agoraUid,
           connectedAt: glare.connectedAt,
+          isVibeCheck: glare.isVibeCheck,
+          maxDurationSeconds: glare.maxDurationSeconds,
         });
         this.server.to(`user:${glare.receiver.userId}`).emit('call:connected', {
           callId: glare.callId,
@@ -149,6 +151,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
           agoraToken: glare.receiver.agoraToken,
           agoraUid: glare.receiver.agoraUid,
           connectedAt: glare.connectedAt,
+          isVibeCheck: glare.isVibeCheck,
+          maxDurationSeconds: glare.maxDurationSeconds,
         });
         return;
       }
@@ -210,6 +214,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         agoraToken: result.caller.agoraToken,
         agoraUid: result.caller.agoraUid,
         connectedAt: result.connectedAt,
+        isVibeCheck: result.isVibeCheck,
+        maxDurationSeconds: result.maxDurationSeconds,
       });
 
       // Send connection payload with RTC token to receiver
@@ -222,6 +228,8 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
         agoraToken: result.receiver.agoraToken,
         agoraUid: result.receiver.agoraUid,
         connectedAt: result.connectedAt,
+        isVibeCheck: result.isVibeCheck,
+        maxDurationSeconds: result.maxDurationSeconds,
       });
     } catch (err: any) {
       client.emit('call:error', { message: err.message });

@@ -110,7 +110,12 @@ describe('DiscoveryService', () => {
         findUnique: jest.fn().mockResolvedValue(validRequester),
       },
       datingProfile: {
-        findMany: jest.fn().mockResolvedValue([validCandidate]),
+        findMany: jest.fn().mockImplementation(({ where }) => {
+          if (where?.user?.entitlements) {
+            return Promise.resolve([]);
+          }
+          return Promise.resolve([validCandidate]);
+        }),
       },
       discoveryImpression: {
         findMany: jest.fn().mockResolvedValue([]),

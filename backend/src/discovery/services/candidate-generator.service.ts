@@ -5,6 +5,7 @@ import {
   ProfileVisibility,
   PhotoStatus,
   UserStatus,
+  EntitlementKey,
 } from '@prisma/client';
 
 export const MAX_CANDIDATE_POOL_SIZE = 150;
@@ -23,6 +24,9 @@ export class CandidateGeneratorService {
    * - User account status == ACTIVE
    * - Contains at least one APPROVED photo
    * - Dating preferences configured
+   *
+   * Boosted profiles with active PROFILE_BOOST entitlements are fetched first to
+   * guarantee visibility without being dropped by candidate limits.
    */
   async generateCandidatePool(
     requestingProfileId: string,
@@ -33,52 +37,99 @@ export class CandidateGeneratorService {
       MAX_CANDIDATE_POOL_SIZE,
     );
 
-    return this.prisma.datingProfile.findMany({
+    const now = new Date();
+
+    const baseWhere = {
+      id: { not: requestingProfileId },
+      status: ProfileStatus.READY,
+      visibility: ProfileVisibility.VISIBLE,
+      user: {
+        status: UserStatus.ACTIVE,
+        OR: [
+          { shadowBannedUntil: null },
+          { shadowBannedUntil: { lte: now } },
+        ],
+      },
+      photos: {
+        some: {
+          status: PhotoStatus.APPROVED,
+        },
+      },
+    };
+
+    const includeClause = {
+      user: {
+        select: {
+          id: true,
+          status: true,
+          shadowBannedUntil: true,
+          lastLoginAt: true,
+          entitlements: {
+            where: {
+              entitlementKey: EntitlementKey.PROFILE_BOOST,
+              isActive: true,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
+            select: {
+              expiresAt: true,
+            },
+          },
+        },
+      },
+      preferences: true,
+      interests: {
+        include: {
+          interest: true,
+        },
+      },
+      photos: {
+        where: {
+          status: PhotoStatus.APPROVED,
+        },
+        orderBy: {
+          position: 'asc' as const,
+        },
+      },
+    };
+
+    // 1. Prioritize active boosted candidates (guarantees boost monetization value)
+    const boostedCandidates = await this.prisma.datingProfile.findMany({
       where: {
-        id: { not: requestingProfileId },
-        status: ProfileStatus.READY,
-        visibility: ProfileVisibility.VISIBLE,
+        ...baseWhere,
         user: {
-          status: UserStatus.ACTIVE,
-          OR: [
-            { shadowBannedUntil: null },
-            { shadowBannedUntil: { lte: new Date() } },
-          ],
-        },
-        photos: {
-          some: {
-            status: PhotoStatus.APPROVED,
+          ...baseWhere.user,
+          entitlements: {
+            some: {
+              entitlementKey: EntitlementKey.PROFILE_BOOST,
+              isActive: true,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+            },
           },
         },
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            status: true,
-            shadowBannedUntil: true,
-            lastLoginAt: true,
-          },
-        },
-        preferences: true,
-        interests: {
-          include: {
-            interest: true,
-          },
-        },
-        photos: {
-          where: {
-            status: PhotoStatus.APPROVED,
-          },
-          orderBy: {
-            position: 'asc',
-          },
+      include: includeClause,
+      take: 20,
+    });
+
+    const boostedIds = boostedCandidates.map((c) => c.id);
+    const remainingSlots = Math.max(0, poolSize - boostedCandidates.length);
+
+    // 2. Fetch regular candidate pool
+    const regularCandidates = await this.prisma.datingProfile.findMany({
+      where: {
+        ...baseWhere,
+        id: {
+          notIn: [requestingProfileId, ...boostedIds],
         },
       },
-      take: poolSize,
+      include: includeClause,
+      take: Math.max(remainingSlots, 20),
       orderBy: {
         updatedAt: 'desc',
       },
     });
+
+    return [...boostedCandidates, ...regularCandidates];
   }
 }
+

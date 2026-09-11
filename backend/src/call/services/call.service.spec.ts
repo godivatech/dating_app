@@ -6,6 +6,8 @@ import { AgoraTokenService } from './agora-token.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { CallStatus, CallType, MatchStatus, CallEndReason, UserStatus } from '@prisma/client';
+import { STORAGE_SERVICE } from '../../media/storage/storage.interface';
+import { CreditService } from '../../billing/services/credit.service';
 
 describe('CallService', () => {
   let service: CallService;
@@ -34,6 +36,14 @@ describe('CallService', () => {
         findMany: jest.fn(),
         update: jest.fn(),
       },
+      userEntitlement: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      userCreditBalance: {
+        findMany: jest.fn().mockResolvedValue([]),
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     };
 
     mockRedis = {
@@ -60,6 +70,14 @@ describe('CallService', () => {
         { provide: RedisService, useValue: mockRedis },
         { provide: AgoraTokenService, useValue: mockAgora },
         { provide: NotificationsService, useValue: mockNotifications },
+        {
+          provide: STORAGE_SERVICE,
+          useValue: { getPublicUrl: jest.fn().mockReturnValue('https://example.com/photo.jpg') },
+        },
+        {
+          provide: CreditService,
+          useValue: { deductCallMinutes: jest.fn().mockResolvedValue(true) },
+        },
       ],
     }).compile();
 
@@ -76,15 +94,60 @@ describe('CallService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('should fail if caller is already in an active call', async () => {
+  it('should auto-terminate prior call if caller is already in an active call', async () => {
     mockRedis.get.mockImplementation(async (key: string) => {
       if (key === `user:call_state:${callerId}`) return 'active-call-id';
       return null;
     });
 
-    await expect(
-      service.initiateCall(callerId, { matchId, receiverUserId: receiverId, callType: CallType.VIDEO }),
-    ).rejects.toThrow(BadRequestException);
+    mockPrisma.callLog.findUnique.mockResolvedValue({
+      id: 'active-call-id',
+      status: CallStatus.CONNECTED,
+      callerUserId: callerId,
+      receiverUserId: 'other-user',
+      startedAt: new Date(),
+      matchId,
+    });
+
+    mockPrisma.callLog.update.mockResolvedValue({
+      id: 'active-call-id',
+      status: CallStatus.ENDED,
+      endReason: CallEndReason.CALLER_HANGUP,
+    });
+
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: matchId,
+      status: MatchStatus.ACTIVE,
+      user1Id: callerId,
+      user2Id: receiverId,
+      user1: { profile: { displayName: 'Caller' } },
+      user2: { profile: { displayName: 'Receiver' } },
+    });
+    mockPrisma.block.findFirst.mockResolvedValue(null);
+    mockPrisma.callLog.create.mockResolvedValue({
+      id: 'new-call-id',
+      status: CallStatus.RINGING,
+      channelName: 'spark_call_123',
+      callType: CallType.VIDEO,
+      startedAt: new Date(),
+      callerUser: { profile: { displayName: 'Caller' } },
+      isVibeCheck: true,
+      maxDurationSeconds: 60,
+    });
+
+    const endCallSpy = jest.spyOn(service, 'endCall');
+
+    const result = await service.initiateCall(callerId, {
+      matchId,
+      receiverUserId: receiverId,
+      callType: CallType.VIDEO,
+    });
+
+    expect(endCallSpy).toHaveBeenCalledWith(callerId, {
+      callId: 'active-call-id',
+      reason: CallEndReason.CALLER_HANGUP,
+    });
+    expect(result.callId).toBe('new-call-id');
   });
 
   it('should reject call initiation if caller is muted for community safety violations', async () => {
@@ -118,6 +181,13 @@ describe('CallService', () => {
     mockRedis.get.mockImplementation(async (key: string) => {
       if (key === `user:call_state:${receiverId}`) return 'existing-call-999';
       return null;
+    });
+
+    mockPrisma.callLog.findUnique.mockResolvedValue({
+      id: 'existing-call-999',
+      status: CallStatus.CONNECTED,
+      callerUserId: 'third-party-user',
+      receiverUserId: receiverId,
     });
 
     mockPrisma.callLog.create.mockResolvedValue({

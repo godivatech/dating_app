@@ -22,6 +22,7 @@ describe('ActionsService', () => {
   let mockRedis: any;
   let mockStorage: any;
   let mockEntitlement: any;
+  let mockCredit: any;
 
   const requestingUser = {
     id: 'user-a',
@@ -131,15 +132,25 @@ describe('ActionsService', () => {
       getActiveRestrictions: jest.fn().mockResolvedValue({ isMuted: false, isShadowBanned: false }),
     };
 
+    mockCredit = {
+      deductDirectNote: jest.fn().mockResolvedValue(true),
+    };
+
+    const mockChatGateway = {
+      server: { to: jest.fn().mockReturnValue({ emit: jest.fn() }) },
+    };
+
     service = new ActionsService(
       mockPrisma as PrismaService,
       mockRedis as RedisService,
       mockSafetyPolicy as any,
       mockNotifications as any,
       mockEntitlement as any,
+      mockCredit as any,
       mockStorage as StorageService,
       mockContentFilter as any,
       mockDiscipline as any,
+      mockChatGateway as any,
     );
   });
 
@@ -306,6 +317,7 @@ describe('ActionsService', () => {
 
   it('should enforce 5 free direct note quota for free users', async () => {
     mockEntitlement.hasEntitlement.mockResolvedValue(false);
+    mockCredit.deductDirectNote.mockResolvedValue(false);
     mockPrisma.userAction.count = jest.fn().mockResolvedValue(5); // already sent 5 notes
 
     await expect(

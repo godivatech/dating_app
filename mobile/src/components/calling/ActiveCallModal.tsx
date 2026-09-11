@@ -182,10 +182,19 @@ export const ActiveCallModal: React.FC = () => {
               </TouchableOpacity>
 
               {/* Call Timer / State */}
-              <View style={styles.timerPill}>
-                <View style={[styles.statusDot, isConnected ? styles.dotGreen : styles.dotOrange]} />
-                <Text style={styles.timerText}>
-                  {isConnected ? formatTimer(durationSeconds) : statusMessage || 'Calling...'}
+              <View style={[styles.timerPill, activeCall.isVibeCheck && styles.vibeCheckPill]}>
+                <View
+                  style={[
+                    styles.statusDot,
+                    activeCall.isVibeCheck ? styles.dotAmber : isConnected ? styles.dotGreen : styles.dotOrange,
+                  ]}
+                />
+                <Text style={[styles.timerText, activeCall.isVibeCheck && styles.vibeCheckText]}>
+                  {isConnected
+                    ? activeCall.isVibeCheck
+                      ? `✨ Vibe Check (${Math.max(0, 60 - durationSeconds)}s)`
+                      : formatTimer(durationSeconds)
+                    : statusMessage || 'Calling...'}
                 </Text>
               </View>
 
@@ -202,6 +211,16 @@ export const ActiveCallModal: React.FC = () => {
                 <View style={{ width: 40 }} />
               )}
             </View>
+
+            {/* Vibe Check 15-second Warning Banner */}
+            {isConnected && activeCall.isVibeCheck && durationSeconds >= 45 && durationSeconds < 60 && (
+              <View style={styles.vibeWarningBanner}>
+                <Ionicons name="flash" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.vibeWarningText}>
+                  {Math.max(0, 60 - durationSeconds)}s left in your Free Vibe Check!
+                </Text>
+              </View>
+            )}
           </SafeAreaView>
 
           {/* Bottom Floating Controls Toolbar */}
@@ -251,7 +270,7 @@ export const ActiveCallModal: React.FC = () => {
               {/* End Call Button */}
               <TouchableOpacity
                 style={styles.endCallBtn}
-                onPress={hangupCall}
+                onPress={() => hangupCall()}
                 activeOpacity={0.8}
               >
                 <Ionicons name="call" size={28} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
@@ -409,6 +428,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
   },
+  vibeCheckPill: {
+    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.6)',
+  },
   statusDot: {
     width: 8,
     height: 8,
@@ -421,10 +445,38 @@ const styles = StyleSheet.create({
   dotOrange: {
     backgroundColor: '#F59E0B',
   },
+  dotAmber: {
+    backgroundColor: '#FBBF24',
+  },
   timerText: {
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+  },
+  vibeCheckText: {
+    color: '#FDE68A',
+    fontWeight: '700',
+  },
+  vibeWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.85)',
+    marginHorizontal: 30,
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  vibeWarningText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   topCircleBtn: {
     width: 40,

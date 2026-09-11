@@ -19,8 +19,10 @@ import {
   CallEndReason,
   MatchStatus,
   UserStatus,
+  EntitlementKey,
 } from '@prisma/client';
 import { NotificationType } from '../../../../shared/src/types';
+import { CreditService } from '../../billing/services/credit.service';
 
 export const CALL_TIMEOUT_SECONDS = 35;
 
@@ -35,7 +37,58 @@ export class CallService {
     private readonly notificationsService: NotificationsService,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StorageService,
+    private readonly creditService: CreditService,
   ) {}
+
+  /**
+   * Evaluates if caller or receiver has VIP calling status (Truelove Gold or 15+ min call pass).
+   * Asymmetric rule: If EITHER party is Gold or has an active Call Pass, the room is upgraded to full duration.
+   */
+  async evaluateCallingTier(
+    callerUserId: string,
+    receiverUserId: string,
+    callType: CallType = CallType.VIDEO,
+  ): Promise<{ isVibeCheck: boolean; maxDurationSeconds: number; payerUserId?: string }> {
+    const requiredEntitlement =
+      callType === CallType.AUDIO
+        ? EntitlementKey.AUDIO_CALL
+        : EntitlementKey.VIDEO_CALL;
+    const now = new Date();
+
+    // Check Truelove Gold active entitlements (either party unlocks full room)
+    const activeEntitlements = await this.prisma.userEntitlement.findMany({
+      where: {
+        userId: { in: [callerUserId, receiverUserId] },
+        entitlementKey: { in: [requiredEntitlement, EntitlementKey.VIDEO_CALL] },
+        isActive: true,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+      },
+    });
+
+    if (activeEntitlements.length > 0) {
+      return { isVibeCheck: false, maxDurationSeconds: 3600 };
+    }
+
+    // Check Call Pass consumable balances (>= 15 minutes)
+    const balances = await this.prisma.userCreditBalance.findMany({
+      where: {
+        userId: { in: [callerUserId, receiverUserId] },
+        callPassMinutes: { gte: 15 },
+      },
+      orderBy: { callPassMinutes: 'desc' },
+    });
+
+    if (balances.length > 0) {
+      return {
+        isVibeCheck: false,
+        maxDurationSeconds: 3600,
+        payerUserId: balances[0].userId,
+      };
+    }
+
+    // Free 1-Minute Vibe Check
+    return { isVibeCheck: true, maxDurationSeconds: 60 };
+  }
 
   /**
    * Initiates an outgoing audio or video call.
@@ -197,6 +250,7 @@ export class CallService {
     const cleanMatch = dto.matchId.replace(/-/g, '').slice(0, 12);
     const channelName = `spark_call_${cleanMatch}_${Date.now()}`;
     const callType = dto.callType || CallType.VIDEO;
+    const callingTier = await this.evaluateCallingTier(callerUserId, dto.receiverUserId, callType);
 
     const callLog = await this.prisma.callLog.create({
       data: {
@@ -244,6 +298,8 @@ export class CallService {
           callerName,
           callType,
           channelName,
+          isVibeCheck: callingTier.isVibeCheck,
+          maxDurationSeconds: callingTier.maxDurationSeconds,
         },
       });
     } catch (err: any) {
@@ -261,6 +317,8 @@ export class CallService {
       channelName,
       status: CallStatus.RINGING,
       startedAt: callLog.startedAt.toISOString(),
+      isVibeCheck: callingTier.isVibeCheck,
+      maxDurationSeconds: callingTier.maxDurationSeconds,
     };
   }
 
@@ -309,6 +367,12 @@ export class CallService {
     await this.redisService.set(`user:call_state:${callLog.callerUserId}`, callLog.id, 7200);
     await this.redisService.set(`user:call_state:${callLog.receiverUserId}`, callLog.id, 7200);
 
+    const callingTier = await this.evaluateCallingTier(
+      callLog.callerUserId,
+      callLog.receiverUserId,
+      callLog.callType,
+    );
+
     return {
       callId: updated.id,
       matchId: updated.matchId,
@@ -316,6 +380,8 @@ export class CallService {
       callType: updated.callType,
       status: CallStatus.ACCEPTED,
       connectedAt: connectedAt.toISOString(),
+      isVibeCheck: callingTier.isVibeCheck,
+      maxDurationSeconds: callingTier.maxDurationSeconds,
       caller: {
         userId: callLog.callerUserId,
         rtcUid: callerUid,
@@ -410,6 +476,37 @@ export class CallService {
     await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
     await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
+
+    // If call duration exceeded 60 seconds (extended call), deduct call pass minutes if applicable
+    if (durationSeconds > 60) {
+      const minutesUsed = Math.ceil(durationSeconds / 60);
+      const goldUser = await this.prisma.userEntitlement.findFirst({
+        where: {
+          userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
+          entitlementKey: { in: [EntitlementKey.VIDEO_CALL, EntitlementKey.AUDIO_CALL] },
+          isActive: true,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+      });
+
+      if (!goldUser) {
+        const passUser = await this.prisma.userCreditBalance.findFirst({
+          where: {
+            userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
+            callPassMinutes: { gte: 1 },
+          },
+          orderBy: { callPassMinutes: 'desc' },
+        });
+
+        if (passUser) {
+          const deductAmount = Math.min(minutesUsed, passUser.callPassMinutes);
+          await this.creditService.deductCallMinutes(passUser.userId, deductAmount);
+          this.logger.log(
+            `[CALL_PASS_DEDUCTED] User ${passUser.userId} charged ${deductAmount} call pass minutes for call ${callLog.id}`,
+          );
+        }
+      }
+    }
 
     this.logger.log(`[CALL_ENDED] Call ${callLog.id} ended. Duration: ${durationSeconds}s. Reason: ${endReason}`);
 

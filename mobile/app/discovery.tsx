@@ -10,6 +10,7 @@ import {
   TextInput,
   Animated,
   Vibration,
+  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -32,7 +33,7 @@ export default function DiscoveryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { profile: myProfile, completion, fetchProfile } = useProfileStore();
-  const { openPaywall } = useBillingStore();
+  const { creditBalance, activateBoost, openPaywall, fetchCreditBalance } = useBillingStore();
   const {
     candidates,
     currentIndex,
@@ -56,6 +57,62 @@ export default function DiscoveryScreen() {
   const [likeHeartAnim] = useState(new Animated.Value(0));
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
+
+  // Boost state & countdown
+  const isBoostActive = useMemo(() => {
+    if (!creditBalance?.boostExpiresAt) return false;
+    return new Date(creditBalance.boostExpiresAt) > new Date();
+  }, [creditBalance?.boostExpiresAt]);
+
+  const boostRemainingMinutes = useMemo(() => {
+    if (!creditBalance?.boostExpiresAt) return 0;
+    const diff = new Date(creditBalance.boostExpiresAt).getTime() - Date.now();
+    return Math.max(0, Math.ceil(diff / 60000));
+  }, [creditBalance?.boostExpiresAt]);
+
+  const handleBoostPress = () => {
+    if (isBoostActive) {
+      Alert.alert(
+        '⚡ Profile Boost Active!',
+        `Your profile is currently boosted to the top of discovery in your area for another ${boostRemainingMinutes} minute(s). Enjoy 10x more reach and views!`,
+        [{ text: 'Awesome!', style: 'default' }],
+      );
+      return;
+    }
+
+    const availableBoosts = creditBalance?.profileBoosts ?? 0;
+    if (availableBoosts > 0) {
+      Alert.alert(
+        '⚡ Activate Profile Boost',
+        `You have ${availableBoosts} Profile Boost credit(s) available.\n\nBoost your profile for 30 minutes to get 10x more views and front-row card ranking!`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Boost Me (1 Credit)',
+            style: 'default',
+            onPress: async () => {
+              try {
+                const res = await activateBoost();
+                if (res?.success) {
+                  showPill('⚡ Boost Activated! (30m)');
+                }
+              } catch (err: any) {
+                Alert.alert('Boost Failed', err.message || 'Could not activate boost.');
+              }
+            },
+          },
+        ],
+      );
+    } else {
+      openPaywall('BOOST');
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCreditBalance();
+    }, [fetchCreditBalance]),
+  );
 
   // Tactile swipe exit & feedback pill animation
   const cardTranslateX = useRef(new Animated.Value(0)).current;
@@ -273,7 +330,7 @@ export default function DiscoveryScreen() {
           <View style={styles.onlineDot} />
         </TouchableOpacity>
 
-        {/* Right Header Actions (Favorites & Filter) */}
+        {/* Right Header Actions (Favorites, Boost & Filter) */}
         <View style={styles.headerRightActions}>
           <TouchableOpacity
             style={styles.headerSquareBtn}
@@ -282,6 +339,27 @@ export default function DiscoveryScreen() {
           >
             <Ionicons name="heart" size={18} color={Colors.primary} />
             {unreadCount > 0 && <View style={styles.unreadBadgeDot} />}
+          </TouchableOpacity>
+
+          {/* Profile Boost Button */}
+          <TouchableOpacity
+            style={[
+              styles.headerSquareBtn,
+              isBoostActive && styles.boostBtnActive,
+            ]}
+            onPress={handleBoostPress}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name="flash"
+              size={18}
+              color={isBoostActive ? Colors.white : '#F59E0B'}
+            />
+            {isBoostActive && (
+              <View style={styles.boostTimerBadge}>
+                <Text style={styles.boostTimerText}>{boostRemainingMinutes}m</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -532,6 +610,14 @@ export default function DiscoveryScreen() {
               >
                 <Text style={styles.nopeStampText}>NOPE</Text>
               </Animated.View>
+
+              {/* Top Left Floating Chip: Boosted Candidate Badge */}
+              {candidate.isBoosted && (
+                <View style={styles.boostedCandidatePill}>
+                  <Ionicons name="flash" size={12} color={Colors.white} style={{ marginRight: 4 }} />
+                  <Text style={styles.boostedCandidatePillText}>BOOSTED</Text>
+                </View>
+              )}
 
               {/* Top Right Floating Chip: Dynamic Relative Distance */}
               <View style={styles.distancePill}>
@@ -1154,5 +1240,48 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF4B6E',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
+  },
+  boostBtnActive: {
+    backgroundColor: '#F59E0B',
+    borderColor: '#D97706',
+  },
+  boostTimerBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#EF4444',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FFFFFF',
+  },
+  boostTimerText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  boostedCandidatePill: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  boostedCandidatePillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

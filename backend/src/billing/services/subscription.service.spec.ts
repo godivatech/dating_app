@@ -55,10 +55,20 @@ describe('SubscriptionService', () => {
       hasEntitlement: jest.fn().mockResolvedValue(false),
     };
 
+    const mockCredit = {
+      getUserCreditDto: jest.fn().mockResolvedValue({
+        directNotes: 5,
+        profileBoosts: 0,
+        callPassMinutes: 0,
+        boostExpiresAt: null,
+      }),
+    };
+
     service = new SubscriptionService(
       mockPrisma as PrismaService,
       mockRedis as RedisService,
       mockEntitlement as EntitlementService,
+      mockCredit as any,
     );
   });
 

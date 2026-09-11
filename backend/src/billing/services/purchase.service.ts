@@ -12,6 +12,7 @@ import { PURCHASE_PROVIDER } from '../providers/purchase-provider.interface';
 import type { PurchaseProvider } from '../providers/purchase-provider.interface';
 import { VerifyPurchaseDto } from '../dto/verify-purchase.dto';
 import { RestorePurchasesDto } from '../dto/restore-purchases.dto';
+import { CreditService } from './credit.service';
 import {
   SubscriptionTier,
   SubscriptionStatus,
@@ -32,6 +33,7 @@ export class PurchaseService {
     private readonly prisma: PrismaService,
     private readonly subscriptionService: SubscriptionService,
     private readonly entitlementService: EntitlementService,
+    private readonly creditService: CreditService,
     @Inject(PURCHASE_PROVIDER)
     private readonly purchaseProvider: PurchaseProvider,
   ) {}
@@ -114,9 +116,10 @@ export class PurchaseService {
         EntitlementKey.UNLIMITED_LIKES,
         EntitlementKey.REWIND_PASS,
         EntitlementKey.PROFILE_BOOST,
+        EntitlementKey.UNLIMITED_DIRECT_NOTES,
+        EntitlementKey.VIDEO_CALL,
+        EntitlementKey.AUDIO_CALL,
       );
-    } else if (product.tier === SubscriptionTier.A_LA_CARTE) {
-      grantedEntitlements.push(EntitlementKey.PROFILE_BOOST);
     }
 
     const expiresAt =
@@ -161,20 +164,33 @@ export class PurchaseService {
           },
           include: { product: true },
         });
-      }
 
-      // Grant Entitlements
-      for (const key of grantedEntitlements) {
-        await this.entitlementService.grantEntitlement(
-          userId,
-          key,
-          product.tier === SubscriptionTier.A_LA_CARTE
-            ? EntitlementSource.ONE_TIME_PURCHASE
-            : EntitlementSource.SUBSCRIPTION,
-          transaction.id,
-          expiresAt,
-          tx,
-        );
+        // Grant Subscription Entitlements
+        for (const key of grantedEntitlements) {
+          await this.entitlementService.grantEntitlement(
+            userId,
+            key,
+            EntitlementSource.SUBSCRIPTION,
+            transaction.id,
+            expiresAt,
+            tx,
+          );
+        }
+      } else {
+        // A-La-Carte Consumable Fulfillment
+        const prodKey = product.productKey;
+        const meta = (product.metadata as any) || {};
+
+        if (prodKey.startsWith('DIRECT_NOTES_')) {
+          const notesCount = meta.notesCount || (prodKey.includes('30') ? 30 : prodKey.includes('15') ? 15 : 5);
+          await this.creditService.addCredits(userId, 'directNotes', notesCount, tx);
+        } else if (prodKey.startsWith('BOOST_PACK_')) {
+          const boostsCount = meta.boostsCount || (prodKey.includes('3') ? 3 : 1);
+          await this.creditService.addCredits(userId, 'profileBoosts', boostsCount, tx);
+        } else if (prodKey.startsWith('CALL_PASS_')) {
+          const callMinutes = meta.callMinutes || (prodKey.includes('sponsor') ? 15 : 30);
+          await this.creditService.addCredits(userId, 'callPassMinutes', callMinutes, tx);
+        }
       }
 
       return { transaction, subscription: createdSub };

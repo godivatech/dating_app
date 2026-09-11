@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/com
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { EntitlementService } from './entitlement.service';
+import { CreditService } from './credit.service';
 import {
   SubscriptionProduct,
   UserSubscription,
@@ -27,6 +28,7 @@ export class SubscriptionService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly redisService: RedisService,
     private readonly entitlementService: EntitlementService,
+    private readonly creditService: CreditService,
   ) {}
 
   async onModuleInit() {
@@ -37,102 +39,237 @@ export class SubscriptionService implements OnModuleInit {
     if (!this.prisma.subscriptionProduct) return;
 
     try {
-      const existing = await this.prisma.subscriptionProduct.count();
-      if (existing > 0) return;
-
       this.logger.log('Seeding initial Subscription Products (INR pricing)...');
 
-    const defaultProducts = [
-      {
-        productKey: 'SPARK_PLUS_1M',
-        displayName: 'Spark Plus (1 Month)',
-        description: 'Unlimited likes, rewind passes, and 5 daily super likes.',
-        tier: SubscriptionTier.PLUS,
-        platform: DevicePlatform.IOS,
-        storeProductId: 'com.sparkdating.plus.1m',
-        currency: 'INR',
-        priceAmount: 29900, // ₹299.00
-        billingPeriod: BillingPeriod.MONTHLY,
-        isActive: true,
-        metadata: {
-          features: ['UNLIMITED_LIKES', 'REWIND_PASS'],
-          badge: 'Most Popular',
+      const defaultProducts = [
+        // Subscriptions
+        {
+          productKey: 'TRUELOVE_PLUS_1M',
+          displayName: 'Truelove Plus (1 Month)',
+          description: 'Unlimited likes, rewind passes, 5 daily direct notes, and 5 super likes.',
+          tier: SubscriptionTier.PLUS,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.plus.1m',
+          currency: 'INR',
+          priceAmount: 29900, // ₹299.00
+          billingPeriod: BillingPeriod.MONTHLY,
+          isActive: true,
+          metadata: {
+            features: ['UNLIMITED_LIKES', 'REWIND_PASS'],
+            badge: 'Most Popular',
+          },
         },
-      },
-      {
-        productKey: 'SPARK_PLUS_3M',
-        displayName: 'Spark Plus (3 Months)',
-        description: 'Save 22% on Spark Plus with 3-month access.',
-        tier: SubscriptionTier.PLUS,
-        platform: DevicePlatform.IOS,
-        storeProductId: 'com.sparkdating.plus.3m',
-        currency: 'INR',
-        priceAmount: 69900, // ₹699.00
-        billingPeriod: BillingPeriod.QUARTERLY,
-        isActive: true,
-        metadata: {
-          features: ['UNLIMITED_LIKES', 'REWIND_PASS'],
-          discount: 'Save 22%',
+        {
+          productKey: 'TRUELOVE_PLUS_3M',
+          displayName: 'Truelove Plus (3 Months)',
+          description: 'Save 22% on Truelove Plus with 3-month access.',
+          tier: SubscriptionTier.PLUS,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.plus.3m',
+          currency: 'INR',
+          priceAmount: 69900, // ₹699.00
+          billingPeriod: BillingPeriod.QUARTERLY,
+          isActive: true,
+          metadata: {
+            features: ['UNLIMITED_LIKES', 'REWIND_PASS'],
+            discount: 'Save 22%',
+          },
         },
-      },
-      {
-        productKey: 'SPARK_GOLD_1M',
-        displayName: 'Spark Gold (1 Month)',
-        description: 'See who liked you, unlimited likes, rewinds, and weekly profile boost.',
-        tier: SubscriptionTier.GOLD,
-        platform: DevicePlatform.IOS,
-        storeProductId: 'com.sparkdating.gold.1m',
-        currency: 'INR',
-        priceAmount: 49900, // ₹499.00
-        billingPeriod: BillingPeriod.MONTHLY,
-        isActive: true,
-        metadata: {
-          features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST'],
-          badge: 'Best Value',
+        {
+          productKey: 'TRUELOVE_GOLD_1M',
+          displayName: 'Truelove Gold (1 Month)',
+          description: 'See who liked you, unlimited direct notes, rewinds, and VIP video calling.',
+          tier: SubscriptionTier.GOLD,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.gold.1m',
+          currency: 'INR',
+          priceAmount: 49900, // ₹499.00
+          billingPeriod: BillingPeriod.MONTHLY,
+          isActive: true,
+          metadata: {
+            features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST', 'UNLIMITED_DIRECT_NOTES', 'VIDEO_CALL'],
+            badge: 'Best Value',
+          },
         },
-      },
-      {
-        productKey: 'SPARK_GOLD_3M',
-        displayName: 'Spark Gold (3 Months)',
-        description: 'Ultimate dating experience with full access to see who liked you.',
-        tier: SubscriptionTier.GOLD,
-        platform: DevicePlatform.IOS,
-        storeProductId: 'com.sparkdating.gold.3m',
-        currency: 'INR',
-        priceAmount: 119900, // ₹1,199.00
-        billingPeriod: BillingPeriod.QUARTERLY,
-        isActive: true,
-        metadata: {
-          features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST'],
-          discount: 'Save 20%',
+        {
+          productKey: 'TRUELOVE_GOLD_3M',
+          displayName: 'Truelove Gold (3 Months)',
+          description: 'Ultimate dating experience with full access to see who liked you and unlimited notes.',
+          tier: SubscriptionTier.GOLD,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.gold.3m',
+          currency: 'INR',
+          priceAmount: 119900, // ₹1,199.00
+          billingPeriod: BillingPeriod.QUARTERLY,
+          isActive: true,
+          metadata: {
+            features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST', 'UNLIMITED_DIRECT_NOTES', 'VIDEO_CALL'],
+            discount: 'Save 20%',
+          },
         },
-      },
-      {
-        productKey: 'BOOST_PACK_1',
-        displayName: 'Profile Boost (1 Pack)',
-        description: 'Get 10x more profile views for 30 minutes in your area.',
-        tier: SubscriptionTier.A_LA_CARTE,
-        platform: DevicePlatform.IOS,
-        storeProductId: 'com.sparkdating.boost.1',
-        currency: 'INR',
-        priceAmount: 9900, // ₹99.00
-        billingPeriod: BillingPeriod.ONE_TIME,
-        isActive: true,
-        metadata: {
-          features: ['PROFILE_BOOST'],
+        // Backward-compatibility keys
+        {
+          productKey: 'SPARK_PLUS_1M',
+          displayName: 'Truelove Plus (1 Month)',
+          description: 'Unlimited likes, rewind passes, and 5 daily direct notes.',
+          tier: SubscriptionTier.PLUS,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.sparkdating.plus.1m',
+          currency: 'INR',
+          priceAmount: 29900,
+          billingPeriod: BillingPeriod.MONTHLY,
+          isActive: true,
+          metadata: { features: ['UNLIMITED_LIKES', 'REWIND_PASS'] },
         },
-      },
-    ];
+        {
+          productKey: 'SPARK_PLUS_3M',
+          displayName: 'Truelove Plus (3 Months)',
+          description: 'Save 22% on Truelove Plus.',
+          tier: SubscriptionTier.PLUS,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.sparkdating.plus.3m',
+          currency: 'INR',
+          priceAmount: 69900,
+          billingPeriod: BillingPeriod.QUARTERLY,
+          isActive: true,
+          metadata: { features: ['UNLIMITED_LIKES', 'REWIND_PASS'] },
+        },
+        {
+          productKey: 'SPARK_GOLD_1M',
+          displayName: 'Truelove Gold (1 Month)',
+          description: 'See who liked you, unlimited direct notes, rewinds.',
+          tier: SubscriptionTier.GOLD,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.sparkdating.gold.1m',
+          currency: 'INR',
+          priceAmount: 49900,
+          billingPeriod: BillingPeriod.MONTHLY,
+          isActive: true,
+          metadata: { features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST', 'UNLIMITED_DIRECT_NOTES', 'VIDEO_CALL'] },
+        },
+        {
+          productKey: 'SPARK_GOLD_3M',
+          displayName: 'Truelove Gold (3 Months)',
+          description: 'Ultimate dating experience.',
+          tier: SubscriptionTier.GOLD,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.sparkdating.gold.3m',
+          currency: 'INR',
+          priceAmount: 119900,
+          billingPeriod: BillingPeriod.QUARTERLY,
+          isActive: true,
+          metadata: { features: ['SEE_LIKES', 'UNLIMITED_LIKES', 'REWIND_PASS', 'PROFILE_BOOST', 'UNLIMITED_DIRECT_NOTES', 'VIDEO_CALL'] },
+        },
+        // Direct Note Packs
+        {
+          productKey: 'DIRECT_NOTES_5',
+          displayName: '5 Direct Notes',
+          description: 'Attach personal 150-char messages to likes. 3x higher match rate.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.notes.5',
+          currency: 'INR',
+          priceAmount: 9900, // ₹99.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { notesCount: 5, costPerNote: '₹20' },
+        },
+        {
+          productKey: 'DIRECT_NOTES_15',
+          displayName: '15 Direct Notes',
+          description: 'Best value for active daters. Stand out instantly in the direct notes shelf.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.notes.15',
+          currency: 'INR',
+          priceAmount: 19900, // ₹199.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { notesCount: 15, costPerNote: '₹13', badge: 'Popular' },
+        },
+        {
+          productKey: 'DIRECT_NOTES_30',
+          displayName: '30 Direct Notes',
+          description: 'Maximum response rate for serious daters.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.notes.30',
+          currency: 'INR',
+          priceAmount: 34900, // ₹349.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { notesCount: 30, costPerNote: '₹11', badge: 'Best Value' },
+        },
+        // Profile Boost Packs
+        {
+          productKey: 'BOOST_PACK_1',
+          displayName: 'Profile Boost (1 Pack)',
+          description: 'Get 10x more profile views for 30 minutes in your area.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.boost.1',
+          currency: 'INR',
+          priceAmount: 9900, // ₹99.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { boostsCount: 1, durationMinutes: 30 },
+        },
+        {
+          productKey: 'BOOST_PACK_3',
+          displayName: 'Profile Boost (3 Packs)',
+          description: 'Save 16% on 3 profile boosts for weekend peak hours.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.boost.3',
+          currency: 'INR',
+          priceAmount: 24900, // ₹249.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { boostsCount: 3, durationMinutes: 30, discount: 'Save 16%' },
+        },
+        // Call Passes
+        {
+          productKey: 'CALL_PASS_30M',
+          displayName: '30-Minute Call Pass',
+          description: 'Unlock 30 minutes of high-definition audio and video calling.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.call.30m',
+          currency: 'INR',
+          priceAmount: 4900, // ₹49.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { callMinutes: 30 },
+        },
+        {
+          productKey: 'CALL_PASS_SPONSOR',
+          displayName: 'Sponsor Call Pass (15 Mins)',
+          description: 'Gift a call pass to your match so they can join free.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.call.sponsor',
+          currency: 'INR',
+          priceAmount: 2900, // ₹29.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: { callMinutes: 15 },
+        },
+      ];
 
-    for (const prod of defaultProducts) {
-      await this.prisma.subscriptionProduct.upsert({
-        where: { productKey: prod.productKey },
-        update: {},
-        create: prod,
-      });
-    }
+      for (const prod of defaultProducts) {
+        await this.prisma.subscriptionProduct.upsert({
+          where: { productKey: prod.productKey },
+          update: {
+            displayName: prod.displayName,
+            description: prod.description,
+            priceAmount: prod.priceAmount,
+            metadata: prod.metadata,
+          },
+          create: prod,
+        });
+      }
 
-    this.logger.log('Successfully seeded default Subscription Products.');
+      this.logger.log(`Successfully seeded ${defaultProducts.length} default products.`);
     } catch (err: any) {
       this.logger.warn(`Could not seed subscription products: ${err.message}`);
     }
@@ -186,7 +323,8 @@ export class SubscriptionService implements OnModuleInit {
 
     let dailyLikesRemaining: number | null = null;
     if (!hasUnlimitedLikes) {
-      const todayKey = `billing:daily-likes:${userId}:${new Date().toISOString().slice(0, 10)}`;
+      const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+      const todayKey = `billing:daily-likes:${userId}:${istDate}`;
       const currentLikesStr = await this.redisService.get(todayKey);
       const used = currentLikesStr ? parseInt(currentLikesStr, 10) : 0;
       dailyLikesRemaining = Math.max(0, DAILY_FREE_LIKES_LIMIT - used);
@@ -197,12 +335,15 @@ export class SubscriptionService implements OnModuleInit {
       tier = activeSub.product.tier as SubscriptionTier;
     }
 
+    const creditBalance = await this.creditService.getUserCreditDto(userId);
+
     return {
       activeSubscription: activeSub,
       entitlements,
       tier: tier as any,
       dailyLikesRemaining,
       isSubscribed: activeSub !== null,
+      creditBalance,
     };
   }
 

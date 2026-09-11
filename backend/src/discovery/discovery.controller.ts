@@ -17,6 +17,7 @@ import { RecordImpressionDto } from './dto/record-impression.dto';
 import {
   DiscoveryFeedResponse,
   RecordImpressionResponse,
+  ActivateBoostResponse,
 } from '../../../shared/src/types';
 
 @Controller('discovery')
@@ -50,5 +51,15 @@ export class DiscoveryController {
   ): Promise<RecordImpressionResponse> {
     const userId = req.user.userId;
     return this.impressionService.recordImpressions(userId, dto);
+  }
+
+  /**
+   * Activates a 30-minute Profile Boost using available boost credits.
+   */
+  @Post('boost/activate')
+  @HttpCode(HttpStatus.OK)
+  async activateBoost(@Req() req: any): Promise<ActivateBoostResponse> {
+    const userId = req.user.userId;
+    return this.discoveryService.activateProfileBoost(userId);
   }
 }

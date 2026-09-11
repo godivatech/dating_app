@@ -91,10 +91,15 @@ describe('PurchaseService', () => {
       restorePurchases: jest.fn(),
     };
 
+    const mockCredit = {
+      addCredits: jest.fn().mockResolvedValue({}),
+    };
+
     service = new PurchaseService(
       mockPrisma as PrismaService,
       mockSubscription as SubscriptionService,
       mockEntitlement as EntitlementService,
+      mockCredit as any,
       mockProvider as PurchaseProvider,
     );
   });

@@ -29,6 +29,7 @@ export class BaselineRankingStrategy implements RankingStrategy {
 
   rankCandidates(userProfile: any, candidates: any[]): RankedCandidate[] {
     const ranked: RankedCandidate[] = [];
+    const now = new Date();
 
     for (const candidate of candidates) {
       const features = this.featureExtractor.extractFeatures(
@@ -36,7 +37,7 @@ export class BaselineRankingStrategy implements RankingStrategy {
         candidate,
       );
 
-      const score =
+      let score =
         features.locationMatch * this.weights.location +
         features.intentMatch * this.weights.intent +
         features.interestOverlap * this.weights.interests +
@@ -44,9 +45,21 @@ export class BaselineRankingStrategy implements RankingStrategy {
         features.qualityScore * this.weights.quality +
         features.freshnessScore * this.weights.freshness;
 
+      // Check active profile boost entitlement
+      const isBoosted =
+        candidate.isBoosted ||
+        candidate.user?.entitlements?.some(
+          (e: any) => !e.expiresAt || new Date(e.expiresAt) > now,
+        );
+
+      if (isBoosted) {
+        candidate.isBoosted = true;
+        score += 100.0; // Puts boosted profile at the front of candidate deck
+      }
+
       ranked.push({
         candidate,
-        score: Math.min(1.0, Math.max(0, score)),
+        score,
         features,
       });
     }

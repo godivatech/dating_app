@@ -2,6 +2,7 @@ import {
   Injectable,
   Inject,
   BadRequestException,
+  NotFoundException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -24,9 +25,17 @@ import {
   DiscoveryCandidate,
   DiscoveryFeedResponse,
   SafeProfilePhoto,
+  ActivateBoostResponse,
 } from '../../../../shared/src/types';
-import { PhotoStatus } from '@prisma/client';
+import {
+  PhotoStatus,
+  ProfileStatus,
+  ProfileVisibility,
+  EntitlementKey,
+  EntitlementSource,
+} from '@prisma/client';
 import { calculateRelativeDistance } from '../utils/geo-distance.util';
+import { CreditService } from '../../billing/services/credit.service';
 
 export const DISCOVERY_RATE_WINDOW_SECONDS = 60;
 export const MAX_DISCOVERY_REQUESTS_PER_WINDOW = 60;
@@ -48,6 +57,7 @@ export class DiscoveryService {
     private readonly paginationService: DiscoveryPaginationService,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StorageService,
+    private readonly creditService: CreditService,
   ) {}
 
   /**
@@ -258,6 +268,94 @@ export class DiscoveryService {
       algorithmVersion: this.rankingStrategy.version,
       distanceKm,
       distanceDisplay,
+      isBoosted: !!candidate.isBoosted,
+    };
+  }
+
+  /**
+   * Activates a 30-minute Profile Boost using consumable boost credits.
+   * If an active boost already exists, stacks +30 minutes onto the existing expiration.
+   */
+  async activateProfileBoost(userId: string): Promise<ActivateBoostResponse> {
+    const profile = await this.prisma.datingProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Dating profile not found.');
+    }
+
+    if (
+      profile.status !== ProfileStatus.READY ||
+      profile.visibility !== ProfileVisibility.VISIBLE
+    ) {
+      throw new BadRequestException(
+        'Your profile must be active and set to visible to activate a boost.',
+      );
+    }
+
+    // Atomically deduct 1 boost credit
+    const deducted = await this.creditService.deductBoost(userId);
+    if (!deducted) {
+      throw new BadRequestException(
+        'No boost credits available. Please purchase a Boost Pack.',
+      );
+    }
+
+    const now = new Date();
+    const activeEntitlement = await this.prisma.userEntitlement.findFirst({
+      where: {
+        userId,
+        entitlementKey: EntitlementKey.PROFILE_BOOST,
+        isActive: true,
+        expiresAt: { gt: now },
+      },
+      orderBy: { expiresAt: 'desc' },
+    });
+
+    const boostDurationMs = 30 * 60 * 1000; // 30 minutes
+    const baseTime =
+      activeEntitlement?.expiresAt && activeEntitlement.expiresAt > now
+        ? activeEntitlement.expiresAt.getTime()
+        : now.getTime();
+    const newExpiresAt = new Date(baseTime + boostDurationMs);
+
+    if (activeEntitlement) {
+      await this.prisma.userEntitlement.update({
+        where: { id: activeEntitlement.id },
+        data: { expiresAt: newExpiresAt },
+      });
+    } else {
+      await this.prisma.userEntitlement.create({
+        data: {
+          userId,
+          entitlementKey: EntitlementKey.PROFILE_BOOST,
+          source: EntitlementSource.ONE_TIME_PURCHASE,
+          isActive: true,
+          startsAt: now,
+          expiresAt: newExpiresAt,
+        },
+      });
+    }
+
+    // Set Redis key with remaining TTL
+    const ttlSeconds = Math.max(
+      1,
+      Math.ceil((newExpiresAt.getTime() - Date.now()) / 1000),
+    );
+    await this.redisService.set(`discovery:boost:${userId}`, '1', ttlSeconds);
+
+    const credits = await this.creditService.getUserCreditDto(userId);
+
+    this.logger.log(
+      `[BOOST_ACTIVATED] User ${userId} activated boost until ${newExpiresAt.toISOString()}. Remaining boosts: ${credits.profileBoosts}`,
+    );
+
+    return {
+      success: true,
+      expiresAt: newExpiresAt.toISOString(),
+      remainingBoosts: credits.profileBoosts,
+      message: 'Profile Boost activated! You are now at the top of discovery in your area.',
     };
   }
 }

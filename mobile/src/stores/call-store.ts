@@ -9,6 +9,7 @@ import {
   CallConnectedPayload,
   CallEndedNotification,
 } from '../../../shared/src/types';
+import { useBillingStore } from './billing-store';
 
 export type CallStateMode = 'IDLE' | 'OUTGOING_RINGING' | 'INCOMING_RINGING' | 'CONNECTED' | 'ENDED';
 
@@ -25,6 +26,8 @@ export interface ActiveCallData {
   agoraToken?: string;
   agoraUid?: number;
   partnerAgoraUid?: number;
+  isVibeCheck?: boolean;
+  maxDurationSeconds?: number;
 }
 
 interface CallStoreState {
@@ -50,7 +53,7 @@ interface CallStoreState {
   ) => void;
   acceptIncomingCall: () => void;
   rejectIncomingCall: (reason?: string) => void;
-  hangupCall: () => void;
+  hangupCall: (reason?: CallEndReason) => void;
   toggleMic: () => void;
   toggleVideo: () => void;
   toggleSpeaker: () => void;
@@ -98,6 +101,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
           partnerAvatarUrl: data.callerAvatarUrl,
           callType: data.callType,
           channelName: data.channelName,
+          isVibeCheck: data.isVibeCheck,
+          maxDurationSeconds: data.maxDurationSeconds,
         },
         durationSeconds: 0,
         statusMessage: `Incoming ${data.callType === CallType.VIDEO ? 'Video' : 'Audio'} Call...`,
@@ -130,7 +135,20 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       clearPendingResetTimeout();
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
-        set((state) => ({ durationSeconds: state.durationSeconds + 1 }));
+        const nextSecs = get().durationSeconds + 1;
+        set({ durationSeconds: nextSecs });
+
+        const currentActive = get().activeCall;
+        const maxLimit =
+          currentActive?.maxDurationSeconds ||
+          (currentActive?.isVibeCheck ? 60 : 3600);
+
+        if (currentActive?.isVibeCheck && nextSecs >= maxLimit) {
+          console.log(
+            '[CALL_STORE] Vibe check limit reached. Auto-hanging up with VIBE_CHECK_COMPLETE.',
+          );
+          get().hangupCall(CallEndReason.VIBE_CHECK_COMPLETE);
+        }
       }, 1000);
 
       const isVideo = data.callType === CallType.VIDEO;
@@ -152,6 +170,9 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
               rtcUid: myUid,
               partnerAgoraUid: partnerUid,
               callType: data.callType,
+              isVibeCheck: data.isVibeCheck ?? state.activeCall.isVibeCheck,
+              maxDurationSeconds:
+                data.maxDurationSeconds ?? state.activeCall.maxDurationSeconds,
             }
           : null,
       }));
@@ -219,10 +240,16 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         clearInterval(timerInterval);
         timerInterval = null;
       }
+      const isVibeComplete = data.reason === CallEndReason.VIBE_CHECK_COMPLETE;
       set({
         callState: 'ENDED',
-        statusMessage: `Call Ended (${data.durationSeconds}s)`,
+        statusMessage: isVibeComplete
+          ? '1-Minute Vibe Check Complete! ✨'
+          : `Call Ended (${data.durationSeconds}s)`,
       });
+      if (isVibeComplete) {
+        useBillingStore.getState().openPaywall('CALL');
+      }
       resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 1500);
@@ -342,11 +369,11 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     get().resetCall();
   },
 
-  hangupCall: () => {
+  hangupCall: (reason: CallEndReason = CallEndReason.CALLER_HANGUP) => {
     clearPendingResetTimeout();
     const { activeCall, callState } = get();
     if (activeCall?.callId) {
-      callSocket.endCall(activeCall.callId, CallEndReason.CALLER_HANGUP);
+      callSocket.endCall(activeCall.callId, reason);
     } else if (callState === 'OUTGOING_RINGING' && activeCall?.matchId) {
       // User cancelled before callId arrived from backend
       pendingCancelledMatchId = activeCall.matchId;
@@ -356,7 +383,18 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       clearInterval(timerInterval);
       timerInterval = null;
     }
-    get().resetCall();
+    if (reason === CallEndReason.VIBE_CHECK_COMPLETE) {
+      set({
+        callState: 'ENDED',
+        statusMessage: '1-Minute Vibe Check Complete! ✨',
+      });
+      useBillingStore.getState().openPaywall('CALL');
+      resetTimeout = setTimeout(() => {
+        get().resetCall();
+      }, 1500);
+    } else {
+      get().resetCall();
+    }
   },
 
   toggleMic: () => {

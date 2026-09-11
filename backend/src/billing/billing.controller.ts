@@ -13,12 +13,14 @@ import { SubscriptionService } from './services/subscription.service';
 import { PurchaseService } from './services/purchase.service';
 import { VerifyPurchaseDto } from './dto/verify-purchase.dto';
 import { RestorePurchasesDto } from './dto/restore-purchases.dto';
+import { CreditService } from './services/credit.service';
 import {
   SafeSubscriptionProduct,
   BillingStatusResponse,
   VerifyPurchaseResponse,
   RestorePurchasesResponse,
   SafeUserSubscription,
+  UserCreditBalanceDto,
 } from '../../../shared/src/types';
 
 @Controller('billing')
@@ -27,6 +29,7 @@ export class BillingController {
   constructor(
     private readonly subscriptionService: SubscriptionService,
     private readonly purchaseService: PurchaseService,
+    private readonly creditService: CreditService,
   ) {}
 
   /**
@@ -44,6 +47,15 @@ export class BillingController {
   async getStatus(@Req() req: any): Promise<BillingStatusResponse> {
     const userId = req.user.userId;
     return this.subscriptionService.getBillingStatus(userId);
+  }
+
+  /**
+   * Retrieves current user's consumable credit balance (notes, boosts, call passes).
+   */
+  @Get('credits')
+  async getCredits(@Req() req: any): Promise<UserCreditBalanceDto> {
+    const userId = req.user.userId;
+    return this.creditService.getUserCreditDto(userId);
   }
 
   /**

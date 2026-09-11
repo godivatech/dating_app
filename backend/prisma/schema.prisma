@@ -49,6 +49,7 @@ model User {
   subscriptions      UserSubscription[]
   transactions       PurchaseTransaction[]
   entitlements       UserEntitlement[]
+  creditBalance      UserCreditBalance?
   callsInitiated     CallLog[]                      @relation("CallsInitiated")
   callsReceived      CallLog[]                      @relation("CallsReceived")
   messagingRestrictedUntil DateTime?
@@ -695,6 +696,19 @@ model UserEntitlement {
   @@index([userId, entitlementKey, isActive, expiresAt])
 }
 
+model UserCreditBalance {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  directNotes     Int      @default(0)
+  profileBoosts   Int      @default(0)
+  callPassMinutes Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+}
+
 // --------------------------------------------------------------------------
 // Phase 11: Real-Time Audio & Video Calling Models
 // --------------------------------------------------------------------------
@@ -723,6 +737,7 @@ enum CallEndReason {
   BUSY
   NETWORK_FAILURE
   SAFETY_TERMINATED
+  VIBE_CHECK_COMPLETE
 }
 
 model CallLog {

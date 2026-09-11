@@ -17,8 +17,10 @@ import { DiversityService } from './services/diversity.service';
 import { DiscoveryPaginationService } from './services/discovery-pagination.service';
 import { ImpressionService } from './services/impression.service';
 
+import { BillingModule } from '../billing/billing.module';
+
 @Module({
-  imports: [PrismaModule, RedisModule, MediaModule, SafetyModule, ProfileModule],
+  imports: [PrismaModule, RedisModule, MediaModule, SafetyModule, ProfileModule, BillingModule],
   controllers: [DiscoveryController],
   providers: [
     DiscoveryEligibilityService,
