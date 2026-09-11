@@ -135,7 +135,7 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
                         uri:
                           profile.photos[activePhotoIndex]?.mediumUrl ||
                           profile.photos[activePhotoIndex]?.thumbnailUrl ||
-                          'https://via.placeholder.com/400x500',
+                          'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&auto=format&fit=crop&q=80',
                       }}
                       style={styles.photo}
                       resizeMode="cover"
