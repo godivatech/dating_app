@@ -34,10 +34,10 @@ export const ModerationView: React.FC = () => {
     reportId: string;
   } | null>(null);
 
-  const handleDismiss = async (reportId: string) => {
-    await api.dismissReport(reportId);
+  const handleDismiss = async (report: AbuseReportItem) => {
+    await api.dismissReport(report.id, report.targetUserId);
     setReports((prev) =>
-      prev.map((r) => (r.id === reportId ? { ...r, status: 'DISMISSED' } : r)),
+      prev.map((r) => (r.id === report.id ? { ...r, status: 'DISMISSED' } : r)),
     );
   };
 
@@ -164,7 +164,7 @@ export const ModerationView: React.FC = () => {
               {isOpen ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
                   <button
-                    onClick={() => handleDismiss(report.id)}
+                    onClick={() => handleDismiss(report)}
                     className="btn btn-glass"
                   >
                     Dismiss (Unfounded)

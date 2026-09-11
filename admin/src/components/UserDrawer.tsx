@@ -188,14 +188,14 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                       Safety Strike Status
                     </span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: detail.strikes.length === 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
-                    {detail.strikes.length} of 4 Strikes
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: (detail.strikes?.length || 0) === 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                    {detail.strikes?.length || 0} of 4 Strikes
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
                   {[1, 2, 3, 4].map((step) => {
-                    const isFired = detail.strikes.length >= step;
+                    const isFired = (detail.strikes?.length || 0) >= step;
                     return (
                       <div
                         key={step}

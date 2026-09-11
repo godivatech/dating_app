@@ -793,7 +793,25 @@ class AdminApiService {
     return list;
   }
 
-  async dismissReport(reportId: string): Promise<{ success: boolean }> {
+  async dismissReport(
+    reportId: string,
+    targetUserId?: string,
+  ): Promise<{ success: boolean }> {
+    if (this.mode === 'live' && targetUserId) {
+      try {
+        await this.fetchWithAuth('/moderation/actions', {
+          method: 'POST',
+          body: JSON.stringify({
+            targetUserId,
+            actionType: 'DISMISS_REPORT',
+            reason: 'Report reviewed and dismissed by administrator',
+            reportId,
+          }),
+        });
+      } catch (err) {
+        console.warn('Live dismiss report failed, updating simulation state', err);
+      }
+    }
     const r = mockReports.find((item) => item.id === reportId);
     if (r) {
       r.status = 'DISMISSED';
