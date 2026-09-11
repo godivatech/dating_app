@@ -358,7 +358,7 @@ export default function EditProfileScreen() {
         {/* Photos Link */}
         <TouchableOpacity
           style={styles.photoLinkCard}
-          onPress={() => router.push('/(onboarding)/photos' as any)}
+          onPress={() => router.push('/(onboarding)/photos?fromProfile=true' as any)}
           activeOpacity={0.8}
         >
           <View style={styles.photoLinkLeft}>

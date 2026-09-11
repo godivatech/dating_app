@@ -10,7 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useProfileStore } from '../../src/stores/profile-store';
@@ -21,6 +21,8 @@ import { SafeProfilePhoto } from '../../../shared/src/types';
 
 export default function PhotosScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ fromProfile?: string }>();
+  const isFromProfile = params.fromProfile === 'true';
   const {
     profile,
     fetchProfile,
@@ -92,6 +94,10 @@ export default function PhotosScreen() {
   const hasPhoto = photos.length > 0 || Boolean(optimisticUri);
 
   const handleNext = () => {
+    if (isFromProfile) {
+      router.back();
+      return;
+    }
     if (!hasPhoto) {
       Alert.alert(
         'Photo Required',
@@ -105,14 +111,14 @@ export default function PhotosScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <TrueloveHeader showBack={true} />
+      <TrueloveHeader showBack={true} title={isFromProfile ? 'Manage Photos' : undefined} />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Stepper Progress Bar: 02 active */}
-        <StepperHeader currentStep={2} />
+        {/* Stepper Progress Bar: only shown during onboarding */}
+        {!isFromProfile && <StepperHeader currentStep={2} />}
 
         {/* Big Primary Photo Container */}
         <View style={styles.primaryPhotoCard}>
@@ -237,7 +243,7 @@ export default function PhotosScreen() {
           {localUploading || isUploadingPhoto ? (
             <ActivityIndicator color={Colors.white} />
           ) : (
-            <Text style={styles.nextButtonText}>Next</Text>
+            <Text style={styles.nextButtonText}>{isFromProfile ? 'Done' : 'Next'}</Text>
           )}
         </TouchableOpacity>
       </ScrollView>
