@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { useBillingStore, PaywallTab, PaywallPackCategory } from '../stores/billing-store';
+import { useBillingStore } from '../stores/billing-store';
 import { t } from '../i18n/strings';
 import { SubscriptionTier, SafeSubscriptionProduct } from '../../../shared/src/types';
 import { Colors } from '../theme/colors';
@@ -23,7 +23,6 @@ export const PaywallModal: React.FC = () => {
     paywallVisible,
     paywallTriggerReason,
     paywallActiveTab,
-    paywallPackCategory,
     products,
     creditBalance,
     isPurchasing,
@@ -115,7 +114,6 @@ export const PaywallModal: React.FC = () => {
 
     if (isFocusedMode) {
       if (isDirectNoteTrigger && directNotePacks.length > 0) {
-        // Default to popular 15-pack or first
         const pop = directNotePacks.find((p) => p.productKey.includes('15')) || directNotePacks[0];
         setSelectedProductId(pop.storeProductId);
       } else if (isBoostTrigger && boostPacks.length > 0) {
@@ -127,14 +125,12 @@ export const PaywallModal: React.FC = () => {
       }
     } else {
       if (paywallActiveTab === 'SUBSCRIPTIONS') {
-        // Default to Gold Quarterly (best value anchor)
         const target =
           billingPeriod === 'QUARTERLY'
             ? goldQuarterly || goldMonthly
             : goldMonthly || goldQuarterly;
         if (target) setSelectedProductId(target.storeProductId);
       } else {
-        // Packs tab default
         const firstPack = directNotePacks[0] || boostPacks[0] || products[0];
         if (firstPack) setSelectedProductId(firstPack.storeProductId);
       }
@@ -163,36 +159,36 @@ export const PaywallModal: React.FC = () => {
     await purchaseProduct(selectedProductId);
   };
 
-  // Helper for per-unit pricing calculation
+  // Helper for pack description & badges (clean, customer-friendly labels)
   const getUnitInfo = (prod: SafeSubscriptionProduct) => {
     if (prod.productKey.startsWith('DIRECT_NOTES_')) {
       if (prod.productKey.includes('5')) {
-        return { unitPrice: '₹19.8 / note', badge: null, subtext: 'Starter pack' };
+        return { label: 'Send 5 personal messages', badge: null };
       }
       if (prod.productKey.includes('15')) {
-        return { unitPrice: '₹13.2 / note', badge: 'MOST POPULAR • SAVE 33%', subtext: 'Best for weekend dates' };
+        return { label: 'Send 15 personal messages', badge: 'MOST POPULAR' };
       }
       if (prod.productKey.includes('30') || prod.productKey.includes('35')) {
-        return { unitPrice: '₹9.9 / note', badge: 'BEST VALUE • SAVE 50%', subtext: 'Maximum match rate' };
+        return { label: 'Send 35 personal messages', badge: 'BEST VALUE' };
       }
     }
     if (prod.productKey.startsWith('BOOST_')) {
       if (prod.productKey.includes('SINGLE') || prod.productKey.includes('1')) {
-        return { unitPrice: '₹99 / boost', badge: null, subtext: '30-min instant reach' };
+        return { label: '30-min instant reach', badge: null };
       }
       if (prod.productKey.includes('3')) {
-        return { unitPrice: '₹66.3 / boost', badge: 'SAVE 33% • POPULAR', subtext: '3 × 30-min peak boosts' };
+        return { label: '3 × 30-min peak boosts', badge: 'SAVE 33% • POPULAR' };
       }
     }
     if (prod.productKey.startsWith('CALL_PASS_')) {
       if (prod.productKey.includes('15')) {
-        return { unitPrice: '₹3.2 / min', badge: null, subtext: '15 minutes audio/video' };
+        return { label: '15 mins audio & video calling', badge: null };
       }
       if (prod.productKey.includes('45')) {
-        return { unitPrice: '₹2.2 / min', badge: 'SAVE 33% • POPULAR', subtext: '45 minutes audio/video' };
+        return { label: '45 mins audio & video calling', badge: 'POPULAR' };
       }
     }
-    return { unitPrice: prod.displayPrice, badge: null, subtext: prod.description };
+    return { label: prod.description, badge: null };
   };
 
   return (
@@ -283,10 +279,10 @@ export const PaywallModal: React.FC = () => {
                 </View>
                 <Text style={styles.focusedTitle}>
                   {isDirectNoteTrigger
-                    ? 'Stand Out with a Direct Note 💌'
+                    ? 'Stand Out with a Direct Note'
                     : isBoostTrigger
-                      ? 'Get 10x More Matches ⚡'
-                      : 'Keep the Chemistry Going! ✨'}
+                      ? 'Get 10x More Matches'
+                      : 'Keep the Chemistry Going!'}
                 </Text>
                 <Text style={styles.focusedSubtitle}>
                   {isDirectNoteTrigger
@@ -343,14 +339,19 @@ export const PaywallModal: React.FC = () => {
                           {isSelected && <View style={styles.radioInner} />}
                         </View>
 
-                        {/* Title & Unit */}
+                        {/* Title & Description */}
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
-                          <Text style={styles.focusedPackUnit}>{unitInfo.unitPrice}</Text>
+                          <Text style={styles.focusedPackUnit}>{unitInfo.label}</Text>
                         </View>
 
                         {/* Total Price */}
-                        <Text style={[styles.focusedPackPrice, isSelected && styles.focusedPackPriceSelected]}>
+                        <Text
+                          style={[
+                            styles.focusedPackPrice,
+                            isSelected && styles.focusedPackPriceSelected,
+                          ]}
+                        >
                           {prod.displayPrice}
                         </Text>
                       </View>
@@ -370,7 +371,7 @@ export const PaywallModal: React.FC = () => {
                   activeOpacity={0.85}
                 >
                   <View style={styles.goldUpsellBadge}>
-                    <Text style={styles.goldUpsellBadgeText}>👑 VIP UNLIMITED ACCESS</Text>
+                    <Text style={styles.goldUpsellBadgeText}>VIP UNLIMITED ACCESS</Text>
                   </View>
                   <View style={styles.goldUpsellHeader}>
                     <View style={{ flex: 1 }}>
@@ -419,7 +420,7 @@ export const PaywallModal: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Segment Switcher (Memberships vs Instant Packs) */}
+              {/* Segment Switcher (Clean Single Icon, No Duplicate Emojis) */}
               <View style={styles.mainSegmentContainer}>
                 <TouchableOpacity
                   style={[
@@ -445,7 +446,7 @@ export const PaywallModal: React.FC = () => {
                       paywallActiveTab === 'SUBSCRIPTIONS' && styles.mainSegmentTextActive,
                     ]}
                   >
-                    👑 Memberships
+                    Memberships
                   </Text>
                 </TouchableOpacity>
 
@@ -473,7 +474,7 @@ export const PaywallModal: React.FC = () => {
                       paywallActiveTab === 'PACKS' && styles.mainSegmentTextActive,
                     ]}
                   >
-                    ⚡ Instant Packs
+                    Instant Packs
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -554,7 +555,7 @@ export const PaywallModal: React.FC = () => {
 
                           <View style={styles.membershipCardTop}>
                             <View>
-                              <Text style={styles.membershipTitleGold}>Truelove Gold 👑</Text>
+                              <Text style={styles.membershipTitleGold}>Truelove Gold</Text>
                               <Text style={styles.membershipSubtext}>The ultimate VIP experience</Text>
                             </View>
                             <View style={styles.membershipPriceBox}>
@@ -574,7 +575,7 @@ export const PaywallModal: React.FC = () => {
                           <View style={styles.perksList}>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkTextBold}>Unlimited Direct Notes 💌</Text>
+                              <Text style={styles.perkTextBold}>Unlimited Direct Notes</Text>
                             </View>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color="#D97706" />
@@ -582,7 +583,7 @@ export const PaywallModal: React.FC = () => {
                             </View>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkText}>1 Free Weekly Profile Boost ⚡</Text>
+                              <Text style={styles.perkText}>1 Free Weekly Profile Boost</Text>
                             </View>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color="#D97706" />
@@ -619,7 +620,7 @@ export const PaywallModal: React.FC = () => {
                         >
                           <View style={styles.membershipCardTop}>
                             <View>
-                              <Text style={styles.membershipTitle}>Truelove Plus ⚡</Text>
+                              <Text style={styles.membershipTitle}>Truelove Plus</Text>
                               <Text style={styles.membershipSubtext}>Core dating essentials</Text>
                             </View>
                             <View style={styles.membershipPriceBox}>
@@ -647,7 +648,7 @@ export const PaywallModal: React.FC = () => {
                             </View>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                              <Text style={styles.perkText}>5 Direct Notes daily 💌</Text>
+                              <Text style={styles.perkText}>5 Direct Notes daily</Text>
                             </View>
                             <View style={styles.perkRow}>
                               <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
@@ -660,7 +661,7 @@ export const PaywallModal: React.FC = () => {
                   </View>
                 </>
               ) : (
-                /* TAB 2: INSTANT PACKS (CLEAN SECTIONED LIST - ZERO SUB-TABS) */
+                /* TAB 2: INSTANT PACKS (CLEAN SECTIONED LIST) */
                 <View style={styles.allPacksContainer}>
                   {/* Direct Notes Section */}
                   <View style={styles.packSection}>
@@ -699,7 +700,7 @@ export const PaywallModal: React.FC = () => {
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
                               <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.unitPrice}</Text>
+                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
                             </View>
                             <Text
                               style={[
@@ -752,7 +753,7 @@ export const PaywallModal: React.FC = () => {
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
                               <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.unitPrice}</Text>
+                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
                             </View>
                             <Text
                               style={[
@@ -771,7 +772,7 @@ export const PaywallModal: React.FC = () => {
                   {/* Call Passes Section */}
                   <View style={styles.packSection}>
                     <View style={styles.packSectionHeader}>
-                      <Text style={styles.packSectionTitle}>📞 Agora Call Passes</Text>
+                      <Text style={styles.packSectionTitle}>📞 Call Passes</Text>
                       <Text style={styles.packSectionSubtitle}>
                         Extend video & audio calls with mutual matches
                       </Text>
@@ -805,7 +806,7 @@ export const PaywallModal: React.FC = () => {
                             </View>
                             <View style={{ flex: 1, marginLeft: 12 }}>
                               <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.unitPrice}</Text>
+                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
                             </View>
                             <Text
                               style={[
@@ -828,24 +829,24 @@ export const PaywallModal: React.FC = () => {
           {/* Error Message */}
           {error && <Text style={styles.errorText}>{error}</Text>}
 
-          {/* Secondary Restore Action */}
-          <TouchableOpacity
-            style={styles.restoreButton}
-            onPress={restorePurchases}
-            disabled={isRestoring}
-            activeOpacity={0.7}
-          >
-            {isRestoring ? (
-              <ActivityIndicator color={Colors.primary} size="small" />
-            ) : (
-              <Text style={styles.restoreButtonText}>{t('restorePurchases')}</Text>
-            )}
-          </TouchableOpacity>
-
           {/* Legal / INR Guarantee */}
           <Text style={styles.legalNotice}>
             All transactions are processed securely in INR (₹). Auto-renewable subscriptions can be canceled anytime via Google Play / App Store.
           </Text>
+
+          {/* Subtle Bottom Restore Purchases Link (Compliant with Apple / Google Store Review) */}
+          <TouchableOpacity
+            style={styles.restoreLinkContainer}
+            onPress={restorePurchases}
+            disabled={isRestoring}
+            activeOpacity={0.6}
+          >
+            {isRestoring ? (
+              <ActivityIndicator color={Colors.textSecondary} size="small" />
+            ) : (
+              <Text style={styles.restoreLinkText}>Restore Purchases</Text>
+            )}
+          </TouchableOpacity>
         </ScrollView>
 
         {/* Sticky Primary Purchase CTA Bar */}
@@ -1436,14 +1437,14 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.3,
   },
-  restoreButton: {
+  restoreLinkContainer: {
     alignItems: 'center',
-    paddingVertical: 10,
-    marginTop: 8,
+    paddingVertical: 8,
+    marginTop: 4,
+    marginBottom: 80,
   },
-  restoreButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+  restoreLinkText: {
+    fontSize: 11,
     color: Colors.textSecondary,
     textDecorationLine: 'underline',
   },
@@ -1459,7 +1460,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 14,
     marginTop: 8,
-    marginBottom: 40,
     paddingHorizontal: 12,
   },
 });
