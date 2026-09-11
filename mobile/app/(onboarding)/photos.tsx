@@ -177,7 +177,11 @@ export default function PhotosScreen() {
                   {/* Photo Card */}
                   <View style={styles.secondaryCard}>
                     {photo ? (
-                      <>
+                      <TouchableOpacity
+                        style={{ width: '100%', height: '100%' }}
+                        onPress={() => setPrimaryPhoto(photo.id)}
+                        activeOpacity={0.8}
+                      >
                         <Image
                           source={{
                             uri:
@@ -195,7 +199,7 @@ export default function PhotosScreen() {
                         >
                           <Ionicons name="close" size={12} color={Colors.white} />
                         </TouchableOpacity>
-                      </>
+                      </TouchableOpacity>
                     ) : (
                       <TouchableOpacity
                         style={styles.emptySecondary}
@@ -222,6 +226,12 @@ export default function PhotosScreen() {
               );
             })}
           </View>
+
+          {secondaryPhotos.length > 0 && (
+            <Text style={styles.swapHintText}>
+              Tap any photo above to set as your primary picture
+            </Text>
+          )}
         </View>
 
         {error ? (
@@ -440,5 +450,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  swapHintText: {
+    color: Colors.textMuted,
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 14,
   },
 });
