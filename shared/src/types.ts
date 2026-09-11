@@ -609,6 +609,7 @@ export interface ContentFilterResultDto {
 export enum NotificationType {
   NEW_MATCH = 'NEW_MATCH',
   NEW_MESSAGE = 'NEW_MESSAGE',
+  MISSED_CALL = 'MISSED_CALL',
   SAFETY_UPDATE = 'SAFETY_UPDATE',
   SYSTEM = 'SYSTEM',
 }

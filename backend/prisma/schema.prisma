@@ -506,6 +506,7 @@ model UserSafetyStrike {
 enum NotificationType {
   NEW_MATCH
   NEW_MESSAGE
+  MISSED_CALL
   SAFETY_UPDATE
   SYSTEM
 }

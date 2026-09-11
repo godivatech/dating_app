@@ -210,6 +210,16 @@ export class MessagesService {
         });
         const senderDisplayName = senderProfile?.displayName || 'Your match';
 
+        // Clear previous unread notification for this conversation to prevent inbox spam/duplication
+        await this.prisma.notification.deleteMany({
+          where: {
+            userId: recipient.id,
+            referenceId: conversationId,
+            type: NotificationType.NEW_MESSAGE,
+            isRead: false,
+          },
+        });
+
         await this.notificationsService.createNotification(
           recipient.id,
           {
@@ -351,6 +361,11 @@ export class MessagesService {
     this.logger.log(
       `[MESSAGE_READ] User ${userId} marked conversation ${conversationId} read through seq ${newSeq}`,
     );
+
+    // Synchronize in-app notification center: mark conversation notifications read
+    try {
+      await this.notificationsService.markConversationNotificationsRead(userId, conversationId);
+    } catch (_notifErr) {}
 
     return {
       throughSequence: newSeq,

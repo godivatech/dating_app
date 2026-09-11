@@ -68,8 +68,9 @@ export const strings = {
     markAllRead: 'Mark all as read',
     noNotifications: 'No notifications yet',
     noNotificationsSubtitle: 'When you get matches or messages, they will appear here.',
-    newMatchNotif: 'New Match!',
+    newMatchNotif: 'New Match',
     newMessageNotif: 'New Message',
+    missedCallNotif: 'Missed Call',
     safetyUpdateNotif: 'Safety Update',
     systemNotif: 'System Update',
 
@@ -185,8 +186,9 @@ export const strings = {
     markAllRead: 'அனைத்தையும் படித்ததாகக் குறிக்கவும்',
     noNotifications: 'அறிவிப்புகள் எதுவும் இல்லை',
     noNotificationsSubtitle: 'புதிய பொருத்தங்கள் வரும்போது இங்கு காட்டப்படும்.',
-    newMatchNotif: 'புதிய பொருத்தம்!',
+    newMatchNotif: 'புதிய பொருத்தம்',
     newMessageNotif: 'புதிய செய்தி',
+    missedCallNotif: 'தவறிய அழைப்பு',
     safetyUpdateNotif: 'பாதுகாப்பு அறிவிப்பு',
     systemNotif: 'அமைப்பு அறிவிப்பு',
 

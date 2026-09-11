@@ -108,7 +108,10 @@ export class NotificationsService {
         ) {
           channelId = 'matches';
           priority = 'high';
-        } else if (dto.type === NotificationType.NEW_MESSAGE) {
+        } else if (
+          dto.type === NotificationType.NEW_MESSAGE ||
+          dto.type === NotificationType.MISSED_CALL
+        ) {
           channelId = 'messages';
           priority = 'high';
         } else if (dto.type === NotificationType.SAFETY_UPDATE) {
@@ -158,6 +161,96 @@ export class NotificationsService {
     }
 
     return this.mapToSafeNotification(notification);
+  }
+
+  /**
+   * Dispatches high-priority push notifications directly to user's registered devices
+   * without creating a persistent row in the in-app Notification database table.
+   * Crucial for ephemeral events like incoming call ringing and real-time signaling.
+   */
+  async sendPushOnly(
+    userId: string,
+    payload: {
+      title: string;
+      body: string;
+      channelId?: string;
+      priority?: 'high' | 'normal';
+      sound?: string | 'default';
+      data?: Record<string, any>;
+    },
+  ): Promise<boolean> {
+    try {
+      const devices = await this.prisma.deviceRegistration.findMany({
+        where: {
+          userId,
+          isActive: true,
+        },
+      });
+
+      if (devices.length === 0) {
+        return false;
+      }
+
+      const tokens = devices.map((d) => d.token);
+      const pushResult = await this.pushProvider.sendPush(tokens, {
+        title: payload.title,
+        body: payload.body,
+        sound: payload.sound || 'default',
+        priority: payload.priority || 'high',
+        channelId: payload.channelId || 'default',
+        data: payload.data || {},
+      });
+
+      if (pushResult && pushResult.failedTokens && pushResult.failedTokens.length > 0) {
+        await this.prisma.deviceRegistration.updateMany({
+          where: { token: { in: pushResult.failedTokens } },
+          data: { isActive: false },
+        });
+      }
+
+      return true;
+    } catch (err: any) {
+      this.logger.warn(`[PUSH_ONLY_FAILED] Failed to send direct push to user ${userId}: ${err.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Automatically marks all unread message/call notifications for a specific conversation as read.
+   * Triggered when the user enters or views the chat screen.
+   */
+  async markConversationNotificationsRead(
+    userId: string,
+    conversationId: string,
+  ): Promise<number> {
+    try {
+      const result = await this.prisma.notification.updateMany({
+        where: {
+          userId,
+          isRead: false,
+          OR: [
+            { referenceId: conversationId },
+            { metadata: { path: ['conversationId'], equals: conversationId } },
+          ],
+        },
+        data: {
+          isRead: true,
+          readAt: new Date(),
+        },
+      });
+
+      if (result.count > 0) {
+        this.logger.log(
+          `[NOTIF_CONVERSATION_CLEARED] Marked ${result.count} unread notifications read for conv ${conversationId}`,
+        );
+      }
+      return result.count;
+    } catch (err: any) {
+      this.logger.warn(
+        `[NOTIF_CONVERSATION_CLEAR_FAILED] Failed to mark notifications read for conv ${conversationId}: ${err.message}`,
+      );
+      return 0;
+    }
   }
 
   /**

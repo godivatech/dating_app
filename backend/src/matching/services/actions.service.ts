@@ -402,8 +402,8 @@ export class ActionsService {
             {
               type: NotificationType.NEW_MATCH,
               referenceId: matchId,
-              title: "It's a Match! 🎉",
-              body: `You matched with ${targetDisplayName}!`,
+              title: "New Match",
+              body: `You matched with ${targetDisplayName}`,
               metadata: { matchId, matchedUserId: targetUserId },
             },
             `match:${matchId}:user:${actorId}`,
@@ -413,8 +413,8 @@ export class ActionsService {
             {
               type: NotificationType.NEW_MATCH,
               referenceId: matchId,
-              title: "It's a Match! 🎉",
-              body: `You matched with ${actorDisplayName}!`,
+              title: "New Match",
+              body: `You matched with ${actorDisplayName}`,
               metadata: { matchId, matchedUserId: actorId },
             },
             `match:${matchId}:user:${targetUserId}`,
@@ -471,7 +471,7 @@ export class ActionsService {
             targetProfile.userId,
             {
               type: NotificationType.SYSTEM,
-              title: `New Note from ${actorName} 💌`,
+              title: `Direct Note from ${actorName}`,
               body: `"${cleanNote.slice(0, 80)}${cleanNote.length > 80 ? '...' : ''}"`,
               metadata: {
                 type: 'DIRECT_NOTE',
@@ -488,11 +488,11 @@ export class ActionsService {
             {
               type: NotificationType.SYSTEM,
               title: hasSeeLikes
-                ? `${actorName} liked your profile! ✨`
-                : 'Someone liked your profile! ✨',
+                ? `${actorName} liked your profile`
+                : 'Someone liked your profile',
               body: hasSeeLikes
-                ? `Check out ${actorName}'s profile in your likes.`
-                : 'Open Truelove to see your new admirer.',
+                ? `Check out ${actorName}'s profile in your likes`
+                : 'Open TrueLove to see your new admirer',
               metadata: {
                 type: 'LIKE_RECEIVED',
                 actorProfileId: requesterProfile.id,

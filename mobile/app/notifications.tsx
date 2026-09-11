@@ -48,56 +48,90 @@ export default function NotificationsScreen() {
       await markAsRead(item.id);
     }
 
+    const conversationId = item.metadata?.conversationId || item.referenceId;
+
     switch (item.type) {
-      case NotificationType.NEW_MATCH:
-        router.push('/matches');
-        break;
-      case NotificationType.NEW_MESSAGE:
-        if (item.referenceId) {
-          router.push(`/chat/${item.referenceId}` as any);
+      case NotificationType.MISSED_CALL:
+        if (conversationId && conversationId !== 'matches') {
+          router.push(`/chat/${conversationId}` as any);
         } else {
           router.push('/conversations');
         }
         break;
+
+      case NotificationType.NEW_MESSAGE:
+        if (conversationId) {
+          router.push(`/chat/${conversationId}` as any);
+        } else {
+          router.push('/conversations');
+        }
+        break;
+
+      case NotificationType.NEW_MATCH:
+        router.push('/matches');
+        break;
+
       case NotificationType.SAFETY_UPDATE:
         router.push('/(onboarding)/readiness' as any);
         break;
+
+      case NotificationType.SYSTEM:
       default:
+        if (item.metadata?.screen) {
+          router.push(item.metadata.screen as any);
+        } else if (item.referenceId === 'discovery') {
+          router.push('/discovery');
+        } else if (item.referenceId === 'profile') {
+          router.push('/profile');
+        } else if (item.referenceId === 'matches') {
+          router.push('/matches');
+        } else if (conversationId) {
+          router.push(`/chat/${conversationId}` as any);
+        } else {
+          router.push('/matches');
+        }
         break;
     }
   };
 
-  const renderIcon = (type: NotificationType) => {
+  const renderIcon = (type: NotificationType, isRead: boolean) => {
+    const iconColor = isRead ? Colors.textMuted : Colors.primary;
+    const bgColor = isRead ? Colors.backgroundSecondary : Colors.primaryLight;
+
+    let iconName: keyof typeof Ionicons.glyphMap = 'notifications-outline';
+
     switch (type) {
+      case NotificationType.MISSED_CALL:
+        iconName = 'call-outline';
+        break;
       case NotificationType.NEW_MATCH:
-        return (
-          <View style={[styles.iconContainer, { backgroundColor: Colors.primaryLight }]}>
-            <Ionicons name="heart" size={20} color={Colors.primary} />
-          </View>
-        );
+        iconName = 'heart-outline';
+        break;
       case NotificationType.NEW_MESSAGE:
-        return (
-          <View style={[styles.iconContainer, { backgroundColor: '#EFF6FF' }]}>
-            <Ionicons name="chatbubble-ellipses" size={20} color="#3B82F6" />
-          </View>
-        );
+        iconName = 'chatbubble-outline';
+        break;
       case NotificationType.SAFETY_UPDATE:
-        return (
-          <View style={[styles.iconContainer, { backgroundColor: '#ECFDF5' }]}>
-            <Ionicons name="shield-checkmark" size={20} color="#10B981" />
-          </View>
-        );
+        iconName = 'shield-outline';
+        break;
       case NotificationType.SYSTEM:
       default:
-        return (
-          <View style={[styles.iconContainer, { backgroundColor: '#F5F3FF' }]}>
-            <Ionicons name="notifications" size={20} color="#8B5CF6" />
-          </View>
-        );
+        iconName = 'notifications-outline';
+        break;
     }
+
+    return (
+      <View style={[styles.iconContainer, { backgroundColor: bgColor }]}>
+        <Ionicons name={iconName} size={20} color={iconColor} />
+      </View>
+    );
   };
 
-  const filteredNotifications = notifications.filter((n) =>
+  // Filter out any stale ringing alerts if any remain, and apply unread filter
+  const validNotifications = notifications.filter(
+    (n) => !n.title?.toLowerCase().includes('incoming') && !n.body?.toLowerCase().includes('is calling you'),
+  );
+
+  const filteredNotifications = validNotifications.filter((n) =>
     filter === 'UNREAD' ? !n.isRead : true,
   );
 
@@ -107,7 +141,7 @@ export default function NotificationsScreen() {
       onPress={() => handleNotificationPress(item)}
       activeOpacity={0.7}
     >
-      {renderIcon(item.type)}
+      {renderIcon(item.type, item.isRead)}
       <View style={styles.contentContainer}>
         <View style={styles.topRow}>
           <Text style={[styles.title, !item.isRead && styles.unreadTitle]} numberOfLines={1}>
@@ -157,7 +191,7 @@ export default function NotificationsScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.tabText, filter === 'ALL' && styles.activeTabText]}>
-              {t('allNotifications')} ({notifications.length})
+              {t('allNotifications')} ({validNotifications.length})
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -173,7 +207,7 @@ export default function NotificationsScreen() {
       </View>
 
       {/* Notifications Content */}
-      {isLoading && notifications.length === 0 ? (
+      {isLoading && validNotifications.length === 0 ? (
         <View style={styles.centerBox}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>{t('loading')}</Text>
@@ -181,7 +215,7 @@ export default function NotificationsScreen() {
       ) : filteredNotifications.length === 0 ? (
         <View style={styles.centerBox}>
           <View style={styles.emptyIconBox}>
-            <Ionicons name="notifications-outline" size={36} color={Colors.textMuted} />
+            <Ionicons name="notifications-outline" size={32} color={Colors.textMuted} />
           </View>
           <Text style={styles.emptyTitle}>{t('noNotifications')}</Text>
           <Text style={styles.emptySubtitle}>{t('noNotificationsSubtitle')}</Text>
@@ -313,12 +347,12 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.borderLight,
   },
   unreadCard: {
-    backgroundColor: '#FFF9F9',
+    backgroundColor: '#FFFDFD',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -372,16 +406,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   emptyIconBox: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: Colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: Colors.textPrimary,
     marginBottom: 6,

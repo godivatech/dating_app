@@ -61,6 +61,7 @@ describe('CallService', () => {
 
     mockNotifications = {
       createNotification: jest.fn().mockResolvedValue({ id: 'notif-123' }),
+      sendPushOnly: jest.fn().mockResolvedValue(true),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -238,7 +239,7 @@ describe('CallService', () => {
 
     expect(result.callId).toBe('call-123');
     expect(result.status).toBe(CallStatus.RINGING);
-    expect(mockNotifications.createNotification).toHaveBeenCalled();
+    expect(mockNotifications.sendPushOnly).toHaveBeenCalled();
     expect(mockRedis.set).toHaveBeenCalled();
   });
 

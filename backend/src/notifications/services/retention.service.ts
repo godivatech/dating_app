@@ -136,8 +136,8 @@ export class RetentionService {
             {
               type: NotificationType.SYSTEM,
               referenceId: unrepliedConv.conversationId,
-              title: `Don't leave ${senderName} hanging! 💬`,
-              body: `${senderName} sent you a message. Reply before the spark fades!`,
+              title: `Reply to ${senderName}`,
+              body: `${senderName} sent you a message. Keep the conversation going.`,
               metadata: {
                 screen: `/chat/${unrepliedConv.conversationId}`,
                 conversationId: unrepliedConv.conversationId,
@@ -159,8 +159,8 @@ export class RetentionService {
           const city = user.profile?.locationCity || 'your area';
           const title =
             pendingLikesCount === 1
-              ? `Someone near ${city} liked your profile! 💖`
-              : `${pendingLikesCount} people near ${city} liked your profile! 💖`;
+              ? `Someone near ${city} liked your profile`
+              : `${pendingLikesCount} people near ${city} liked your profile`;
 
           await this.notificationsService.createNotification(
             user.id,
@@ -192,7 +192,7 @@ export class RetentionService {
             {
               type: NotificationType.SYSTEM,
               referenceId: 'discovery',
-              title: `New verified singles active near ${city}! 🔥`,
+              title: `New singles active near ${city}`,
               body: 'Fresh profiles match your preferences. Discover your next match today.',
               metadata: {
                 screen: '/discovery',
@@ -215,8 +215,8 @@ export class RetentionService {
             {
               type: NotificationType.SYSTEM,
               referenceId: 'profile',
-              title: 'Complete your profile to get matches 📸',
-              body: 'Add your photos to get 4x more attention from verified singles nearby.',
+              title: 'Complete your profile to get matches',
+              body: 'Add your photos to get more attention from verified singles nearby.',
               metadata: {
                 screen: '/profile/edit',
                 campaign: 'INCOMPLETE_PROFILE',

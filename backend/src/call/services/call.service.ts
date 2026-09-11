@@ -279,19 +279,20 @@ export class CallService {
     await this.redisService.set(`user:call_state:${dto.receiverUserId}`, callLog.id, 300);
     await this.redisService.set(`call:glare:${callerUserId}:${dto.receiverUserId}`, callLog.id, 30);
 
-    // 8. Dispatch Push Notification to Receiver
+    // 8. Dispatch Real-Time Push Notification to Receiver (Does NOT write a persistent row to Notification inbox)
     const callerProfile = callLog.callerUser.profile;
     const callerName = callerProfile?.displayName || 'Someone';
     const callerPhotoKey = callerProfile?.photos?.[0]?.thumbnailKey || callerProfile?.photos?.[0]?.objectKey || null;
     const callerAvatarUrl = callerPhotoKey ? this.storageService.getPublicUrl(callerPhotoKey) : null;
 
     try {
-      await this.notificationsService.createNotification(dto.receiverUserId, {
-        type: NotificationType.SYSTEM,
-        referenceId: callLog.id,
-        title: `Incoming ${callType === CallType.VIDEO ? 'Video' : 'Audio'} Call`,
-        body: `${callerName} is calling you...`,
-        metadata: {
+      await this.notificationsService.sendPushOnly(dto.receiverUserId, {
+        title: `Incoming ${callType === CallType.VIDEO ? 'video' : 'audio'} call`,
+        body: `${callerName} is calling you`,
+        priority: 'high',
+        channelId: 'default',
+        data: {
+          type: 'INCOMING_CALL',
           callId: callLog.id,
           matchId: dto.matchId,
           callerUserId,
@@ -508,6 +509,11 @@ export class CallService {
       }
     }
 
+    // If call was never connected and caller hung up, record missed call for receiver
+    if (!callLog.connectedAt && isCaller) {
+      await this.dispatchMissedCallNotification(callLog);
+    }
+
     this.logger.log(`[CALL_ENDED] Call ${callLog.id} ended. Duration: ${durationSeconds}s. Reason: ${endReason}`);
 
     return {
@@ -518,6 +524,46 @@ export class CallService {
       endReason,
       status: CallStatus.ENDED,
     };
+  }
+
+  /**
+   * Persists a clean, actionable Missed Call notification for the receiver.
+   */
+  private async dispatchMissedCallNotification(callLog: any) {
+    try {
+      const callerProfile = await this.prisma.datingProfile.findUnique({
+        where: { userId: callLog.callerUserId },
+        select: { displayName: true },
+      });
+      const callerName = callerProfile?.displayName || 'Your match';
+      const callTypeLabel = callLog.callType === CallType.VIDEO ? 'video' : 'audio';
+
+      const conversation = await this.prisma.conversation.findFirst({
+        where: { matchId: callLog.matchId },
+        select: { id: true },
+      });
+
+      await this.notificationsService.createNotification(
+        callLog.receiverUserId,
+        {
+          type: NotificationType.MISSED_CALL,
+          referenceId: conversation?.id || callLog.matchId,
+          title: `Missed ${callTypeLabel} call`,
+          body: `You missed a call from ${callerName}`,
+          metadata: {
+            type: 'MISSED_CALL',
+            callId: callLog.id,
+            matchId: callLog.matchId,
+            conversationId: conversation?.id,
+            callerUserId: callLog.callerUserId,
+            callType: callLog.callType,
+          },
+        },
+        `missed_call:${callLog.id}`,
+      );
+    } catch (notifErr: any) {
+      this.logger.warn(`Failed to dispatch missed call notification: ${notifErr.message}`);
+    }
   }
 
   /**
@@ -543,6 +589,9 @@ export class CallService {
 
     await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
+
+    // Record persistent missed call for receiver
+    await this.dispatchMissedCallNotification(callLog);
 
     return {
       callId: updated.id,
