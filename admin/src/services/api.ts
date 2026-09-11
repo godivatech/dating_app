@@ -700,6 +700,39 @@ class AdminApiService {
     };
   }
 
+  async updateUserRole(
+    userId: string,
+    role: 'USER' | 'MODERATOR' | 'ADMIN',
+  ): Promise<{ success: boolean; role: string }> {
+    if (this.mode === 'live') {
+      try {
+        return await this.fetchWithAuth(`/admin/users/${userId}/role`, {
+          method: 'PATCH',
+          body: JSON.stringify({ role }),
+        });
+      } catch (err) {
+        console.warn('Live role update failed, updating simulation state', err);
+      }
+    }
+
+    const u = mockUsers.find((user) => user.id === userId);
+    if (u) {
+      u.role = role;
+    }
+
+    mockAuditLogs.unshift({
+      id: `log-${Date.now()}`,
+      adminId: 'admin-lead-01',
+      targetUserId: userId,
+      targetUserName: u?.displayName || 'Dating Member',
+      actionType: 'ROLE_UPDATE',
+      reason: `Staff role changed to ${role}`,
+      timestamp: new Date().toISOString(),
+    });
+
+    return { success: true, role };
+  }
+
   async getPendingPhotos(): Promise<PhotoQueueItem[]> {
     if (this.mode === 'live') {
       try {

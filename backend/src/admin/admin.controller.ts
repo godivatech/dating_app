@@ -72,6 +72,21 @@ export class AdminController {
   }
 
   /**
+   * Authoritatively updates user system role (USER, MODERATOR, ADMIN).
+   */
+  @Patch('users/:id/role')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN)
+  async updateUserRole(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body('role') role: UserRole,
+  ): Promise<{ success: boolean; userId: string; role: string }> {
+    const adminId = req.user.userId;
+    return this.adminService.updateUserRole(id, role, adminId);
+  }
+
+  /**
    * Retrieves photos awaiting moderation.
    */
   @Get('photos/pending')

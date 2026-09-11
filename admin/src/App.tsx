@@ -15,13 +15,18 @@ export const App: React.FC = () => {
   const [apiMode, setApiMode] = useState<'live' | 'mock'>(api.getMode());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState(0);
+  const [pendingReports, setPendingReports] = useState(0);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const refreshGlobalMetrics = async () => {
     setIsRefreshing(true);
     try {
-      const photos = await api.getPendingPhotos();
+      const [photos, reports] = await Promise.all([
+        api.getPendingPhotos(),
+        api.getReports({ status: 'OPEN' }),
+      ]);
       setPendingPhotos(photos.length);
+      setPendingReports(reports.length);
     } catch (err) {
       console.warn('Failed to refresh counts', err);
     } finally {
@@ -64,7 +69,7 @@ export const App: React.FC = () => {
       case 'revenue':
         return {
           title: 'Revenue, Tiers & Packs',
-          subtitle: 'Spark Plus, Spark Gold, Direct Notes micro-pack purchase logs',
+          subtitle: 'Truelove Plus, Truelove Gold, Direct Notes micro-pack purchase logs',
         };
       case 'audit':
         return {
@@ -83,7 +88,7 @@ export const App: React.FC = () => {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         pendingPhotosCount={pendingPhotos}
-        pendingReportsCount={2}
+        pendingReportsCount={pendingReports}
       />
 
       {/* Main Content Area */}

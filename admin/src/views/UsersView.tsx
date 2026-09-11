@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  Download,
 } from 'lucide-react';
 import { api, AdminUserListItem } from '../services/api';
 import { UserDrawer } from '../components/UserDrawer';
@@ -58,6 +59,50 @@ export const UsersView: React.FC = () => {
     fetchUsers();
   };
 
+  const handleExportCSV = () => {
+    if (users.length === 0) return;
+    const headers = [
+      'User ID',
+      'Phone Number',
+      'Display Name',
+      'Age',
+      'Gender',
+      'Status',
+      'Role',
+      'Active Strikes',
+      'Is Muted',
+      'Is Shadowbanned',
+      'Joined Date',
+    ];
+    const rows = users.map((u) => [
+      `"${u.id}"`,
+      `"${u.phoneNumber}"`,
+      `"${(u.displayName || 'Unset').replace(/"/g, '""')}"`,
+      u.age || '',
+      `"${u.gender || ''}"`,
+      `"${u.status}"`,
+      `"${u.role}"`,
+      u.activeStrikes,
+      u.isMuted,
+      u.isShadowBanned,
+      `"${new Date(u.createdAt).toISOString()}"`,
+    ]);
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `truelove_members_${new Date().toISOString().split('T')[0]}.csv`,
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Search & Filter Toolbar */}
@@ -91,7 +136,7 @@ export const UsersView: React.FC = () => {
           />
         </div>
 
-        {/* Filter Dropdowns */}
+        {/* Filter Dropdowns & Export */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <select
             className="select-filter"
@@ -121,6 +166,15 @@ export const UsersView: React.FC = () => {
             <option value="MODERATOR">Moderators</option>
             <option value="ADMIN">Administrators</option>
           </select>
+
+          <button
+            onClick={handleExportCSV}
+            className="btn btn-glass btn-sm"
+            title="Export current user list to CSV"
+          >
+            <Download size={13} />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 

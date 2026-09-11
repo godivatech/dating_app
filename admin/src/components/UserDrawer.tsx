@@ -162,6 +162,33 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                     >
                       {detail.status}
                     </span>
+                    <select
+                      value={detail.role}
+                      onChange={async (e) => {
+                        const newRole = e.target.value as 'USER' | 'MODERATOR' | 'ADMIN';
+                        if (window.confirm(`Change role for ${detail.profile?.displayName || 'this user'} to ${newRole}?`)) {
+                          await api.updateUserRole(detail.id, newRole);
+                          setDetail({ ...detail, role: newRole });
+                          if (onDisciplineSuccess) onDisciplineSuccess();
+                        }
+                      }}
+                      title="Update system authorization role"
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-subtle)',
+                        color: detail.role === 'ADMIN' ? 'var(--primary-brand)' : detail.role === 'MODERATOR' ? 'var(--color-warning)' : 'var(--text-secondary)',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        outline: 'none',
+                      }}
+                    >
+                      <option value="USER">ROLE: USER</option>
+                      <option value="MODERATOR">ROLE: MODERATOR</option>
+                      <option value="ADMIN">ROLE: ADMIN</option>
+                    </select>
                   </div>
 
                   <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>

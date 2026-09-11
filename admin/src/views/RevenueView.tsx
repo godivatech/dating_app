@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react';
 import {
   CreditCard,
   ShoppingBag,
+  Search,
+  Download,
 } from 'lucide-react';
 import { api, PurchaseTransactionItem } from '../services/api';
 
 export const RevenueView: React.FC = () => {
   const [transactions, setTransactions] = useState<PurchaseTransactionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [productFilter, setProductFilter] = useState('');
+  const [platformFilter, setPlatformFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -49,6 +55,47 @@ export const RevenueView: React.FC = () => {
     },
   ];
 
+  // Filtering transactions
+  const filteredTransactions = transactions.filter((tx) => {
+    if (productFilter && tx.productId !== productFilter) return false;
+    if (platformFilter && tx.platform !== platformFilter) return false;
+    if (statusFilter && tx.status !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchName = tx.userName?.toLowerCase().includes(q);
+      const matchPhone = tx.userPhone?.toLowerCase().includes(q);
+      const matchId = tx.id.toLowerCase().includes(q);
+      if (!matchName && !matchPhone && !matchId) return false;
+    }
+    return true;
+  });
+
+  // Export to CSV
+  const handleExportCSV = () => {
+    if (filteredTransactions.length === 0) return;
+    const headers = ['Transaction ID', 'Customer Name', 'Phone Number', 'Product ID', 'Amount (INR)', 'Platform', 'Provider', 'Status', 'Created At'];
+    const rows = filteredTransactions.map((tx) => [
+      `"${tx.id}"`,
+      `"${tx.userName.replace(/"/g, '""')}"`,
+      `"${tx.userPhone}"`,
+      `"${tx.productId}"`,
+      (tx.amount / 100).toFixed(2),
+      `"${tx.platform}"`,
+      `"${tx.provider}"`,
+      `"${tx.status}"`,
+      `"${new Date(tx.createdAt).toISOString()}"`,
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `truelove_transactions_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
       {/* Monetization Executive Summary */}
@@ -67,7 +114,7 @@ export const RevenueView: React.FC = () => {
               ₹2,73,130 <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-tertiary)' }}>/ month projected run-rate</span>
             </h2>
             <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-              Net Profit Margin: ~78.7% (Net ~₹2,15,000/mo after Cloudflare, Neon, Daily.co, and SMS OTP costs)
+              Net Profit Margin: ~78.7% (Net ~₹2,15,000/mo after Cloudflare R2, Neon PG, Daily.co, and SMS OTP costs)
             </p>
           </div>
 
@@ -135,8 +182,9 @@ export const RevenueView: React.FC = () => {
         ))}
       </div>
 
-      {/* Live Transaction Ledger */}
+      {/* Live Transaction Ledger Card */}
       <div className="glass-card" style={{ overflow: 'hidden' }}>
+        {/* Ledger Header & Search Controls */}
         <div
           style={{
             padding: '16px 24px',
@@ -145,19 +193,89 @@ export const RevenueView: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '14px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ShoppingBag size={18} color="var(--text-secondary)" />
             <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Customer Purchase Ledger
+              Customer Purchase Ledger ({filteredTransactions.length})
             </h3>
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-            Real-time idempotency verified transactions
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            {/* Search Input */}
+            <div style={{ position: 'relative', width: '220px' }}>
+              <Search
+                size={14}
+                color="var(--text-tertiary)"
+                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+              />
+              <input
+                type="text"
+                className="input-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search ledger..."
+                style={{ paddingLeft: '32px', fontSize: '12.5px' }}
+              />
+            </div>
+
+            {/* Product Filter */}
+            <select
+              className="select-filter"
+              value={productFilter}
+              onChange={(e) => setProductFilter(e.target.value)}
+              style={{ fontSize: '12.5px' }}
+            >
+              <option value="">All Products</option>
+              <option value="truelove_gold">Truelove Gold</option>
+              <option value="truelove_plus">Truelove Plus</option>
+              <option value="direct_notes_5">5 Direct Notes</option>
+              <option value="direct_notes_15">15 Direct Notes</option>
+              <option value="direct_notes_30">30 Direct Notes</option>
+            </select>
+
+            {/* Platform Filter */}
+            <select
+              className="select-filter"
+              value={platformFilter}
+              onChange={(e) => setPlatformFilter(e.target.value)}
+              style={{ fontSize: '12.5px' }}
+            >
+              <option value="">All Platforms</option>
+              <option value="ANDROID">Android</option>
+              <option value="IOS">iOS</option>
+              <option value="WEB">Web</option>
+            </select>
+
+            {/* Status Filter */}
+            <select
+              className="select-filter"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ fontSize: '12.5px' }}
+            >
+              <option value="">All Statuses</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="PENDING">Pending</option>
+              <option value="FAILED">Failed</option>
+            </select>
+
+            {/* Export CSV Button */}
+            <button
+              onClick={handleExportCSV}
+              className="btn btn-glass btn-sm"
+              title="Export ledger as CSV file"
+            >
+              <Download size={13} />
+              <span>Export CSV</span>
+            </button>
           </div>
         </div>
 
+        {/* Ledger Table */}
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
@@ -188,8 +306,14 @@ export const RevenueView: React.FC = () => {
                     Loading financial ledger...
                   </td>
                 </tr>
+              ) : filteredTransactions.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', fontSize: '14px', color: 'var(--text-tertiary)' }}>
+                    No transactions matching filter criteria.
+                  </td>
+                </tr>
               ) : (
-                transactions.map((tx) => (
+                filteredTransactions.map((tx) => (
                   <tr
                     key={tx.id}
                     style={{
@@ -218,7 +342,15 @@ export const RevenueView: React.FC = () => {
                       {new Date(tx.createdAt).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                      <span className="badge badge-active">
+                      <span
+                        className={`badge ${
+                          tx.status === 'COMPLETED'
+                            ? 'badge-active'
+                            : tx.status === 'FAILED'
+                            ? 'badge-danger'
+                            : 'badge-warning'
+                        }`}
+                      >
                         {tx.status}
                       </span>
                     </td>

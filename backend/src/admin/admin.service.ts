@@ -509,6 +509,52 @@ export class AdminService {
   }
 
   /**
+   * Authoritatively updates a user's system role (USER, MODERATOR, ADMIN).
+   */
+  async updateUserRole(
+    userId: string,
+    role: UserRole,
+    adminId: string,
+  ): Promise<{ success: boolean; userId: string; role: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found.`);
+    }
+
+    if (!Object.values(UserRole).includes(role)) {
+      throw new BadRequestException(`Invalid role: ${role}`);
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+
+    await this.prisma.moderationAuditLog.create({
+      data: {
+        moderatorUserId: adminId,
+        targetUserId: userId,
+        actionType: ModerationActionType.RESTORE_ACCOUNT,
+        reason: `User role updated to ${role} by administrator`,
+        metadata: { updatedRole: role },
+      },
+    });
+
+    this.logger.log(
+      `[USER_ROLE_UPDATED] User ${userId} role changed to ${role} by admin ${adminId}`,
+    );
+
+    return {
+      success: true,
+      userId,
+      role,
+    };
+  }
+
+  /**
    * Retrieves the queue of profile photos awaiting human moderation.
    */
   async getPendingPhotosQueue(limit = 40): Promise<AdminPhotoQueueItemDto[]> {
