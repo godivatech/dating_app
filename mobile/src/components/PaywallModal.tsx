@@ -65,13 +65,11 @@ export const PaywallModal: React.FC = () => {
 
   useEffect(() => {
     if (paywallVisible) {
-      if (products.length === 0) {
-        fetchProducts();
-      }
+      fetchProducts();
       fetchCreditBalance();
       setIsBrowseMode(false);
     }
-  }, [paywallVisible, products.length]);
+  }, [paywallVisible]);
 
   // Product groups
   const plusMonthly = products.find(
