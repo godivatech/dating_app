@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { EntitlementKey } from '@prisma/client';
+import { EntitlementKey, CoinTransactionType } from '@prisma/client';
 import { UserCreditBalanceDto } from '../../../../shared/src/types';
 
 @Injectable()
@@ -21,6 +21,7 @@ export class CreditService {
       balance = await this.prisma.userCreditBalance.create({
         data: {
           userId,
+          coins: 0,
           directNotes: 0,
           profileBoosts: 0,
           callPassMinutes: 0,
@@ -50,6 +51,7 @@ export class CreditService {
     });
 
     return {
+      coins: balance.coins,
       directNotes: balance.directNotes,
       profileBoosts: balance.profileBoosts,
       callPassMinutes: balance.callPassMinutes,
@@ -137,5 +139,107 @@ export class CreditService {
     });
 
     return result.count > 0;
+  }
+
+  /**
+   * Atomically credits coins to user's wallet balance and records an immutable ledger entry.
+   */
+  async addCoins(
+    userId: string,
+    amount: number,
+    type: CoinTransactionType = CoinTransactionType.PURCHASE_RECHARGE,
+    description?: string,
+    referenceId?: string,
+    tx?: any,
+  ) {
+    const client = tx || this.prisma;
+    await this.getOrCreateBalance(userId);
+
+    const updated = await client.userCreditBalance.update({
+      where: { userId },
+      data: {
+        coins: { increment: amount },
+      },
+    });
+
+    await client.coinTransaction.create({
+      data: {
+        userId,
+        amount,
+        balanceAfter: updated.coins,
+        type,
+        description: description || `Recharge of ${amount} coins`,
+        referenceId,
+      },
+    });
+
+    this.logger.log(
+      `[COIN_ADD] User ${userId} granted ${amount} coins. New balance: ${updated.coins}`,
+    );
+
+    return updated;
+  }
+
+  /**
+   * Atomically decrements coins using row-level conditional checks (prevents double-spending/negative balance).
+   * Records ledger entry in the same transaction.
+   */
+  async deductCoins(
+    userId: string,
+    amount: number,
+    type: CoinTransactionType,
+    description?: string,
+    referenceId?: string,
+    tx?: any,
+  ): Promise<boolean> {
+    const client = tx || this.prisma;
+    await this.getOrCreateBalance(userId);
+
+    const result = await client.userCreditBalance.updateMany({
+      where: {
+        userId,
+        coins: { gte: amount },
+      },
+      data: {
+        coins: { decrement: amount },
+      },
+    });
+
+    if (result.count === 0) {
+      return false; // Insufficient coins
+    }
+
+    const balance = await client.userCreditBalance.findUnique({
+      where: { userId },
+      select: { coins: true },
+    });
+
+    await client.coinTransaction.create({
+      data: {
+        userId,
+        amount: -amount,
+        balanceAfter: balance?.coins ?? 0,
+        type,
+        description: description || `Spent ${amount} coins`,
+        referenceId,
+      },
+    });
+
+    this.logger.log(
+      `[COIN_DEDUCT] User ${userId} spent ${amount} coins (${type}). New balance: ${balance?.coins}`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Retrieves user's coin transaction ledger history.
+   */
+  async getCoinHistory(userId: string, limit = 20) {
+    return this.prisma.coinTransaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
   }
 }

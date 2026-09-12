@@ -33,6 +33,7 @@ import {
   ProfileVisibility,
   PhotoStatus,
   EntitlementKey,
+  CoinTransactionType,
 } from '@prisma/client';
 
 import { ContentFilterService } from '../../safety/services/content-filter.service';
@@ -280,10 +281,27 @@ export class ActionsService {
           }
         }
 
-        // Tier 5: All quotas exhausted -> Trigger paywall
+        // Tier 5: Coin Wallet Deduction (15 coins per direct note)
+        if (!allowedToSendNote) {
+          const coinBalance = await this.creditService.getUserCreditDto(userId);
+          if (coinBalance.coins >= 15) {
+            const deducted = await this.creditService.deductCoins(
+              userId,
+              15,
+              CoinTransactionType.SPEND_DIRECT_NOTE,
+              `Direct Note to profile ${dto.targetProfileId}`,
+              dto.targetProfileId,
+            );
+            if (deducted) {
+              allowedToSendNote = true;
+            }
+          }
+        }
+
+        // Tier 6: All quotas exhausted -> Trigger paywall
         if (!allowedToSendNote) {
           throw new BadRequestException(
-            'You have used all free direct notes. Upgrade to Truelove Gold or buy a Note Pack to send more direct messages.',
+            'You have used all free direct notes. Recharge your Truelove Coin Wallet (15 coins) or upgrade to Gold to send direct messages.',
           );
         }
       }
@@ -601,9 +619,25 @@ export class ActionsService {
       EntitlementKey.REWIND_PASS,
     );
 
-    if (!hasRewind) {
+    let authorized = hasRewind;
+    if (!authorized) {
+      const balance = await this.creditService.getUserCreditDto(userId);
+      if (balance.coins >= 5) {
+        const deducted = await this.creditService.deductCoins(
+          userId,
+          5,
+          CoinTransactionType.SPEND_REWIND,
+          'Rewind last pass action',
+        );
+        if (deducted) {
+          authorized = true;
+        }
+      }
+    }
+
+    if (!authorized) {
       throw new ForbiddenException(
-        'Rewinding passes requires the Rewind Pass entitlement or Spark Plus.',
+        'Rewinding passes requires the Rewind Pass entitlement or 5 Truelove Coins.',
       );
     }
 

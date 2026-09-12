@@ -108,35 +108,96 @@ export const PaywallModal: React.FC = () => {
     [products],
   );
 
+  const coinPacks = useMemo(() => {
+    const list = products
+      .filter((p) => p.productKey.startsWith('COIN_PACK_'))
+      .sort((a, b) => a.priceAmount - b.priceAmount);
+    if (list.length > 0) return list;
+
+    // Fallback packs for immediate offline / instant display
+    return [
+      {
+        id: 'cp-100',
+        storeProductId: 'com.sparkdating.coins.100',
+        productKey: 'COIN_PACK_100',
+        displayName: '100 Truelove Coins',
+        displayPrice: '₹99',
+        priceAmount: 99,
+        currency: 'INR',
+        platform: 'ANDROID' as any,
+        description: 'Starter Pack • 99p per coin',
+        billingPeriod: null as any,
+        tier: 'PACK' as any,
+        isActive: true,
+      },
+      {
+        id: 'cp-250',
+        storeProductId: 'com.sparkdating.coins.250',
+        productKey: 'COIN_PACK_250',
+        displayName: '250 Truelove Coins',
+        displayPrice: '₹199',
+        priceAmount: 199,
+        currency: 'INR',
+        platform: 'ANDROID' as any,
+        description: 'Popular Pack (+25% Extra Bonus)',
+        billingPeriod: null as any,
+        tier: 'PACK' as any,
+        isActive: true,
+      },
+      {
+        id: 'cp-700',
+        storeProductId: 'com.sparkdating.coins.700',
+        productKey: 'COIN_PACK_700',
+        displayName: '700 Truelove Coins',
+        displayPrice: '₹499',
+        priceAmount: 499,
+        currency: 'INR',
+        platform: 'ANDROID' as any,
+        description: 'Best Value (+40% Extra Bonus)',
+        billingPeriod: null as any,
+        tier: 'PACK' as any,
+        isActive: true,
+      },
+    ] as unknown as SafeSubscriptionProduct[];
+  }, [products]);
+
+  const allProducts = useMemo(() => {
+    const existingIds = new Set(products.map((p) => p.storeProductId));
+    const merged = [...products];
+    for (const cp of coinPacks) {
+      if (!existingIds.has(cp.storeProductId)) {
+        merged.push(cp);
+      }
+    }
+    return merged;
+  }, [products, coinPacks]);
+
   // Set default selected product intelligently based on context
   useEffect(() => {
-    if (products.length === 0) return;
-
     if (isFocusedMode) {
-      if (isDirectNoteTrigger && directNotePacks.length > 0) {
-        const pop = directNotePacks.find((p) => p.productKey.includes('15')) || directNotePacks[0];
-        setSelectedProductId(pop.storeProductId);
-      } else if (isBoostTrigger && boostPacks.length > 0) {
-        const pop = boostPacks.find((p) => p.productKey.includes('3')) || boostPacks[0];
-        setSelectedProductId(pop.storeProductId);
-      } else if (isCallTrigger && callPasses.length > 0) {
-        const pop = callPasses.find((p) => p.productKey.includes('45')) || callPasses[0];
-        setSelectedProductId(pop.storeProductId);
+      const popCoin = coinPacks.find((p) => p.productKey === 'COIN_PACK_250') || coinPacks[0];
+      if (popCoin && (!selectedProductId || !allProducts.some((p) => p.storeProductId === selectedProductId))) {
+        setSelectedProductId(popCoin.storeProductId);
       }
     } else {
-      if (paywallActiveTab === 'SUBSCRIPTIONS') {
+      if (paywallActiveTab === 'COINS') {
+        const popCoin = coinPacks.find((p) => p.productKey === 'COIN_PACK_250') || coinPacks[0];
+        if (popCoin) setSelectedProductId(popCoin.storeProductId);
+      } else if (paywallActiveTab === 'SUBSCRIPTIONS') {
         const target =
           billingPeriod === 'QUARTERLY'
             ? goldQuarterly || goldMonthly
             : goldMonthly || goldQuarterly;
         if (target) setSelectedProductId(target.storeProductId);
       } else {
-        const firstPack = directNotePacks[0] || boostPacks[0] || products[0];
+        const firstPack = directNotePacks[0] || boostPacks[0] || coinPacks[0];
         if (firstPack) setSelectedProductId(firstPack.storeProductId);
       }
     }
   }, [
     products,
+    allProducts,
+    coinPacks,
     isFocusedMode,
     isDirectNoteTrigger,
     isBoostTrigger,
@@ -152,7 +213,7 @@ export const PaywallModal: React.FC = () => {
 
   if (!paywallVisible) return null;
 
-  const selectedProduct = products.find((p) => p.storeProductId === selectedProductId);
+  const selectedProduct = allProducts.find((p) => p.storeProductId === selectedProductId);
 
   const handlePurchase = async () => {
     if (!selectedProductId) return;
@@ -161,34 +222,45 @@ export const PaywallModal: React.FC = () => {
 
   // Helper for pack description & badges (clean, customer-friendly labels)
   const getUnitInfo = (prod: SafeSubscriptionProduct) => {
+    if (prod.productKey.startsWith('COIN_PACK_')) {
+      if (prod.productKey === 'COIN_PACK_100') {
+        return { label: 'Starter Pack • ~6 Notes or 5 Calls', badge: null, bonus: null };
+      }
+      if (prod.productKey === 'COIN_PACK_250') {
+        return { label: 'Popular Pack • +25% Bonus Coins', badge: '🔥 MOST POPULAR', bonus: '+25% EXTRA' };
+      }
+      if (prod.productKey === 'COIN_PACK_700') {
+        return { label: 'Power Pack • +40% Bonus Coins', badge: '⭐ BEST VALUE', bonus: '+40% EXTRA' };
+      }
+    }
     if (prod.productKey.startsWith('DIRECT_NOTES_')) {
       if (prod.productKey.includes('5')) {
-        return { label: 'Send 5 personal messages', badge: null };
+        return { label: 'Send 5 personal messages', badge: null, bonus: null };
       }
       if (prod.productKey.includes('15')) {
-        return { label: 'Send 15 personal messages', badge: 'MOST POPULAR' };
+        return { label: 'Send 15 personal messages', badge: 'MOST POPULAR', bonus: null };
       }
       if (prod.productKey.includes('30') || prod.productKey.includes('35')) {
-        return { label: 'Send 35 personal messages', badge: 'BEST VALUE' };
+        return { label: 'Send 35 personal messages', badge: 'BEST VALUE', bonus: null };
       }
     }
     if (prod.productKey.startsWith('BOOST_')) {
       if (prod.productKey.includes('SINGLE') || prod.productKey.includes('1')) {
-        return { label: '30-min instant reach', badge: null };
+        return { label: '30-min instant reach', badge: null, bonus: null };
       }
       if (prod.productKey.includes('3')) {
-        return { label: '3 × 30-min peak boosts', badge: 'SAVE 33% • POPULAR' };
+        return { label: '3 × 30-min peak boosts', badge: 'SAVE 33% • POPULAR', bonus: null };
       }
     }
     if (prod.productKey.startsWith('CALL_PASS_')) {
       if (prod.productKey.includes('15')) {
-        return { label: '15 mins audio & video calling', badge: null };
+        return { label: '15 mins audio & video calling', badge: null, bonus: null };
       }
       if (prod.productKey.includes('45')) {
-        return { label: '45 mins audio & video calling', badge: 'POPULAR' };
+        return { label: '45 mins audio & video calling', badge: 'POPULAR', bonus: null };
       }
     }
-    return { label: prod.description, badge: null };
+    return { label: prod.description, badge: null, bonus: null };
   };
 
   return (
@@ -234,6 +306,13 @@ export const PaywallModal: React.FC = () => {
           {/* User Credit Vault Indicator */}
           {creditBalance && (
             <View style={styles.creditVaultCard}>
+              <View style={[styles.creditItem, styles.creditItemCoins]}>
+                <Text style={styles.creditIcon}>🪙</Text>
+                <Text style={styles.creditLabel}>
+                  <Text style={styles.creditBold}>{creditBalance.coins ?? 0}</Text> Coins
+                </Text>
+              </View>
+              <View style={styles.creditDivider} />
               <View style={styles.creditItem}>
                 <Text style={styles.creditIcon}>💌</Text>
                 <Text style={styles.creditLabel}>
@@ -293,22 +372,30 @@ export const PaywallModal: React.FC = () => {
                 </Text>
               </View>
 
+              {/* Focused Coin Cost Banner */}
+              <View style={styles.focusedCoinCostBanner}>
+                <Text style={styles.focusedCoinCostEmoji}>🪙</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.focusedCoinCostTitle}>
+                    {isDirectNoteTrigger
+                      ? 'Requires 15 Coins per Direct Note'
+                      : isBoostTrigger
+                        ? 'Requires 30 Coins for 30-min Profile Boost'
+                        : 'Requires 20 Coins for 15-min Call Pass'}
+                  </Text>
+                  <Text style={styles.focusedCoinCostSubtitle}>
+                    Current Wallet: {creditBalance?.coins ?? 0} Coins • 1-Tap UPI Recharge
+                  </Text>
+                </View>
+              </View>
+
               {/* Context Pack Cards */}
               <Text style={styles.sectionHeading}>
-                {isDirectNoteTrigger
-                  ? 'Select Direct Note Pack'
-                  : isBoostTrigger
-                    ? 'Select Boost Pack'
-                    : 'Select Call Pass'}
+                Recharge Truelove Coin Wallet
               </Text>
 
               <View style={styles.packsList}>
-                {(isDirectNoteTrigger
-                  ? directNotePacks
-                  : isBoostTrigger
-                    ? boostPacks
-                    : callPasses
-                ).map((prod) => {
+                {coinPacks.map((prod) => {
                   const isSelected = selectedProductId === prod.storeProductId;
                   const unitInfo = getUnitInfo(prod);
 
@@ -341,7 +428,14 @@ export const PaywallModal: React.FC = () => {
 
                         {/* Title & Description */}
                         <View style={{ flex: 1, marginLeft: 12 }}>
-                          <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
+                            {unitInfo.bonus && (
+                              <View style={styles.bonusPill}>
+                                <Text style={styles.bonusPillText}>{unitInfo.bonus}</Text>
+                              </View>
+                            )}
+                          </View>
                           <Text style={styles.focusedPackUnit}>{unitInfo.label}</Text>
                         </View>
 
@@ -420,8 +514,27 @@ export const PaywallModal: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Segment Switcher (Clean Single Icon, No Duplicate Emojis) */}
+              {/* Segment Switcher (3 Tabs: Coins, VIP Plans, Bundles) */}
               <View style={styles.mainSegmentContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.mainSegmentBtn,
+                    paywallActiveTab === 'COINS' && styles.mainSegmentBtnActive,
+                  ]}
+                  onPress={() => setPaywallActiveTab('COINS')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 13, marginRight: 5 }}>🪙</Text>
+                  <Text
+                    style={[
+                      styles.mainSegmentText,
+                      paywallActiveTab === 'COINS' && styles.mainSegmentTextActive,
+                    ]}
+                  >
+                    Recharge
+                  </Text>
+                </TouchableOpacity>
+
                 <TouchableOpacity
                   style={[
                     styles.mainSegmentBtn,
@@ -432,13 +545,13 @@ export const PaywallModal: React.FC = () => {
                 >
                   <Ionicons
                     name="shield-checkmark"
-                    size={16}
+                    size={14}
                     color={
                       paywallActiveTab === 'SUBSCRIPTIONS'
                         ? Colors.white
                         : Colors.textSecondary
                     }
-                    style={{ marginRight: 6 }}
+                    style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
@@ -446,7 +559,7 @@ export const PaywallModal: React.FC = () => {
                       paywallActiveTab === 'SUBSCRIPTIONS' && styles.mainSegmentTextActive,
                     ]}
                   >
-                    Memberships
+                    VIP Plans
                   </Text>
                 </TouchableOpacity>
 
@@ -460,13 +573,13 @@ export const PaywallModal: React.FC = () => {
                 >
                   <Ionicons
                     name="flash"
-                    size={16}
+                    size={14}
                     color={
                       paywallActiveTab === 'PACKS'
                         ? Colors.white
                         : Colors.textSecondary
                     }
-                    style={{ marginRight: 6 }}
+                    style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
@@ -474,13 +587,144 @@ export const PaywallModal: React.FC = () => {
                       paywallActiveTab === 'PACKS' && styles.mainSegmentTextActive,
                     ]}
                   >
-                    Instant Packs
+                    Bundles
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              {/* TAB 1: MEMBERSHIPS */}
-              {paywallActiveTab === 'SUBSCRIPTIONS' ? (
+              {/* TAB 1: COIN WALLET RECHARGE */}
+              {paywallActiveTab === 'COINS' ? (
+                <View style={styles.coinRechargeContainer}>
+                  {/* Hero Wallet Card */}
+                  <View style={styles.coinWalletHero}>
+                    <View style={styles.coinWalletHeroRow}>
+                      <View style={styles.coinWalletBadge}>
+                        <Text style={styles.coinWalletBadgeEmoji}>🪙</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.coinWalletBalanceTitle}>
+                          {creditBalance?.coins ?? 0} Truelove Coins
+                        </Text>
+                        <Text style={styles.coinWalletBalanceSubtitle}>
+                          Prepaid wallet • Use on any feature • Never expires
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Coin Utility Breakdown */}
+                  <Text style={styles.sectionHeading}>Coins Utility Rate</Text>
+                  <View style={styles.utilityMatrix}>
+                    <View style={styles.utilityChip}>
+                      <Text style={styles.utilityChipEmoji}>💌</Text>
+                      <Text style={styles.utilityChipTitle}>Direct Note</Text>
+                      <Text style={styles.utilityChipCost}>15 🪙</Text>
+                    </View>
+                    <View style={styles.utilityChip}>
+                      <Text style={styles.utilityChipEmoji}>⚡</Text>
+                      <Text style={styles.utilityChipTitle}>Profile Boost</Text>
+                      <Text style={styles.utilityChipCost}>30 🪙</Text>
+                    </View>
+                    <View style={styles.utilityChip}>
+                      <Text style={styles.utilityChipEmoji}>📞</Text>
+                      <Text style={styles.utilityChipTitle}>15m Call</Text>
+                      <Text style={styles.utilityChipCost}>20 🪙</Text>
+                    </View>
+                    <View style={styles.utilityChip}>
+                      <Text style={styles.utilityChipEmoji}>↩️</Text>
+                      <Text style={styles.utilityChipTitle}>Rewind</Text>
+                      <Text style={styles.utilityChipCost}>5 🪙</Text>
+                    </View>
+                  </View>
+
+                  {/* 3 Core Recharge Cards */}
+                  <Text style={[styles.sectionHeading, { marginTop: 14 }]}>
+                    Select Recharge Amount
+                  </Text>
+                  <View style={styles.packsList}>
+                    {coinPacks.map((prod) => {
+                      const isSelected = selectedProductId === prod.storeProductId;
+                      const unitInfo = getUnitInfo(prod);
+                      const isBestValue = prod.productKey === 'COIN_PACK_700';
+
+                      return (
+                        <TouchableOpacity
+                          key={prod.id}
+                          style={[
+                            styles.coinPackCard,
+                            isSelected && styles.coinPackCardSelected,
+                          ]}
+                          onPress={() => setSelectedProductId(prod.storeProductId)}
+                          activeOpacity={0.85}
+                        >
+                          {unitInfo.badge && (
+                            <View
+                              style={[
+                                styles.cardPopularBadge,
+                                isBestValue && { backgroundColor: '#10B981' },
+                              ]}
+                            >
+                              <Text style={styles.cardPopularBadgeText}>
+                                {unitInfo.badge}
+                              </Text>
+                            </View>
+                          )}
+
+                          <View style={styles.focusedPackRow}>
+                            <View
+                              style={[
+                                styles.radioCircle,
+                                isSelected && styles.radioCircleSelected,
+                              ]}
+                            >
+                              {isSelected && <View style={styles.radioInner} />}
+                            </View>
+
+                            <View style={{ flex: 1, marginLeft: 12 }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
+                                {unitInfo.bonus && (
+                                  <View style={styles.bonusPill}>
+                                    <Text style={styles.bonusPillText}>{unitInfo.bonus}</Text>
+                                  </View>
+                                )}
+                              </View>
+                              <Text style={styles.focusedPackUnit}>{unitInfo.label}</Text>
+                            </View>
+
+                            <Text
+                              style={[
+                                styles.focusedPackPrice,
+                                isSelected && styles.focusedPackPriceSelected,
+                              ]}
+                            >
+                              {prod.displayPrice}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Trust Highlights */}
+                  <View style={styles.trustBanner}>
+                    <View style={styles.trustItem}>
+                      <Ionicons name="flash-outline" size={16} color="#D97706" />
+                      <Text style={styles.trustItemText}>Instant UPI</Text>
+                    </View>
+                    <View style={styles.trustDivider} />
+                    <View style={styles.trustItem}>
+                      <Ionicons name="shield-checkmark-outline" size={16} color="#10B981" />
+                      <Text style={styles.trustItemText}>No Auto-Debit</Text>
+                    </View>
+                    <View style={styles.trustDivider} />
+                    <View style={styles.trustItem}>
+                      <Ionicons name="infinite-outline" size={16} color={Colors.primary} />
+                      <Text style={styles.trustItemText}>Never Expires</Text>
+                    </View>
+                  </View>
+                </View>
+              ) : paywallActiveTab === 'SUBSCRIPTIONS' ? (
                 <>
                   {/* Duration Toggle (1 Month vs 3 Months with Savings) */}
                   <View style={styles.durationToggleContainer}>
@@ -867,7 +1111,9 @@ export const PaywallModal: React.FC = () => {
             ) : (
               <Text style={styles.ctaButtonText}>
                 {selectedProduct
-                  ? `Continue • ${selectedProduct.displayPrice}`
+                  ? selectedProduct.productKey.startsWith('COIN_PACK_')
+                    ? `Recharge Now • ${selectedProduct.displayPrice}`
+                    : `Continue • ${selectedProduct.displayPrice}`
                   : 'Select an Option'}
               </Text>
             )}
@@ -1461,5 +1707,172 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginTop: 8,
     paddingHorizontal: 12,
+  },
+  creditItemCoins: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  focusedCoinCostBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 16,
+  },
+  focusedCoinCostEmoji: {
+    fontSize: 24,
+    marginRight: 10,
+  },
+  focusedCoinCostTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  focusedCoinCostSubtitle: {
+    fontSize: 11,
+    color: '#B45309',
+    fontWeight: '600',
+  },
+  coinRechargeContainer: {
+    marginBottom: 10,
+  },
+  coinWalletHero: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  coinWalletHeroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinWalletBadge: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  coinWalletBadgeEmoji: {
+    fontSize: 22,
+  },
+  coinWalletBalanceTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Colors.textPrimary,
+    marginBottom: 2,
+  },
+  coinWalletBalanceSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  utilityMatrix: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  utilityChip: {
+    flex: 1,
+    minWidth: '22%',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+  },
+  utilityChipEmoji: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  utilityChipTitle: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  utilityChipCost: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  coinPackCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    position: 'relative',
+  },
+  coinPackCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: 'rgba(253, 93, 101, 0.03)',
+  },
+  coinPackCardPopular: {
+    borderColor: '#F59E0B',
+  },
+  bonusPill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+  },
+  bonusPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#059669',
+    letterSpacing: 0.3,
+  },
+  trustBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  trustItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  trustItemText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  trustDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: Colors.border,
   },
 });

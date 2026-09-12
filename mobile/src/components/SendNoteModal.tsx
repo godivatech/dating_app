@@ -36,7 +36,7 @@ export function SendNoteModal({
   const [noteText, setNoteText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const { recordAction } = useDiscoveryStore();
-  const { openPaywall } = useBillingStore();
+  const { openPaywall, creditBalance } = useBillingStore();
 
   if (!candidate) return null;
 
@@ -143,7 +143,9 @@ export function SendNoteModal({
           <View style={styles.perkBadge}>
             <Ionicons name="sparkles" size={15} color="#D97706" />
             <Text style={styles.perkBadgeText}>
-              Send a Direct Note to stand out before matching!
+              {creditBalance && creditBalance.directNotes > 0
+                ? `${creditBalance.directNotes} Direct Note credit${creditBalance.directNotes > 1 ? 's' : ''} available`
+                : `Cost: 15 Coins • Wallet: ${creditBalance?.coins ?? 0} Coins`}
             </Text>
           </View>
 
@@ -189,7 +191,9 @@ export function SendNoteModal({
             ) : (
               <>
                 <Ionicons name="paper-plane" size={18} color={Colors.white} style={styles.sendIcon} />
-                <Text style={styles.sendBtnText}>Send Direct Note 💌</Text>
+                <Text style={styles.sendBtnText}>
+                  Send Direct Note {creditBalance && creditBalance.directNotes > 0 ? '💌' : '(15 🪙)'}
+                </Text>
               </>
             )}
           </TouchableOpacity>

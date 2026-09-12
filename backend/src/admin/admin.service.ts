@@ -795,7 +795,21 @@ export class AdminService {
       0,
     );
 
-    // 4. Query all active store products for dynamic filter mapping
+    // 4. Aggregate Truelove Coin Wallet Recharges (1-tap micro-transactions)
+    const coinTx = await this.prisma.purchaseTransaction.findMany({
+      where: {
+        status: 'COMPLETED',
+        storeProductId: { contains: 'coins' },
+      },
+    });
+
+    const coinUnits = coinTx.length;
+    const coinRevenueInr = coinTx.reduce(
+      (acc, tx) => acc + (tx.amount / 100),
+      0,
+    );
+
+    // 5. Query all active store products for dynamic filter mapping
     const products = await this.prisma.subscriptionProduct.findMany({
       where: { isActive: true },
       orderBy: { priceAmount: 'asc' },
@@ -810,8 +824,18 @@ export class AdminService {
       priceInr: Number((p.priceAmount / 100).toFixed(2)),
     }));
 
-    // 5. Tier breakdown for dashboard cards
+    // 6. Tier breakdown for dashboard cards
     const tierBreakdown = [
+      {
+        id: 'coin-wallet-recharge',
+        tier: 'COIN' as const,
+        name: 'Truelove Coin Wallet Recharges',
+        priceDisplay: '₹99 (100c) • ₹199 (250c) • ₹499 (700c)',
+        description:
+          '1-Tap UPI prepaid micro-recharges for direct notes, boosts, calls, and rewinds',
+        activeUnits: coinUnits,
+        monthlyRevenueInr: Number(coinRevenueInr.toFixed(2)),
+      },
       {
         id: 'truelove-gold',
         tier: 'GOLD' as const,
@@ -834,9 +858,9 @@ export class AdminService {
       {
         id: 'direct-notes-packs',
         tier: 'PACK' as const,
-        name: 'Direct Note Micro-Packs & Boosts',
+        name: 'Legacy Micro-Packs & Boosts',
         priceDisplay: '₹99 (5) • ₹199 (15) • ₹349 (30)',
-        description: 'A-la-carte direct message invites sent with profile likes',
+        description: 'Consumable packs purchased before unified coin wallet',
         activeUnits: packUnits,
         monthlyRevenueInr: Number(packRevenueInr.toFixed(2)),
       },

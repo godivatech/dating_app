@@ -20,6 +20,7 @@ import {
   MatchStatus,
   UserStatus,
   EntitlementKey,
+  CoinTransactionType,
 } from '@prisma/client';
 import { NotificationType } from '../../../../shared/src/types';
 import { CreditService } from '../../billing/services/credit.service';
@@ -505,6 +506,27 @@ export class CallService {
           this.logger.log(
             `[CALL_PASS_DEDUCTED] User ${passUser.userId} charged ${deductAmount} call pass minutes for call ${callLog.id}`,
           );
+        } else {
+          const coinUser = await this.prisma.userCreditBalance.findFirst({
+            where: {
+              userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
+              coins: { gte: 20 },
+            },
+            orderBy: { coins: 'desc' },
+          });
+
+          if (coinUser) {
+            await this.creditService.deductCoins(
+              coinUser.userId,
+              20,
+              CoinTransactionType.SPEND_CALL_MINUTES,
+              `Video/Audio call pass (${minutesUsed} mins)`,
+              callLog.id,
+            );
+            this.logger.log(
+              `[CALL_COINS_DEDUCTED] User ${coinUser.userId} charged 20 coins for call ${callLog.id}`,
+            );
+          }
         }
       }
     }

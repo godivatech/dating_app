@@ -42,6 +42,61 @@ export class SubscriptionService implements OnModuleInit {
       this.logger.log('Seeding initial Subscription Products (INR pricing)...');
 
       const defaultProducts = [
+        // High-Converting Coin Recharge Wallet Packs
+        {
+          productKey: 'COIN_PACK_100',
+          displayName: '100 Coins (Starter)',
+          description: 'Instant recharge: send direct notes, boost profile, or call matches.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.coins.100',
+          currency: 'INR',
+          priceAmount: 9900, // ₹99.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: {
+            coinsCount: 100,
+            bonusPercentage: 0,
+            badge: 'Starter',
+            type: 'COINS',
+          },
+        },
+        {
+          productKey: 'COIN_PACK_250',
+          displayName: '250 Coins (+25% Extra)',
+          description: 'Best value for active daters: 200 + 50 free bonus coins.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.coins.250',
+          currency: 'INR',
+          priceAmount: 19900, // ₹199.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: {
+            coinsCount: 250,
+            bonusPercentage: 25,
+            badge: 'Most Popular',
+            type: 'COINS',
+          },
+        },
+        {
+          productKey: 'COIN_PACK_700',
+          displayName: '700 Coins (+40% Extra)',
+          description: 'Maximum dating power: 500 + 200 free bonus coins for serious daters.',
+          tier: SubscriptionTier.A_LA_CARTE,
+          platform: DevicePlatform.IOS,
+          storeProductId: 'com.truelove.coins.700',
+          currency: 'INR',
+          priceAmount: 49900, // ₹499.00
+          billingPeriod: BillingPeriod.ONE_TIME,
+          isActive: true,
+          metadata: {
+            coinsCount: 700,
+            bonusPercentage: 40,
+            badge: 'Best Value',
+            type: 'COINS',
+          },
+        },
         // Subscriptions
         {
           productKey: 'TRUELOVE_PLUS_1M',

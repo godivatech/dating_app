@@ -50,6 +50,7 @@ model User {
   transactions       PurchaseTransaction[]
   entitlements       UserEntitlement[]
   creditBalance      UserCreditBalance?
+  coinTransactions   CoinTransaction[]
   callsInitiated     CallLog[]                      @relation("CallsInitiated")
   callsReceived      CallLog[]                      @relation("CallsReceived")
   messagingRestrictedUntil DateTime?
@@ -701,6 +702,7 @@ model UserCreditBalance {
   id              String   @id @default(uuid())
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coins           Int      @default(0)
   directNotes     Int      @default(0)
   profileBoosts   Int      @default(0)
   callPassMinutes Int      @default(0)
@@ -708,6 +710,31 @@ model UserCreditBalance {
   updatedAt       DateTime @updatedAt
 
   @@index([userId])
+}
+
+enum CoinTransactionType {
+  PURCHASE_RECHARGE
+  SPEND_DIRECT_NOTE
+  SPEND_PROFILE_BOOST
+  SPEND_CALL_MINUTES
+  SPEND_REWIND
+  SPEND_UNBLUR
+  ADMIN_GRANT
+  REFUND
+}
+
+model CoinTransaction {
+  id           String              @id @default(uuid())
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount       Int                 // Positive for recharge/grant, negative for spend
+  balanceAfter Int
+  type         CoinTransactionType
+  description  String?
+  referenceId  String?             // e.g. transactionId, actionId, callId
+  createdAt    DateTime            @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // --------------------------------------------------------------------------

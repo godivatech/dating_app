@@ -134,6 +134,14 @@ describe('ActionsService', () => {
 
     mockCredit = {
       deductDirectNote: jest.fn().mockResolvedValue(true),
+      getUserCreditDto: jest.fn().mockResolvedValue({
+        coins: 0,
+        directNotes: 0,
+        profileBoosts: 0,
+        callPassMinutes: 0,
+        boostExpiresAt: null,
+      }),
+      deductCoins: jest.fn().mockResolvedValue(false),
     };
 
     const mockChatGateway = {

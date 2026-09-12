@@ -112,7 +112,7 @@ export interface PurchaseTransactionItem {
 
 export interface RevenueTierItem {
   id: string;
-  tier: 'GOLD' | 'PLUS' | 'PACK';
+  tier: 'GOLD' | 'PLUS' | 'PACK' | 'COIN';
   name: string;
   priceDisplay: string;
   description: string;

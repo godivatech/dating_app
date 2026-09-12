@@ -777,7 +777,44 @@ export interface SafeUserEntitlement {
   isActive: boolean;
 }
 
+export enum CoinTransactionType {
+  PURCHASE_RECHARGE = 'PURCHASE_RECHARGE',
+  SPEND_DIRECT_NOTE = 'SPEND_DIRECT_NOTE',
+  SPEND_PROFILE_BOOST = 'SPEND_PROFILE_BOOST',
+  SPEND_CALL_MINUTES = 'SPEND_CALL_MINUTES',
+  SPEND_REWIND = 'SPEND_REWIND',
+  SPEND_UNBLUR = 'SPEND_UNBLUR',
+  ADMIN_GRANT = 'ADMIN_GRANT',
+  REFUND = 'REFUND',
+}
+
+export interface SafeCoinTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  balanceAfter: number;
+  type: CoinTransactionType;
+  description?: string | null;
+  referenceId?: string | null;
+  createdAt: string;
+}
+
+export interface SpendCoinsDto {
+  amount: number;
+  reason: 'DIRECT_NOTE' | 'BOOST' | 'CALL' | 'REWIND' | 'UNBLUR';
+  referenceId?: string;
+  description?: string;
+}
+
+export interface SpendCoinsResponse {
+  success: boolean;
+  coinsDeducted: number;
+  remainingCoins: number;
+  message: string;
+}
+
 export interface UserCreditBalanceDto {
+  coins: number;
   directNotes: number;
   profileBoosts: number;
   callPassMinutes: number;
@@ -1076,7 +1113,7 @@ export interface AdminRevenueOverviewDto {
   currency: string;
   tierBreakdown: Array<{
     id: string;
-    tier: 'GOLD' | 'PLUS' | 'PACK';
+    tier: 'GOLD' | 'PLUS' | 'PACK' | 'COIN';
     name: string;
     priceDisplay: string;
     description: string;

@@ -14,9 +14,11 @@ import {
   ActivateBoostResponse,
   EntitlementKey,
   DevicePlatform,
+  SafeCoinTransaction,
+  SpendCoinsResponse,
 } from '../../../shared/src/types';
 
-export type PaywallTab = 'SUBSCRIPTIONS' | 'PACKS';
+export type PaywallTab = 'COINS' | 'SUBSCRIPTIONS' | 'PACKS';
 export type PaywallPackCategory = 'ALL' | 'DIRECT_NOTES' | 'BOOST' | 'CALL';
 
 interface BillingState {
@@ -24,6 +26,7 @@ interface BillingState {
   billingStatus: BillingStatusResponse | null;
   entitlements: SafeUserEntitlement[];
   creditBalance: UserCreditBalanceDto | null;
+  coinHistory: SafeCoinTransaction[];
   isLoading: boolean;
   isPurchasing: boolean;
   isRestoring: boolean;
@@ -37,6 +40,13 @@ interface BillingState {
   fetchProducts: () => Promise<void>;
   fetchBillingStatus: () => Promise<void>;
   fetchCreditBalance: () => Promise<void>;
+  fetchCoinHistory: (limit?: number) => Promise<void>;
+  spendCoins: (
+    amount: number,
+    reason: 'DIRECT_NOTE' | 'BOOST' | 'CALL' | 'REWIND' | 'UNBLUR',
+    referenceId?: string,
+    description?: string,
+  ) => Promise<boolean>;
   activateBoost: () => Promise<ActivateBoostResponse | null>;
   purchaseProduct: (storeProductId: string) => Promise<boolean>;
   restorePurchases: () => Promise<boolean>;
@@ -53,12 +63,13 @@ export const useBillingStore = create<BillingState>((set, get) => ({
   billingStatus: null,
   entitlements: [],
   creditBalance: null,
+  coinHistory: [],
   isLoading: false,
   isPurchasing: false,
   isRestoring: false,
   paywallVisible: false,
   paywallTriggerReason: null,
-  paywallActiveTab: 'SUBSCRIPTIONS',
+  paywallActiveTab: 'COINS',
   paywallPackCategory: 'ALL',
   error: null,
 
@@ -96,6 +107,47 @@ export const useBillingStore = create<BillingState>((set, get) => ({
       set({ creditBalance: response.data });
     } catch (err: any) {
       console.warn('Failed to fetch credit balance:', err.message);
+    }
+  },
+
+  fetchCoinHistory: async (limit: number = 30) => {
+    try {
+      const response = await apiClient.get<SafeCoinTransaction[]>(`/billing/coins/history?limit=${limit}`);
+      set({ coinHistory: response.data });
+    } catch (err: any) {
+      console.warn('Failed to fetch coin history:', err.message);
+    }
+  },
+
+  spendCoins: async (
+    amount: number,
+    reason: 'DIRECT_NOTE' | 'BOOST' | 'CALL' | 'REWIND' | 'UNBLUR',
+    referenceId?: string,
+    description?: string,
+  ) => {
+    try {
+      const response = await apiClient.post<SpendCoinsResponse>('/billing/coins/spend', {
+        amount,
+        reason,
+        referenceId,
+        description,
+      });
+      if (response.data.success) {
+        set((state) => ({
+          creditBalance: state.creditBalance
+            ? {
+                ...state.creditBalance,
+                coins: response.data.remainingCoins,
+              }
+            : null,
+        }));
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Failed to spend coins.';
+      set({ error: Array.isArray(msg) ? msg[0] : msg });
+      return false;
     }
   },
 
@@ -222,24 +274,28 @@ export const useBillingStore = create<BillingState>((set, get) => ({
     reasonOrTab?: string,
     packCategory?: PaywallPackCategory,
   ) => {
-    let tab: PaywallTab = 'SUBSCRIPTIONS';
+    let tab: PaywallTab = 'COINS';
     let cat: PaywallPackCategory = packCategory || 'ALL';
 
-    if (reasonOrTab === 'DIRECT_NOTES' || reasonOrTab === 'direct_notes_exceeded') {
+    if (reasonOrTab === 'SUBSCRIPTIONS') {
+      tab = 'SUBSCRIPTIONS';
+    } else if (reasonOrTab === 'PACKS') {
       tab = 'PACKS';
+    } else if (reasonOrTab === 'COINS') {
+      tab = 'COINS';
+    } else if (reasonOrTab === 'DIRECT_NOTES' || reasonOrTab === 'direct_notes_exceeded') {
+      tab = 'COINS';
       cat = 'DIRECT_NOTES';
     } else if (reasonOrTab === 'BOOST' || reasonOrTab === 'profile_boost') {
-      tab = 'PACKS';
+      tab = 'COINS';
       cat = 'BOOST';
     } else if (
       reasonOrTab === 'CALL' ||
       reasonOrTab === 'vibe_check_complete' ||
       reasonOrTab === 'call_pass'
     ) {
-      tab = 'PACKS';
+      tab = 'COINS';
       cat = 'CALL';
-    } else if (reasonOrTab === 'PACKS') {
-      tab = 'PACKS';
     }
 
     set({

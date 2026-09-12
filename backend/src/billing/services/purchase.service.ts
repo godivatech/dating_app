@@ -19,6 +19,7 @@ import {
   TransactionStatus,
   EntitlementKey,
   EntitlementSource,
+  CoinTransactionType,
 } from '@prisma/client';
 import {
   VerifyPurchaseResponse,
@@ -181,7 +182,17 @@ export class PurchaseService {
         const prodKey = product.productKey;
         const meta = (product.metadata as any) || {};
 
-        if (prodKey.startsWith('DIRECT_NOTES_')) {
+        if (prodKey.startsWith('COIN_PACK_')) {
+          const coinsCount = meta.coinsCount || (prodKey.includes('700') ? 700 : prodKey.includes('250') ? 250 : 100);
+          await this.creditService.addCoins(
+            userId,
+            coinsCount,
+            CoinTransactionType.PURCHASE_RECHARGE,
+            `Recharge: ${product.displayName}`,
+            transaction.id,
+            tx,
+          );
+        } else if (prodKey.startsWith('DIRECT_NOTES_')) {
           const notesCount = meta.notesCount || (prodKey.includes('30') ? 30 : prodKey.includes('15') ? 15 : 5);
           await this.creditService.addCredits(userId, 'directNotes', notesCount, tx);
         } else if (prodKey.startsWith('BOOST_PACK_')) {

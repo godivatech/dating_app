@@ -340,7 +340,7 @@ export const RevenueView: React.FC = () => {
                 <div className="min-w-0">
                   <div className="text-[11px] text-slate-400 font-medium truncate">Live Units Active</div>
                   <div className="text-sm sm:text-base font-bold text-slate-900 truncate">
-                    {stream.activeUnits} {stream.tier === 'PACK' ? 'sold' : 'subscribers'}
+                    {stream.activeUnits} {stream.tier === 'COIN' ? 'recharges' : stream.tier === 'PACK' ? 'sold' : 'subscribers'}
                   </div>
                 </div>
                 <div className="text-left xs:text-right min-w-0">

@@ -337,7 +337,7 @@ describe('AdminService', () => {
       expect(overview.completedTransactionsCount).toBe(1);
       expect(overview.activeSubscribersCount).toBe(1);
       expect(overview.monthlyRunRateInr).toBe(499);
-      expect(overview.tierBreakdown.length).toBe(3);
+      expect(overview.tierBreakdown.length).toBe(4);
       expect(overview.availableProducts.length).toBe(1);
       expect(overview.availableProducts[0].storeProductId).toBe('com.sparkdating.gold.1m');
       expect(overview.benchmarkProjection.projectedMonthlyRunRateInr).toBe(273130);

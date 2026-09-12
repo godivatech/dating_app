@@ -33,6 +33,7 @@ import {
   ProfileVisibility,
   EntitlementKey,
   EntitlementSource,
+  CoinTransactionType,
 } from '@prisma/client';
 import { calculateRelativeDistance } from '../utils/geo-distance.util';
 import { CreditService } from '../../billing/services/credit.service';
@@ -294,11 +295,22 @@ export class DiscoveryService {
       );
     }
 
-    // Atomically deduct 1 boost credit
-    const deducted = await this.creditService.deductBoost(userId);
+    // Atomically deduct 1 boost credit or 30 Truelove Coins
+    let deducted = await this.creditService.deductBoost(userId);
+    if (!deducted) {
+      const balance = await this.creditService.getUserCreditDto(userId);
+      if (balance.coins >= 30) {
+        deducted = await this.creditService.deductCoins(
+          userId,
+          30,
+          CoinTransactionType.SPEND_PROFILE_BOOST,
+          '30-minute Profile Boost activation',
+        );
+      }
+    }
     if (!deducted) {
       throw new BadRequestException(
-        'No boost credits available. Please purchase a Boost Pack.',
+        'No boost credits available. Recharge your Coin Wallet (30 coins) or get a Boost Pack.',
       );
     }
 
