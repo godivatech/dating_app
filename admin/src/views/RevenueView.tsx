@@ -247,65 +247,65 @@ export const RevenueView: React.FC = () => {
 
       {/* Truelove Coin Economy Pulse Widget */}
       {overview?.coinMetrics && (
-        <div className="glass-card p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/5 via-rose-500/5 to-purple-500/5 border border-amber-200/50">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-md bg-amber-100 text-amber-700">
+        <div className="glass-card p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-md bg-slate-100 text-slate-600 border border-slate-200">
                 <Coins size={16} />
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold text-slate-900">
-                  Prepaid Coin Economy &amp; Micro-Monetization Pulse
+                  Prepaid Coin Economy &amp; Micro-Monetization
                 </h4>
-                <p className="text-[11px] text-slate-500">
-                  Real-time float, burn velocity, and realized revenue from 1-tap UPI recharges
+                <p className="text-[11px] sm:text-xs text-slate-500">
+                  Real-time wallet float, burn velocity, and gross revenue from coin recharges
                 </p>
               </div>
             </div>
-            <span className="badge badge-active text-[10px] sm:text-xs px-2 py-0.5 self-start sm:self-auto">
+            <span className="badge badge-active text-[10px] sm:text-xs px-2.5 py-0.5 self-start sm:self-auto font-medium">
               Live Wallet Float
             </span>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Coin Recharges
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
+              <div className="text-base sm:text-lg font-bold text-slate-900 mt-1">
                 {overview.coinMetrics.totalCoinRechargesCount} packs
               </div>
-              <div className="text-[10px] text-emerald-600 font-medium">100% UPI Realized</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">100% UPI Realized</div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Recharge Revenue
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-emerald-600 mt-0.5">
+              <div className="text-base sm:text-lg font-bold text-emerald-600 mt-1">
                 {formatInr(overview.coinMetrics.totalCoinRevenueInr)}
               </div>
-              <div className="text-[10px] text-slate-500 font-medium">Gross Cash Collected</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Gross Cash Collected</div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Wallet Coin Float
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-amber-600 mt-0.5">
-                🪙 {overview.coinMetrics.totalCoinsInCirculation.toLocaleString('en-IN')}
+              <div className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                {overview.coinMetrics.totalCoinsInCirculation.toLocaleString('en-IN')} coins
               </div>
-              <div className="text-[10px] text-slate-500 font-medium">Held Across User Wallets</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Held Across User Wallets</div>
             </div>
 
-            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                 Coins Spent (Burnt)
               </div>
-              <div className="text-base sm:text-lg font-extrabold text-purple-600 mt-0.5">
-                🔥 {overview.coinMetrics.totalCoinsSpent.toLocaleString('en-IN')}
+              <div className="text-base sm:text-lg font-bold text-slate-900 mt-1">
+                {overview.coinMetrics.totalCoinsSpent.toLocaleString('en-IN')} coins
               </div>
-              <div className="text-[10px] text-slate-500 font-medium">Notes, Calls &amp; Boosts</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Notes, Calls &amp; Boosts</div>
             </div>
           </div>
         </div>
@@ -387,24 +387,13 @@ export const RevenueView: React.FC = () => {
           overview?.tierBreakdown.map((stream) => (
             <div
               key={stream.id}
-              className={`glass-card p-4 sm:p-5 flex flex-col justify-between ${
-                stream.tier === 'COIN'
-                  ? 'border-amber-300/80 bg-gradient-to-b from-amber-50/30 to-white'
-                  : ''
-              }`}
+              className="glass-card p-4 sm:p-5 flex flex-col justify-between"
             >
               <div>
                 <div className="flex flex-col gap-1.5 mb-2.5">
-                  <div className="flex items-start justify-between gap-2">
-                    <h4 className="text-sm sm:text-[15.5px] font-bold text-slate-900 leading-snug">
-                      {stream.name}
-                    </h4>
-                    {stream.tier === 'COIN' && (
-                      <span className="badge text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 flex-shrink-0">
-                        🪙 Wallet
-                      </span>
-                    )}
-                  </div>
+                  <h4 className="text-sm sm:text-[15px] font-bold text-slate-900 leading-snug">
+                    {stream.name}
+                  </h4>
                   <div>
                     <span className="badge badge-neutral text-[11px] font-semibold px-2 py-0.5">
                       {stream.priceDisplay}
@@ -585,9 +574,9 @@ export const RevenueView: React.FC = () => {
                     <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-600">
                       <div className="font-semibold text-slate-900 text-xs sm:text-[13px]">
                         {overview?.availableProducts?.find((p) => p.storeProductId === tx.productId || p.productKey === tx.productId)?.displayName ||
-                          (tx.productId.includes('coins.100') ? '🪙 100 Coins Starter Pack' :
-                          tx.productId.includes('coins.250') ? '🪙 250 Coins Popular Pack' :
-                          tx.productId.includes('coins.700') ? '🪙 700 Coins Best Value' :
+                          (tx.productId.includes('coins.100') ? '100 Coins Starter Pack' :
+                          tx.productId.includes('coins.250') ? '250 Coins Popular Pack' :
+                          tx.productId.includes('coins.700') ? '700 Coins Best Value Pack' :
                           tx.productId.includes('gold') ? 'Truelove Gold (1 Month)' :
                           tx.productId.includes('plus') ? 'Truelove Plus (1 Month)' :
                           tx.productId.includes('notes.5') ? '5 Direct Notes Pack' :
