@@ -277,13 +277,22 @@ export const useBillingStore = create<BillingState>((set, get) => ({
     let tab: PaywallTab = 'COINS';
     let cat: PaywallPackCategory = packCategory || 'ALL';
 
-    if (reasonOrTab === 'SUBSCRIPTIONS') {
+    if (
+      reasonOrTab === 'SUBSCRIPTIONS' ||
+      reasonOrTab === 'SEE_LIKES' ||
+      reasonOrTab === 'DAILY_LIKES' ||
+      reasonOrTab === 'view_plans'
+    ) {
       tab = 'SUBSCRIPTIONS';
     } else if (reasonOrTab === 'PACKS') {
       tab = 'PACKS';
     } else if (reasonOrTab === 'COINS') {
       tab = 'COINS';
-    } else if (reasonOrTab === 'DIRECT_NOTES' || reasonOrTab === 'direct_notes_exceeded') {
+    } else if (
+      reasonOrTab === 'DIRECT_NOTES' ||
+      reasonOrTab === 'direct_notes_exceeded' ||
+      reasonOrTab === 'SUPER_LIKE'
+    ) {
       tab = 'COINS';
       cat = 'DIRECT_NOTES';
     } else if (reasonOrTab === 'BOOST' || reasonOrTab === 'profile_boost') {
@@ -296,6 +305,9 @@ export const useBillingStore = create<BillingState>((set, get) => ({
     ) {
       tab = 'COINS';
       cat = 'CALL';
+    } else if (reasonOrTab === 'REWIND_PASS' || reasonOrTab === 'rewind_pass') {
+      tab = 'COINS';
+      cat = 'ALL';
     }
 
     set({

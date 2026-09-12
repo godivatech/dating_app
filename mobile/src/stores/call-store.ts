@@ -250,6 +250,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       if (isVibeComplete) {
         useBillingStore.getState().openPaywall('CALL');
       }
+      useBillingStore.getState().fetchCreditBalance();
       resetTimeout = setTimeout(() => {
         get().resetCall();
       }, 1500);

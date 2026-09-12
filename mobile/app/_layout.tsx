@@ -27,6 +27,7 @@ import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 import { PaywallModal } from '../src/components/PaywallModal';
 import { ScreenshotBlockedModal } from '../src/components/ScreenshotBlockedModal';
 import { useSafetyStore } from '../src/stores/safety-store';
+import { useBillingStore } from '../src/stores/billing-store';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
 import {
@@ -140,6 +141,10 @@ export default function RootLayout() {
       chatSocket.connect();
       useCallStore.getState().initCallSocket();
 
+      // Hydrate billing status and coin wallet balance on startup
+      useBillingStore.getState().fetchBillingStatus();
+      useBillingStore.getState().fetchCreditBalance();
+
       // Listen for real-time incoming likes
       const unsubLike = chatSocket.onLikeReceived((data) => {
         try {
@@ -203,6 +208,8 @@ export default function RootLayout() {
           console.log('[APP_LIFECYCLE] App active: verifying call and chat sockets...');
           callSocket.ensureConnected();
           chatSocket.ensureConnected();
+          useBillingStore.getState().fetchBillingStatus();
+          useBillingStore.getState().fetchCreditBalance();
         }
       };
       const appStateSub = AppState.addEventListener('change', handleAppStateChange);

@@ -53,6 +53,28 @@ export function SendNoteModal({
       return;
     }
 
+    if (
+      creditBalance &&
+      creditBalance.directNotes <= 0 &&
+      (creditBalance.coins ?? 0) < 15
+    ) {
+      Alert.alert(
+        'Recharge Coins 🪙',
+        'You need 15 coins to send a Direct Note. Recharge your Coin Wallet now to connect instantly.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Recharge Coins',
+            onPress: () => {
+              onClose();
+              openPaywall('DIRECT_NOTES');
+            },
+          },
+        ],
+      );
+      return;
+    }
+
     try {
       setIsSending(true);
       const res = await recordAction(candidate.profileId, ActionType.LIKE, trimmed);
@@ -72,9 +94,15 @@ export function SendNoteModal({
           Alert.alert('Note Sent 💌', `Your personal note was delivered to ${candidate.displayName}.`);
         }
       } else {
-        // Check if quota was hit from store error
+        // Check if quota or coin balance was hit from store error
         const storeError = useDiscoveryStore.getState().error;
-        if (storeError && storeError.toLowerCase().includes('free direct notes')) {
+        if (
+          storeError &&
+          (storeError.toLowerCase().includes('free direct notes') ||
+            storeError.toLowerCase().includes('coins') ||
+            storeError.toLowerCase().includes('recharge') ||
+            storeError.toLowerCase().includes('quota'))
+        ) {
           onClose();
           openPaywall('DIRECT_NOTES');
         } else if (storeError) {
@@ -84,7 +112,13 @@ export function SendNoteModal({
     } catch (err: any) {
       setIsSending(false);
       const msg = err.response?.data?.message || err.message || 'Failed to send note.';
-      if (typeof msg === 'string' && msg.toLowerCase().includes('free direct notes')) {
+      if (
+        typeof msg === 'string' &&
+        (msg.toLowerCase().includes('free direct notes') ||
+          msg.toLowerCase().includes('coins') ||
+          msg.toLowerCase().includes('recharge') ||
+          msg.toLowerCase().includes('quota'))
+      ) {
         onClose();
         openPaywall('DIRECT_NOTES');
       } else {
@@ -140,14 +174,33 @@ export function SendNoteModal({
           </View>
 
           {/* Starter Value Proposition Badge */}
-          <View style={styles.perkBadge}>
+          <TouchableOpacity
+            style={styles.perkBadge}
+            activeOpacity={0.8}
+            onPress={() => {
+              if (
+                !creditBalance ||
+                (creditBalance.directNotes <= 0 && (creditBalance.coins ?? 0) < 15)
+              ) {
+                onClose();
+                openPaywall('DIRECT_NOTES');
+              }
+            }}
+          >
             <Ionicons name="sparkles" size={15} color="#D97706" />
             <Text style={styles.perkBadgeText}>
               {creditBalance && creditBalance.directNotes > 0
                 ? `${creditBalance.directNotes} Direct Note credit${creditBalance.directNotes > 1 ? 's' : ''} available`
                 : `Cost: 15 Coins • Wallet: ${creditBalance?.coins ?? 0} Coins`}
             </Text>
-          </View>
+            {creditBalance &&
+              creditBalance.directNotes <= 0 &&
+              (creditBalance.coins ?? 0) < 15 && (
+                <View style={styles.rechargeChip}>
+                  <Text style={styles.rechargeChipText}>+ Recharge</Text>
+                </View>
+              )}
+          </TouchableOpacity>
 
           {/* Text input with live character counter */}
           <View style={styles.inputBox}>
@@ -280,6 +333,18 @@ const styles = StyleSheet.create({
     color: '#92400E',
     fontWeight: '600',
     flex: 1,
+  },
+  rechargeChip: {
+    backgroundColor: '#D97706',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginLeft: 6,
+  },
+  rechargeChipText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
   inputBox: {
     backgroundColor: Colors.backgroundSecondary,

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { apiClient } from '../services/api-client';
+import { useBillingStore } from './billing-store';
 import {
   DiscoveryCandidate,
   DiscoveryEligibilityStatus,
@@ -223,6 +224,11 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
       await get().nextCandidate();
       set({ isActionLoading: false });
 
+      // Automatically sync coin / note balances if a direct note was sent
+      if (note) {
+        useBillingStore.getState().fetchCreditBalance();
+      }
+
       return { matched, match };
     } catch (err: any) {
       const errorMsg =
@@ -241,6 +247,7 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
     try {
       const response = await apiClient.post('/actions/undo');
       if (response.data.success) {
+        useBillingStore.getState().fetchCreditBalance();
         await get().fetchDiscoveryFeed(true);
         return { success: true };
       }

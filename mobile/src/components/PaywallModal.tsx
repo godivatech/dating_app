@@ -50,7 +50,8 @@ export const PaywallModal: React.FC = () => {
   // Identify if this is an in-the-moment trigger (Focused Mode)
   const isDirectNoteTrigger =
     paywallTriggerReason === 'DIRECT_NOTES' ||
-    paywallTriggerReason === 'direct_notes_exceeded';
+    paywallTriggerReason === 'direct_notes_exceeded' ||
+    paywallTriggerReason === 'SUPER_LIKE';
   const isBoostTrigger =
     paywallTriggerReason === 'BOOST' ||
     paywallTriggerReason === 'profile_boost';
