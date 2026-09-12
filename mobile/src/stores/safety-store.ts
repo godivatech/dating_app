@@ -13,6 +13,9 @@ interface SafetyState {
   hasMore: boolean;
   isLoading: boolean;
   error: string | null;
+  isScreenshotModalVisible: boolean;
+  showScreenshotModal: () => void;
+  hideScreenshotModal: () => void;
 
   blockUser: (targetUserId: string, reason?: string) => Promise<boolean>;
   unblockUser: (targetUserId: string) => Promise<boolean>;
@@ -27,6 +30,10 @@ export const useSafetyStore = create<SafetyState>((set, get) => ({
   hasMore: false,
   isLoading: false,
   error: null,
+  isScreenshotModalVisible: false,
+
+  showScreenshotModal: () => set({ isScreenshotModalVisible: true }),
+  hideScreenshotModal: () => set({ isScreenshotModalVisible: false }),
 
   blockUser: async (targetUserId: string, reason?: string) => {
     set({ isLoading: true, error: null });

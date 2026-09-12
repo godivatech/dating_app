@@ -25,6 +25,8 @@ import { MatchCelebrationModal, MatchedUserInfo } from '../src/components/MatchC
 import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 import { PaywallModal } from '../src/components/PaywallModal';
+import { ScreenshotBlockedModal } from '../src/components/ScreenshotBlockedModal';
+import { useSafetyStore } from '../src/stores/safety-store';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
 import {
@@ -55,6 +57,8 @@ export default function RootLayout() {
 
   const checkSession = useAuthStore((state) => state.checkSession);
   const status = useAuthStore((state) => state.status);
+  const isScreenshotModalVisible = useSafetyStore((state) => state.isScreenshotModalVisible);
+  const hideScreenshotModal = useSafetyStore((state) => state.hideScreenshotModal);
 
   // Match celebration state
   const [matchCelebration, setMatchCelebration] = useState<{
@@ -284,6 +288,10 @@ export default function RootLayout() {
         <IncomingCallModal />
         <ActiveCallModal />
         <PaywallModal />
+        <ScreenshotBlockedModal
+          visible={isScreenshotModalVisible}
+          onClose={hideScreenshotModal}
+        />
         <StatusBar style="dark" />
       </QueryClientProvider>
     </SafeAreaProvider>
