@@ -1,248 +1,407 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   CreditCard,
   ShoppingBag,
   Search,
   Download,
+  TrendingUp,
+  Users,
+  Sparkles,
+  Target,
+  RefreshCw,
+  Layers,
+  AlertCircle,
 } from 'lucide-react';
-import { api, PurchaseTransactionItem } from '../services/api';
+import {
+  api,
+  PurchaseTransactionItem,
+  RevenueOverview,
+} from '../services/api';
 
 export const RevenueView: React.FC = () => {
+  const [overview, setOverview] = useState<RevenueOverview | null>(null);
   const [transactions, setTransactions] = useState<PurchaseTransactionItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(true);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true);
   const [search, setSearch] = useState('');
   const [productFilter, setProductFilter] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showBenchmarkModal, setShowBenchmarkModal] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    api.getTransactions()
+  const fetchFinancialData = () => {
+    setIsLoadingOverview(true);
+    setIsLoadingTransactions(true);
+
+    api.getRevenueOverview()
       .then((data) => {
-        if (isMounted) setTransactions(data);
+        setOverview(data);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error('Failed to fetch revenue overview:', err);
+      })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        setIsLoadingOverview(false);
       });
 
-    return () => {
-      isMounted = false;
-    };
+    api.getTransactions()
+      .then((data) => {
+        setTransactions(data || []);
+      })
+      .catch((err) => {
+        console.error('Failed to fetch transactions:', err);
+      })
+      .finally(() => {
+        setIsLoadingTransactions(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchFinancialData();
   }, []);
 
-  const revenueStreams = [
-    {
-      name: 'Truelove Gold Tier',
-      price: '₹499 / mo',
-      description: 'See Who Liked You, 5 Direct Notes/wk, 1 Boost/wk, Incognito',
-      subscribers: 240,
-      monthlyTotal: '₹1,19,760',
-    },
-    {
-      name: 'Truelove Plus Tier',
-      price: '₹299 / mo',
-      description: 'Unlimited Swipes, Rewind Pass, Passport location travel',
-      subscribers: 185,
-      monthlyTotal: '₹55,315',
-    },
-    {
-      name: 'Direct Note Micro-Packs',
-      price: '₹99 (5) • ₹199 (15) • ₹349 (30)',
-      description: 'A-la-carte direct message invites sent with profile likes',
-      subscribers: 680,
-      monthlyTotal: '₹98,055',
-    },
-  ];
+  // Compute distinct products from both API products catalog and actual transaction history
+  const productFilterOptions = useMemo(() => {
+    const optionsMap = new Map<string, string>();
+
+    // Add products known to store catalog
+    if (overview?.availableProducts) {
+      overview.availableProducts.forEach((p) => {
+        optionsMap.set(p.storeProductId, `${p.displayName} (₹${p.priceInr})`);
+      });
+    }
+
+    // Add any unique product ID that appears in transaction ledger
+    transactions.forEach((tx) => {
+      if (tx.productId && !optionsMap.has(tx.productId)) {
+        optionsMap.set(tx.productId, tx.productId);
+      }
+    });
+
+    return Array.from(optionsMap.entries()).map(([value, label]) => ({
+      value,
+      label,
+    }));
+  }, [overview, transactions]);
 
   // Filtering transactions
-  const filteredTransactions = transactions.filter((tx) => {
-    if (productFilter && tx.productId !== productFilter) return false;
-    if (platformFilter && tx.platform !== platformFilter) return false;
-    if (statusFilter && tx.status !== statusFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      const matchName = tx.userName?.toLowerCase().includes(q);
-      const matchPhone = tx.userPhone?.toLowerCase().includes(q);
-      const matchId = tx.id.toLowerCase().includes(q);
-      if (!matchName && !matchPhone && !matchId) return false;
-    }
-    return true;
-  });
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      if (productFilter && tx.productId !== productFilter) return false;
+      if (platformFilter && tx.platform !== platformFilter) return false;
+      if (statusFilter && tx.status !== statusFilter) return false;
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        const matchName = tx.userName?.toLowerCase().includes(q);
+        const matchPhone = tx.userPhone?.toLowerCase().includes(q);
+        const matchId = tx.id.toLowerCase().includes(q);
+        const matchProduct = tx.productId?.toLowerCase().includes(q);
+        if (!matchName && !matchPhone && !matchId && !matchProduct) return false;
+      }
+      return true;
+    });
+  }, [transactions, productFilter, platformFilter, statusFilter, search]);
 
-  // Export to CSV
+  // Safe Export to CSV with full RFC 4180 escaping
   const handleExportCSV = () => {
     if (filteredTransactions.length === 0) return;
-    const headers = ['Transaction ID', 'Customer Name', 'Phone Number', 'Product ID', 'Amount (INR)', 'Platform', 'Provider', 'Status', 'Created At'];
+    const headers = [
+      'Transaction ID',
+      'Customer Name',
+      'Phone Number',
+      'Product ID',
+      'Amount (INR)',
+      'Currency',
+      'Platform',
+      'Provider',
+      'Status',
+      'Created At',
+    ];
+
     const rows = filteredTransactions.map((tx) => [
-      `"${tx.id}"`,
-      `"${tx.userName.replace(/"/g, '""')}"`,
-      `"${tx.userPhone}"`,
-      `"${tx.productId}"`,
+      `"${tx.id.replace(/"/g, '""')}"`,
+      `"${(tx.userName || 'Anonymous').replace(/"/g, '""')}"`,
+      `"${(tx.userPhone || 'N/A').replace(/"/g, '""')}"`,
+      `"${(tx.productId || 'N/A').replace(/"/g, '""')}"`,
       (tx.amount / 100).toFixed(2),
-      `"${tx.platform}"`,
-      `"${tx.provider}"`,
-      `"${tx.status}"`,
-      `"${new Date(tx.createdAt).toISOString()}"`,
+      `"${tx.currency || 'INR'}"`,
+      `"${(tx.platform || 'UNKNOWN').replace(/"/g, '""')}"`,
+      `"${(tx.provider || 'UNKNOWN').replace(/"/g, '""')}"`,
+      `"${tx.status || 'UNKNOWN'}"`,
+      `"${tx.createdAt ? new Date(tx.createdAt).toISOString() : ''}"`,
     ]);
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const csvContent =
+      'data:text/csv;charset=utf-8,\uFEFF' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `truelove_transactions_ledger_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      'download',
+      `truelove_revenue_ledger_${new Date().toISOString().split('T')[0]}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-      {/* Monetization Executive Summary */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '24px 28px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '18px' }}>
-          <div>
-            <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '6px' }}>
-              Run-rate &amp; Unit Economics
-            </div>
-            <h2 style={{ fontSize: '32px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              ₹2,73,130 <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-tertiary)' }}>/ month projected run-rate</span>
-            </h2>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '6px' }}>
-              Net Profit Margin: ~78.7% (Net ~₹2,15,000/mo after Cloudflare R2, Neon PG, Daily.co, and SMS OTP costs)
-            </p>
-          </div>
+  // Format INR currency safely
+  const formatInr = (amount?: number) => {
+    if (amount === undefined || isNaN(amount)) return '₹0.00';
+    return `₹${amount.toLocaleString('en-IN', {
+      minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ padding: '12px 18px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>Monthly Volume</div>
-              <div style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>~3,922 Notes</div>
+  return (
+    <div className="animate-fade-in flex flex-col gap-5 sm:gap-6">
+      {/* Monetization Executive Summary & KPI Metrics (2 boxes per row on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
+        {/* Card 1: Gross Realized Revenue */}
+        <div className="glass-card p-3 sm:p-4 lg:p-5 relative overflow-hidden flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2.5 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">
+                Realized Revenue
+              </span>
+              <div className="p-1 sm:p-1.5 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-100 flex-shrink-0">
+                <CreditCard size={15} />
+              </div>
             </div>
-            <div style={{ padding: '12px 18px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)' }}>Active Subscribers</div>
-              <div style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>425 Members</div>
+            <div className="text-xl sm:text-2xl lg:text-[28px] font-extrabold text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2 truncate">
+              {isLoadingOverview ? '...' : formatInr(overview?.realizedRevenueInr)}
             </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10.5px] sm:text-xs text-slate-500 truncate">
+            <span className="font-semibold text-emerald-600 truncate">
+              {overview?.completedTransactionsCount || 0} checkouts
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2: Monthly Recurring Run-Rate (MRR) */}
+        <div className="glass-card p-3 sm:p-4 lg:p-5 relative overflow-hidden flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2.5 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">
+                Monthly Run-Rate
+              </span>
+              <div className="p-1 sm:p-1.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 flex-shrink-0">
+                <TrendingUp size={15} />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl lg:text-[28px] font-extrabold text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2 truncate">
+              {isLoadingOverview ? '...' : formatInr(overview?.monthlyRunRateInr)}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10.5px] sm:text-xs text-slate-500 truncate">
+            <span className="font-semibold text-rose-600 truncate">
+              {overview?.activeSubscribersCount || 0} active subs
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3: Active Paid Subscribers */}
+        <div className="glass-card p-3 sm:p-4 lg:p-5 relative overflow-hidden flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2.5 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">
+                Paid Members
+              </span>
+              <div className="p-1 sm:p-1.5 rounded-md bg-pink-50 text-pink-600 border border-pink-100 flex-shrink-0">
+                <Users size={15} />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl lg:text-[28px] font-extrabold text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2 truncate">
+              {isLoadingOverview ? '...' : `${overview?.activeSubscribersCount || 0}`}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10.5px] sm:text-xs text-slate-500 truncate">
+            <span>Verified in DB</span>
+          </div>
+        </div>
+
+        {/* Card 4: Average Order Value (AOV) */}
+        <div className="glass-card p-3 sm:p-4 lg:p-5 relative overflow-hidden flex flex-col justify-between min-w-0">
+          <div>
+            <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2.5 min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">
+                Avg Order (AOV)
+              </span>
+              <div className="p-1 sm:p-1.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 flex-shrink-0">
+                <Sparkles size={15} />
+              </div>
+            </div>
+            <div className="text-xl sm:text-2xl lg:text-[28px] font-extrabold text-slate-900 tracking-tight leading-tight mb-1 sm:mb-2 truncate">
+              {isLoadingOverview ? '...' : formatInr(overview?.averageOrderValueInr)}
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10.5px] sm:text-xs text-slate-500 truncate">
+            <span>Per checkout</span>
           </div>
         </div>
       </div>
 
-      {/* Revenue Tier Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '18px' }}>
-        {revenueStreams.map((stream, idx) => (
-          <div
-            key={idx}
-            className="glass-card"
-            style={{
-              padding: '22px 24px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '16.5px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                  {stream.name}
-                </span>
-                <span className="badge badge-neutral" style={{ fontSize: '12px', padding: '4px 9px' }}>
-                  {stream.price}
-                </span>
-              </div>
-              <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginBottom: '18px', lineHeight: 1.45 }}>
-                {stream.description}
-              </p>
+      {/* Benchmark Unit Economics Callout */}
+      <div className="glass-card p-3.5 sm:p-5 border-l-4 border-l-rose-600 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="p-2 rounded-lg bg-slate-50 border border-slate-200 text-rose-600 flex-shrink-0">
+            <Target size={20} />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-sm sm:text-base font-bold text-slate-900">
+                Target Financial Model &amp; Unit Economics Benchmark
+              </h4>
+              <span className="badge badge-neutral text-[11px] px-2 py-0.5">
+                At Scale Target
+              </span>
             </div>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 leading-relaxed">
+              Target Run-Rate: <strong>₹2,73,130/mo</strong> • Target Active Members: <strong>425</strong> • Projected Net Margin: <strong>~78.7%</strong> (~₹2.15L/mo net of R2, Neon PG, Daily.co, and SMS OTP).
+            </p>
+          </div>
+        </div>
 
-            <div
-              style={{
-                padding: '12px 16px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Units Active</div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{stream.subscribers}</div>
+        <button
+          onClick={() => setShowBenchmarkModal(!showBenchmarkModal)}
+          className="btn btn-glass btn-sm text-xs sm:text-sm whitespace-nowrap self-start md:self-auto"
+        >
+          <Layers size={14} />
+          <span>{showBenchmarkModal ? 'Hide Target Details' : 'View Target Details'}</span>
+        </button>
+      </div>
+
+      {/* Target Model Expansion Panel */}
+      {showBenchmarkModal && overview?.benchmarkProjection && (
+        <div className="glass-card animate-fade-in p-3.5 sm:p-5 bg-slate-50/60">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
+            <div className="p-2.5 sm:p-4 rounded-lg bg-white border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-xs text-slate-500 font-semibold truncate">Projected MRR</div>
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 mt-0.5 sm:mt-1 truncate">
+                ₹{overview.benchmarkProjection.projectedMonthlyRunRateInr.toLocaleString('en-IN')}
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>Monthly Total</div>
-                <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-success)' }}>{stream.monthlyTotal}</div>
+            </div>
+            <div className="p-2.5 sm:p-4 rounded-lg bg-white border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-xs text-slate-500 font-semibold truncate">Subscribers</div>
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 mt-0.5 sm:mt-1 truncate">
+                {overview.benchmarkProjection.projectedSubscribers} Members
+              </div>
+            </div>
+            <div className="p-2.5 sm:p-4 rounded-lg bg-white border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-xs text-slate-500 font-semibold truncate">Notes Volume</div>
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 mt-0.5 sm:mt-1 truncate">
+                ~{overview.benchmarkProjection.projectedNotesVolume.toLocaleString('en-IN')}
+              </div>
+            </div>
+            <div className="p-2.5 sm:p-4 rounded-lg bg-white border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-xs text-slate-500 font-semibold truncate">Net Profit</div>
+              <div className="text-sm sm:text-base lg:text-lg font-bold text-emerald-600 mt-0.5 sm:mt-1 truncate">
+                ~₹{overview.benchmarkProjection.projectedNetProfitInr.toLocaleString('en-IN')}
               </div>
             </div>
           </div>
-        ))}
+        </div>
+      )}
+
+      {/* Revenue Tier Cards (Dynamically populated from backend database) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
+
+        {isLoadingOverview ? (
+          [1, 2, 3].map((i) => (
+            <div key={i} className="glass-card p-4 sm:p-5 min-h-[160px] opacity-60">
+              <div className="h-4.5 w-1/2 bg-slate-200 rounded mb-3 animate-pulse" />
+              <div className="h-3.5 w-4/5 bg-slate-200 rounded animate-pulse" />
+            </div>
+          ))
+        ) : (
+          overview?.tierBreakdown.map((stream) => (
+            <div
+              key={stream.id}
+              className="glass-card p-4 sm:p-5 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-base sm:text-[16.5px] font-bold text-slate-900 truncate">
+                    {stream.name}
+                  </span>
+                  <span className="badge badge-neutral text-xs px-2.5 py-1 flex-shrink-0">
+                    {stream.priceDisplay}
+                  </span>
+                </div>
+                <p className="text-xs sm:text-[13.5px] text-slate-500 mb-4 leading-relaxed">
+                  {stream.description}
+                </p>
+              </div>
+
+              <div className="p-3 sm:p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-w-0">
+                <div className="min-w-0">
+                  <div className="text-[11px] text-slate-400 font-medium truncate">Live Units Active</div>
+                  <div className="text-sm sm:text-base font-bold text-slate-900 truncate">
+                    {stream.activeUnits} {stream.tier === 'PACK' ? 'sold' : 'subscribers'}
+                  </div>
+                </div>
+                <div className="text-left xs:text-right min-w-0">
+                  <div className="text-[11px] text-slate-400 font-medium truncate">Monthly Realized</div>
+                  <div className={`text-base sm:text-[17px] font-bold truncate ${stream.monthlyRevenueInr > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                    {formatInr(stream.monthlyRevenueInr)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Live Transaction Ledger Card */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
+      <div className="glass-card overflow-hidden">
         {/* Ledger Header & Search Controls */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-surface)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '14px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ShoppingBag size={18} color="var(--text-secondary)" />
-            <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/70 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 sm:gap-4">
+          <div className="flex items-center gap-2.5">
+            <ShoppingBag size={18} className="text-slate-500" />
+            <h3 className="text-sm sm:text-base font-bold text-slate-900">
               Customer Purchase Ledger ({filteredTransactions.length})
             </h3>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
             {/* Search Input */}
-            <div style={{ position: 'relative', width: '220px' }}>
+            <div className="relative w-full sm:w-56 lg:w-64">
               <Search
                 size={14}
-                color="var(--text-tertiary)"
-                style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+                className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
               />
               <input
                 type="text"
-                className="input-search"
+                className="input-search text-xs sm:text-sm pl-8 py-2 w-full"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search ledger..."
-                style={{ paddingLeft: '32px', fontSize: '12.5px' }}
               />
             </div>
 
-            {/* Product Filter */}
+            {/* Dynamic Product Filter from Live Store Catalog */}
             <select
-              className="select-filter"
+              className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial max-w-full sm:max-w-[170px]"
               value={productFilter}
               onChange={(e) => setProductFilter(e.target.value)}
-              style={{ fontSize: '12.5px' }}
+              title="Filter by store product"
             >
               <option value="">All Products</option>
-              <option value="truelove_gold">Truelove Gold</option>
-              <option value="truelove_plus">Truelove Plus</option>
-              <option value="direct_notes_5">5 Direct Notes</option>
-              <option value="direct_notes_15">15 Direct Notes</option>
-              <option value="direct_notes_30">30 Direct Notes</option>
+              {productFilterOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
 
             {/* Platform Filter */}
             <select
-              className="select-filter"
+              className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial"
               value={platformFilter}
               onChange={(e) => setPlatformFilter(e.target.value)}
-              style={{ fontSize: '12.5px' }}
             >
               <option value="">All Platforms</option>
               <option value="ANDROID">Android</option>
@@ -252,10 +411,9 @@ export const RevenueView: React.FC = () => {
 
             {/* Status Filter */}
             <select
-              className="select-filter"
+              className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              style={{ fontSize: '12.5px' }}
             >
               <option value="">All Statuses</option>
               <option value="COMPLETED">Completed</option>
@@ -263,11 +421,23 @@ export const RevenueView: React.FC = () => {
               <option value="FAILED">Failed</option>
             </select>
 
+            {/* Refresh Ledger */}
+            <button
+              onClick={fetchFinancialData}
+              className="btn btn-glass p-2 text-xs sm:text-sm"
+              title="Refresh ledger data"
+              disabled={isLoadingTransactions}
+            >
+              <RefreshCw size={13} className={isLoadingTransactions ? 'animate-spin' : ''} />
+            </button>
+
             {/* Export CSV Button */}
             <button
               onClick={handleExportCSV}
-              className="btn btn-glass btn-sm"
-              title="Export ledger as CSV file"
+              disabled={filteredTransactions.length === 0}
+              className="btn btn-glass btn-sm text-xs sm:text-sm flex-1 sm:flex-initial whitespace-nowrap"
+              title={filteredTransactions.length === 0 ? 'No transactions to export' : 'Export ledger as CSV file'}
+              style={{ opacity: filteredTransactions.length === 0 ? 0.5 : 1 }}
             >
               <Download size={13} />
               <span>Export CSV</span>
@@ -276,31 +446,32 @@ export const RevenueView: React.FC = () => {
         </div>
 
         {/* Ledger Table */}
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="overflow-x-auto w-full">
+          <table className="w-full border-collapse text-left min-w-[720px]">
             <thead>
               <tr
                 style={{
                   borderBottom: '1px solid var(--border-subtle)',
                   backgroundColor: 'var(--bg-surface)',
-                  fontSize: '12.5px',
+                  fontSize: '12px',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
                   color: 'var(--text-tertiary)',
                 }}
               >
-                <th style={{ padding: '14px 20px' }}>Transaction ID</th>
-                <th style={{ padding: '14px 20px' }}>Customer</th>
-                <th style={{ padding: '14px 20px' }}>Product</th>
-                <th style={{ padding: '14px 20px' }}>Amount</th>
-                <th style={{ padding: '14px 20px' }}>Platform</th>
-                <th style={{ padding: '14px 20px' }}>Date</th>
-                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Status</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Transaction ID</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Customer</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Product</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Amount</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Platform &amp; Provider</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Date</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap text-right">Status</th>
               </tr>
             </thead>
+
             <tbody>
-              {isLoading ? (
+              {isLoadingTransactions ? (
                 <tr>
                   <td colSpan={7} style={{ padding: '36px', textAlign: 'center', fontSize: '14px', color: 'var(--text-tertiary)' }}>
                     Loading financial ledger...
@@ -308,8 +479,12 @@ export const RevenueView: React.FC = () => {
                 </tr>
               ) : filteredTransactions.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '36px', textAlign: 'center', fontSize: '14px', color: 'var(--text-tertiary)' }}>
-                    No transactions matching filter criteria.
+                  <td colSpan={7} style={{ padding: '48px 24px', textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)' }}>
+                      <AlertCircle size={28} />
+                      <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-secondary)' }}>No transactions found</div>
+                      <div style={{ fontSize: '13px' }}>No payments matched the specified filter criteria.</div>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -320,30 +495,34 @@ export const RevenueView: React.FC = () => {
                       borderBottom: '1px solid var(--border-subtle)',
                     }}
                   >
-                    <td style={{ padding: '14px 20px', fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 font-mono text-xs sm:text-[13px] text-slate-500 max-w-[120px] sm:max-w-[160px] truncate" title={tx.id}>
                       {tx.id}
                     </td>
-                    <td style={{ padding: '14px 20px' }}>
-                      <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-primary)' }}>{tx.userName}</div>
-                      <div style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>{tx.userPhone}</div>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900">{tx.userName || 'Anonymous Member'}</div>
+                      <div className="text-[11px] sm:text-xs text-slate-400 mt-0.5">{tx.userPhone || 'No Phone'}</div>
                     </td>
-                    <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                      <span className="badge badge-neutral" style={{ fontSize: '11.5px', padding: '3px 8px' }}>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-600">
+                      <span className="badge badge-neutral text-xs px-2 py-0.5">
                         {tx.productId}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 20px', fontSize: '14.5px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm font-bold text-slate-900">
                       ₹{(tx.amount / 100).toFixed(2)}
                     </td>
-                    <td style={{ padding: '14px 20px', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-600 whitespace-nowrap">
                       {tx.platform} ({tx.provider})
                     </td>
-                    <td style={{ padding: '14px 20px', fontSize: '13.5px', color: 'var(--text-tertiary)' }}>
-                      {new Date(tx.createdAt).toLocaleDateString()}
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-500 whitespace-nowrap">
+                      {new Date(tx.createdAt).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
                     </td>
-                    <td style={{ padding: '14px 20px', textAlign: 'right' }}>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-right whitespace-nowrap">
                       <span
-                        className={`badge ${
+                        className={`badge text-xs ${
                           tx.status === 'COMPLETED'
                             ? 'badge-active'
                             : tx.status === 'FAILED'

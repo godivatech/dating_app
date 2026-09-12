@@ -89,102 +89,63 @@ export const PhotosView: React.FC = () => {
   }
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div className="animate-fade-in flex flex-col gap-4 sm:gap-5">
       {/* Queue Header & SLA Banner */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '16px 22px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '14px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Camera size={19} color="var(--text-secondary)" />
+      <div className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex-shrink-0">
+            <Camera size={20} />
+          </div>
           <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">
               Photo Verification Queue
             </h2>
-            <div style={{ fontSize: '13.5px', color: 'var(--text-tertiary)' }}>
+            <div className="text-xs sm:text-[13px] text-slate-500">
               {photos.length} photo{photos.length === 1 ? '' : 's'} awaiting administrative verification
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div className="flex items-center gap-2.5 flex-wrap">
           {photos.length > 0 && (
             <button
               onClick={handleBatchApproveAll}
-              className="btn btn-glass btn-sm"
+              className="btn btn-glass btn-sm text-xs sm:text-sm"
               title="Approve all currently queued photos"
             >
-              <CheckCheck size={14} color="var(--color-success)" />
+              <CheckCheck size={14} className="text-emerald-600" />
               <span>Approve All ({photos.length})</span>
             </button>
           )}
 
-          <div style={{ fontSize: '13px', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldCheck size={16} color="var(--color-success)" />
-            <span>Automated pre-screening complete</span>
+          <div className="text-xs text-slate-500 flex items-center gap-1.5">
+            <ShieldCheck size={15} className="text-emerald-600" />
+            <span className="hidden xs:inline">Pre-screening OK</span>
           </div>
         </div>
       </div>
 
       {/* Grid or Empty State */}
       {photos.length === 0 ? (
-        <div
-          className="glass-card"
-          style={{
-            padding: '56px 24px',
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '12px',
-          }}
-        >
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--color-success-bg)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Check size={24} color="var(--color-success)" />
+        <div className="glass-card p-10 sm:p-14 text-center flex flex-col items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200">
+            <Check size={24} />
           </div>
-          <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h3 className="text-base sm:text-lg font-bold text-slate-900">
             Queue Clear
           </h3>
-          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', maxWidth: '420px', lineHeight: 1.45 }}>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-md leading-relaxed">
             All member profile photos have been inspected and verified against community standards.
           </p>
         </div>
       ) : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-            gap: '18px',
-          }}
-        >
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4.5">
           {photos.map((item) => {
             const isBusy = processingId === item.photoId;
             return (
               <div
                 key={item.photoId}
-                className="glass-card"
-                style={{
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
+                className="glass-card overflow-hidden flex flex-col"
               >
                 {/* Image Container */}
                 <div
@@ -207,12 +168,12 @@ export const PhotosView: React.FC = () => {
                   <div
                     style={{
                       position: 'absolute',
-                      top: '10px',
-                      left: '10px',
-                      padding: '3px 9px',
+                      top: '8px',
+                      left: '8px',
+                      padding: '2px 7px',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: 'rgba(0,0,0,0.75)',
-                      fontSize: '11px',
+                      fontSize: '10.5px',
                       fontWeight: 700,
                       letterSpacing: '0.04em',
                       color: '#FFFFFF',
@@ -225,56 +186,54 @@ export const PhotosView: React.FC = () => {
                     onClick={() => setInspectUserId(item.userId)}
                     style={{
                       position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      padding: '4px 8px',
+                      top: '8px',
+                      right: '8px',
+                      padding: '3px 7px',
                       borderRadius: 'var(--radius-sm)',
                       backgroundColor: 'rgba(0,0,0,0.75)',
-                      fontSize: '11.5px',
+                      fontSize: '11px',
                       fontWeight: 600,
                       color: '#FFFFFF',
                       border: 'none',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '5px',
+                      gap: '4px',
                     }}
                     title="Inspect user profile dossier"
                   >
                     <Eye size={12} />
-                    <span>Dossier</span>
+                    <span className="hidden xs:inline">Dossier</span>
                   </button>
                 </div>
 
                 {/* Card Meta & Actions */}
-                <div style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div style={{ marginBottom: '14px' }}>
-                    <div style={{ fontSize: '15.5px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div className="p-2.5 sm:p-4 flex-1 flex flex-col justify-between">
+                  <div className="mb-2 sm:mb-3">
+                    <div className="text-xs sm:text-sm lg:text-base font-bold text-slate-900 truncate">
                       {item.displayName}
                     </div>
-                    <div style={{ fontSize: '12.5px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
-                      Uploaded: {new Date(item.uploadedAt).toLocaleDateString()}
+                    <div className="text-[10px] sm:text-xs text-slate-400 mt-0.5 truncate">
+                      {new Date(item.uploadedAt).toLocaleDateString()}
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
                     <button
                       onClick={() => setRejectingItem(item)}
                       disabled={isBusy}
-                      className="btn btn-danger"
-                      style={{ width: '100%', justifyContent: 'center' }}
+                      className="btn btn-danger btn-sm text-[11px] sm:text-xs px-1.5 sm:px-3 py-1.5 sm:py-2 w-full justify-center"
                     >
-                      <X size={15} />
+                      <X size={13} />
                       <span>Reject</span>
                     </button>
                     <button
                       onClick={() => handleReview(item.photoId, 'APPROVE')}
                       disabled={isBusy}
-                      className="btn btn-primary"
-                      style={{ width: '100%', justifyContent: 'center' }}
+                      className="btn btn-primary btn-sm text-[11px] sm:text-xs px-1.5 sm:px-3 py-1.5 sm:py-2 w-full justify-center"
                     >
-                      <Check size={15} />
+                      <Check size={13} />
                       <span>Approve</span>
                     </button>
                   </div>
@@ -288,65 +247,37 @@ export const PhotosView: React.FC = () => {
       {/* Rejection Modal */}
       {rejectingItem && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(15, 23, 42, 0.4)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100,
-            padding: '20px',
-          }}
+          className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-[100] overflow-y-auto"
           onClick={() => setRejectingItem(null)}
         >
           <div
-            className="glass-card animate-fade-in"
-            style={{
-              width: '100%',
-              maxWidth: '520px',
-              backgroundColor: 'var(--bg-card)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 'var(--radius-xl)',
-              overflow: 'hidden',
-              boxShadow: 'var(--shadow-lg)',
-            }}
+            className="glass-card animate-fade-in w-full max-w-[500px] max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div
-              style={{
-                padding: '20px 24px',
-                borderBottom: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <AlertTriangle size={18} color="var(--color-danger)" />
-                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white flex-shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                <AlertTriangle size={18} className="text-rose-600 flex-shrink-0" />
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                   Reject Photo: {rejectingItem.displayName}
                 </h3>
               </div>
               <button
                 onClick={() => setRejectingItem(null)}
-                className="btn btn-glass btn-sm"
-                style={{ padding: '6px' }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
               >
                 <X size={16} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4">
+              <div className="text-xs sm:text-sm text-slate-600">
                 Select a standard community guideline violation reason or specify a custom reason:
               </div>
 
               {/* Standard Reason Pills */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="flex flex-col gap-2">
                 {standardReasons.map((r) => {
                   const isSelected = rejectReason === r && !customRejectReason;
                   return (
@@ -357,18 +288,11 @@ export const PhotosView: React.FC = () => {
                         setRejectReason(r);
                         setCustomRejectReason('');
                       }}
-                      style={{
-                        padding: '10px 14px',
-                        borderRadius: 'var(--radius-md)',
-                        textAlign: 'left',
-                        fontSize: '13px',
-                        fontWeight: isSelected ? 600 : 500,
-                        backgroundColor: isSelected ? 'var(--color-danger-bg)' : 'var(--bg-surface)',
-                        color: isSelected ? 'var(--color-danger)' : 'var(--text-secondary)',
-                        border: isSelected ? '1px solid var(--color-danger)' : '1px solid var(--border-subtle)',
-                        cursor: 'pointer',
-                        transition: 'all var(--transition-fast)',
-                      }}
+                      className={`p-2.5 sm:p-3 rounded-lg text-left text-xs sm:text-sm transition-all border ${
+                        isSelected
+                          ? 'bg-rose-50 text-rose-700 border-rose-300 font-semibold shadow-sm'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 font-medium'
+                      }`}
                     >
                       {r}
                     </button>
@@ -378,43 +302,32 @@ export const PhotosView: React.FC = () => {
 
               {/* Custom Reason Field */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: '6px' }}>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Or Custom Rejection Reason
                 </label>
                 <input
                   type="text"
-                  className="input-search"
+                  className="input-search text-xs sm:text-sm w-full py-2 px-3"
                   value={customRejectReason}
                   onChange={(e) => setCustomRejectReason(e.target.value)}
                   placeholder="Specify custom reason (optional)..."
-                  style={{ width: '100%', fontSize: '13px' }}
                 />
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div
-              style={{
-                padding: '16px 24px',
-                borderTop: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                gap: '10px',
-                backgroundColor: 'var(--bg-surface)',
-              }}
-            >
+            <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-2.5 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setRejectingItem(null)}
-                className="btn btn-glass"
+                className="btn btn-glass btn-sm text-xs sm:text-sm"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReject}
-                className="btn btn-danger"
+                className="btn btn-danger btn-sm text-xs sm:text-sm"
               >
                 Confirm Rejection
               </button>

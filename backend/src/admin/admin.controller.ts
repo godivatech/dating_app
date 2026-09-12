@@ -20,6 +20,7 @@ import { AdminReviewPhotoDto } from './dto/admin-review-photo.dto';
 import {
   UserRole,
   AdminAnalyticsOverviewDto,
+  AdminRevenueOverviewDto,
   AdminUsersListResponse,
   AdminUserDetailDto,
   AdminPhotoQueueItemDto,
@@ -37,6 +38,14 @@ export class AdminController {
   @Get('analytics/overview')
   async getAnalyticsOverview(): Promise<AdminAnalyticsOverviewDto> {
     return this.adminService.getAnalyticsOverview();
+  }
+
+  /**
+   * Retrieves comprehensive monetization metrics, MRR, tier performance, and store products.
+   */
+  @Get('revenue/overview')
+  async getRevenueOverview(): Promise<AdminRevenueOverviewDto> {
+    return this.adminService.getRevenueOverview();
   }
 
   /**

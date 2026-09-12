@@ -44,100 +44,64 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
     );
   }
 
+  const totalUsersCount = analytics?.totalUsers || 0;
+  const totalPaidSubsCount = analytics?.activeSubscriptions?.total || 0;
+  const subCoveragePct = totalUsersCount > 0 ? ((totalPaidSubsCount / totalUsersCount) * 100).toFixed(1) : '0.0';
+  const directNotePacksCount = analytics?.directNotePacksCount || 0;
+  const freeMembersCount = Math.max(0, totalUsersCount - totalPaidSubsCount);
+  const noteAdoptionPct = freeMembersCount > 0 ? Math.min(100, ((directNotePacksCount / freeMembersCount) * 100)).toFixed(1) : '0.0';
+
   const kpis = [
     {
       title: 'Total Members',
-      value: (analytics?.totalUsers || 0).toLocaleString(),
-      change: '+14% growth',
+      value: (analytics?.totalUsers ?? 0).toLocaleString(),
+      change: 'Verified members',
       icon: Users,
     },
     {
       title: 'Active Today (DAU)',
-      value: (analytics?.activeToday || 0).toLocaleString(),
-      change: '29% stickiness',
+      value: (analytics?.activeToday ?? 0).toLocaleString(),
+      change: 'Daily active',
       icon: Activity,
     },
     {
-      title: 'Estimated MRR',
-      value: `₹${(analytics?.estimatedMonthlyRevenueInr || 273130).toLocaleString()}`,
-      change: 'Target: ₹2.73L / mo',
+      title: 'Monthly Run-Rate (MRR)',
+      value: `₹${(analytics?.estimatedMonthlyRevenueInr ?? 0).toLocaleString()}`,
+      change: 'Live recurring run-rate',
       icon: CreditCard,
     },
     {
       title: 'Mutual Matches',
-      value: (analytics?.totalMatches || 0).toLocaleString(),
-      change: 'High-intent connections',
+      value: (analytics?.totalMatches ?? 0).toLocaleString(),
+      change: 'Active matches',
       icon: Heart,
     },
   ];
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* KPI Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px',
-        }}
-      >
+    <div className="animate-fade-in flex flex-col gap-5 sm:gap-6">
+      {/* KPI Grid (2 boxes per row on mobile, 4 on desktop) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 lg:gap-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
             <div
               key={idx}
-              className="glass-card"
-              style={{
-                padding: '22px 24px',
-              }}
+              className="glass-card p-3 sm:p-4 lg:p-5 flex flex-col justify-between min-w-0"
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: '12px',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '12.5px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    color: 'var(--text-tertiary)',
-                  }}
-                >
+              <div className="flex items-center justify-between gap-1 mb-1.5 sm:mb-2.5 min-w-0">
+                <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400 truncate">
                   {kpi.title}
                 </span>
-                <Icon size={18} color="var(--text-tertiary)" />
+                <Icon size={16} className="text-slate-400 flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
               </div>
 
-              <div
-                style={{
-                  fontFamily: 'var(--font-heading)',
-                  fontSize: '32px',
-                  fontWeight: 800,
-                  color: 'var(--text-primary)',
-                  letterSpacing: '-0.03em',
-                  marginBottom: '8px',
-                  lineHeight: 1.1,
-                }}
-              >
+              <div className="font-heading text-xl sm:text-2xl lg:text-3xl font-extrabold text-slate-900 tracking-tight leading-tight mb-1.5 sm:mb-2 truncate">
                 {kpi.value}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
-                <span
-                  style={{
-                    color: 'var(--color-success)',
-                    backgroundColor: 'var(--color-success-bg)',
-                    padding: '2px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                  }}
-                >
+              <div className="flex items-center gap-1 text-[10.5px] sm:text-xs min-w-0">
+                <span className="text-emerald-700 bg-emerald-50 px-1.5 sm:px-2 py-0.5 rounded font-semibold border border-emerald-200 truncate max-w-full">
                   {kpi.change}
                 </span>
               </div>
@@ -147,177 +111,150 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* Operational Highlights & Urgent Queues */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
         {/* Revenue & Direct Notes Deep Dive */}
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
+        <div className="glass-card p-3.5 sm:p-5 lg:p-6 lg:col-span-2">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 flex-wrap">
             <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+              <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 tracking-tight">
                 Monetization &amp; Direct Note Performance
               </h2>
-              <div style={{ fontSize: '13.5px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+              <div className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
                 Truelove Plus (₹299) • Truelove Gold (₹499) • Direct Note Packs (₹99 / ₹199 / ₹349)
               </div>
             </div>
             <button
               onClick={() => onNavigate('revenue')}
-              className="btn btn-glass"
-              style={{ fontSize: '13px', padding: '7px 14px' }}
+              className="btn btn-glass btn-sm text-xs sm:text-sm"
             >
               <span>Ledger</span>
               <ArrowUpRight size={14} />
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
-            <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 mb-4 sm:mb-5">
+            <div className="p-3 sm:p-4 rounded-lg bg-slate-50 border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">
                 Active Plus Subs
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                {analytics?.activeSubscriptions?.sparkPlus || 185}
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 leading-tight truncate">
+                {analytics?.activeSubscriptions?.sparkPlus ?? 0}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                ₹299 / month tier
+              <div className="text-[10.5px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                ₹299 / mo tier
               </div>
             </div>
 
-            <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div className="p-3 sm:p-4 rounded-lg bg-slate-50 border border-slate-200 min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">
                 Active Gold Subs
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                {analytics?.activeSubscriptions?.sparkGold || 240}
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 leading-tight truncate">
+                {analytics?.activeSubscriptions?.sparkGold ?? 0}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                ₹499 / month tier
+              <div className="text-[10.5px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
+                ₹499 / mo tier
               </div>
             </div>
 
-            <div style={{ padding: '16px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-tertiary)', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <div className="p-3 sm:p-4 rounded-lg bg-slate-50 border border-slate-200 col-span-2 sm:col-span-1 min-w-0">
+              <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">
                 Direct Note Packs
               </div>
-              <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                {analytics?.directNotePacksCount || 680}
+              <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 leading-tight truncate">
+                {analytics?.directNotePacksCount ?? 0}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              <div className="text-[10.5px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
                 A-la-carte revenue
               </div>
             </div>
           </div>
 
-          {/* Progress Bars (Subtle, Clean) */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Progress Bars (Dynamic, Clean) */}
+          <div className="flex flex-col gap-3.5">
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Subscription Coverage (% of verified base)</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>32.9%</span>
+              <div className="flex justify-between text-xs sm:text-[13px] mb-1.5">
+                <span className="text-slate-600">Subscription Coverage (% of verified base)</span>
+                <span className="font-bold text-slate-900">{subCoveragePct}%</span>
               </div>
-              <div style={{ width: '100%', height: '6px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
-                <div style={{ width: '32.9%', height: '100%', backgroundColor: 'var(--color-success)' }} />
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, Math.max(0, parseFloat(subCoveragePct)))}%` }}
+                />
               </div>
             </div>
 
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                <span style={{ color: 'var(--text-secondary)' }}>Direct Note Adoption among Free Users</span>
-                <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>24.1%</span>
+              <div className="flex justify-between text-xs sm:text-[13px] mb-1.5">
+                <span className="text-slate-600">Direct Note Adoption among Free Users</span>
+                <span className="font-bold text-slate-900">{noteAdoptionPct}%</span>
               </div>
-              <div style={{ width: '100%', height: '6px', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--bg-surface)', overflow: 'hidden' }}>
-                <div style={{ width: '24.1%', height: '100%', backgroundColor: 'var(--primary-brand)' }} />
+              <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className="h-full bg-rose-600 rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, Math.max(0, parseFloat(noteAdoptionPct)))}%` }}
+                />
               </div>
             </div>
           </div>
         </div>
 
         {/* Moderation Attention Card */}
-        <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', letterSpacing: '-0.01em' }}>
+        <div className="glass-card p-4 sm:p-6 flex flex-col lg:col-span-1">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 mb-1 tracking-tight">
             Moderation Attention
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', marginBottom: '20px' }}>
+          <p className="text-xs sm:text-sm text-slate-500 mb-5">
             Pending review queues requiring action
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+          <div className="flex flex-col gap-3 flex-1">
             {/* Photo Moderation Queue Item */}
-            <div
-              style={{
-                padding: '14px 16px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Camera size={18} color="var(--text-secondary)" />
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div className="p-3 sm:p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <Camera size={18} className="text-slate-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                     Photo Queue
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  <div className="text-[11px] text-slate-400 truncate">
                     Pending validation
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => onNavigate('photos')}
-                className="btn btn-primary btn-sm"
+                className="btn btn-primary btn-sm text-xs px-2.5 py-1.5 flex-shrink-0"
               >
                 Review ({analytics?.pendingPhotosCount || 0})
               </button>
             </div>
 
             {/* Reports Queue Item */}
-            <div
-              style={{
-                padding: '14px 16px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--bg-surface)',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <ShieldAlert size={18} color="var(--text-secondary)" />
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div className="p-3 sm:p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <ShieldAlert size={18} className="text-slate-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                     Abuse Reports
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                  <div className="text-[11px] text-slate-400 truncate">
                     Member flags
                   </div>
                 </div>
               </div>
               <button
                 onClick={() => onNavigate('moderation')}
-                className="btn btn-glass btn-sm"
+                className="btn btn-glass btn-sm text-xs px-2.5 py-1.5 flex-shrink-0"
               >
                 Inspect ({analytics?.pendingReportsCount || 0})
               </button>
             </div>
           </div>
 
-          <div
-            style={{
-              marginTop: '18px',
-              padding: '12px 14px',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--bg-surface)',
-              fontSize: '12.5px',
-              color: 'var(--text-tertiary)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <CheckCircle2 size={15} color="var(--color-success)" />
+          <div className="mt-4 p-3 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-500 flex items-center gap-2">
+            <CheckCircle2 size={15} className="text-emerald-600 flex-shrink-0" />
             <span>SLA: 100% of reports addressed under 15 mins.</span>
           </div>
         </div>

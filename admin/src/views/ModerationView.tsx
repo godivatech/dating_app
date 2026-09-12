@@ -85,51 +85,33 @@ export const ModerationView: React.FC = () => {
   const dismissedCount = reports.filter((r) => r.status === 'DISMISSED').length;
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+    <div className="animate-fade-in flex flex-col gap-4 sm:gap-5">
       {/* Header Banner */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '16px 22px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <ShieldAlert size={19} color="var(--text-secondary)" />
+      <div className="glass-card p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex-shrink-0">
+            <ShieldAlert size={20} />
+          </div>
           <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">
               Trust &amp; Safety Queue
             </h2>
-            <div style={{ fontSize: '13.5px', color: 'var(--text-tertiary)' }}>
+            <div className="text-xs sm:text-[13px] text-slate-500">
               Member reports queue with contextual chat evidence and dossier inspection
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="badge badge-warning">{openCount} Open Case(s)</span>
-          <span className="badge badge-active">{resolvedCount} Actioned</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="badge badge-warning text-xs">{openCount} Open Case(s)</span>
+          <span className="badge badge-active text-xs">{resolvedCount} Actioned</span>
         </div>
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '12px',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="glass-card p-3.5 sm:p-4 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 sm:gap-4">
         {/* Status Filter Tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           {[
             { id: 'ALL', label: `All (${reports.length})` },
             { id: 'OPEN', label: `Open (${openCount})` },
@@ -141,8 +123,7 @@ export const ModerationView: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setStatusFilter(tab.id as any)}
-                className={`btn btn-sm ${active ? 'btn-primary' : 'btn-glass'}`}
-                style={{ fontSize: '12.5px', padding: '6px 12px' }}
+                className={`btn btn-sm text-xs px-3 py-1.5 ${active ? 'btn-primary' : 'btn-glass'}`}
               >
                 {tab.label}
               </button>
@@ -151,28 +132,25 @@ export const ModerationView: React.FC = () => {
         </div>
 
         {/* Search & Reason dropdown */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '280px', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'relative', flex: 1, maxWidth: '300px' }}>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 flex-1 lg:max-w-xl lg:justify-end">
+          <div className="relative flex-1 w-full">
             <Search
               size={14}
-              color="var(--text-tertiary)"
-              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+              className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
             />
             <input
               type="text"
-              className="input-search"
+              className="input-search text-xs sm:text-sm pl-8 py-2 w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by accused, reporter or reason..."
-              style={{ fontSize: '13px' }}
             />
           </div>
 
           <select
-            className="select-filter"
+            className="select-filter text-xs sm:text-sm w-full sm:w-auto"
             value={reasonFilter}
             onChange={(e) => setReasonFilter(e.target.value)}
-            style={{ fontSize: '13px' }}
           >
             <option value="">All Violation Reasons</option>
             <option value="Guidelines Violation">Guidelines Violation</option>
@@ -253,42 +231,28 @@ export const ModerationView: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                      Accused: <strong style={{ color: 'var(--text-primary)' }}>{report.targetName}</strong>
+                  <div className="text-left sm:text-right">
+                    <div className="text-xs sm:text-[13.5px] text-slate-600">
+                      Accused: <strong className="text-slate-900">{report.targetName}</strong>
                     </div>
-                    <div style={{ fontSize: '12.5px', fontWeight: 600, marginTop: '2px', color: report.targetStrikeCount >= 3 ? 'var(--color-danger)' : 'var(--color-warning)' }}>
+                    <div className={`text-xs font-semibold mt-0.5 ${report.targetStrikeCount >= 3 ? 'text-rose-600' : 'text-amber-600'}`}>
                       Active Strikes: {report.targetStrikeCount} / 4
                     </div>
                   </div>
                 </div>
 
                 {/* Evidence Snippet Container */}
-                <div
-                  style={{
-                    padding: '12px 18px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    marginBottom: '16px',
-                    fontSize: '14px',
-                    fontStyle: 'italic',
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                  }}
-                >
-                  <MessageSquare size={16} color="var(--text-tertiary)" style={{ flexShrink: 0 }} />
-                  <span>&ldquo;{report.reportedContentSnippet}&rdquo;</span>
+                <div className="p-3 sm:p-3.5 rounded-lg bg-slate-50 border border-slate-200 mb-3.5 text-xs sm:text-sm italic text-slate-600 flex items-start gap-2.5 break-words min-w-0">
+                  <MessageSquare size={16} className="text-slate-400 flex-shrink-0 mt-0.5" />
+                  <span className="break-words min-w-0">&ldquo;{report.reportedContentSnippet}&rdquo;</span>
                 </div>
 
                 {/* Action Controls */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
                   {/* Left: Inspect Member Profile */}
                   <button
                     onClick={() => setInspectUserId(report.targetUserId)}
-                    className="btn btn-glass btn-sm"
+                    className="btn btn-glass btn-sm text-xs sm:text-sm"
                     title="Open full dossier with photos, bio, and strikes"
                   >
                     <Eye size={14} />
@@ -297,10 +261,10 @@ export const ModerationView: React.FC = () => {
 
                   {/* Right: Actions */}
                   {isOpen ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => handleDismiss(report)}
-                        className="btn btn-glass btn-sm"
+                        className="btn btn-glass btn-sm text-xs flex-1 sm:flex-initial"
                       >
                         <XCircle size={14} />
                         <span>Dismiss (Unfounded)</span>
@@ -313,14 +277,14 @@ export const ModerationView: React.FC = () => {
                             reportId: report.id,
                           })
                         }
-                        className="btn btn-warning btn-sm"
+                        className="btn btn-warning btn-sm text-xs flex-1 sm:flex-initial"
                       >
                         <AlertTriangle size={14} />
                         <span>Issue Sanction</span>
                       </button>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--color-success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div className="text-xs sm:text-[13px] font-medium text-emerald-600 flex items-center gap-1.5">
                       <CheckCircle size={15} />
                       <span>{report.status === 'RESOLVED' ? 'Actioned and recorded in safety audit log.' : 'Dismissed as unfounded.'}</span>
                     </div>

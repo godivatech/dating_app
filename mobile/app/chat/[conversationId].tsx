@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Modal,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -66,6 +67,7 @@ export default function ChatScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isBlockedLocally, setIsBlockedLocally] = useState(false);
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
+  const [blockedMessageModal, setBlockedMessageModal] = useState<string | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -93,7 +95,7 @@ export default function ChatScreen() {
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Message Blocked 🛡️', error);
+      setBlockedMessageModal(error);
     }
   }, [error]);
 
@@ -495,6 +497,49 @@ export default function ChatScreen() {
           onClose={() => setReportModalVisible(false)}
         />
       )}
+
+      {/* Branded Truelove Message Blocked Safety Modal */}
+      <Modal
+        visible={Boolean(blockedMessageModal)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setBlockedMessageModal(null);
+          useChatStore.setState({ error: null });
+        }}
+      >
+        <View style={styles.safetyModalBackdrop}>
+          <View style={styles.safetyModalCard}>
+            <View style={styles.safetyIconWrapper}>
+              <Ionicons name="shield-checkmark" size={32} color={Colors.primary} />
+            </View>
+
+            <Text style={styles.safetyModalTitle}>Message Blocked</Text>
+
+            <Text style={styles.safetyModalBody}>
+              {blockedMessageModal}
+            </Text>
+
+            <View style={styles.safetyReminderBox}>
+              <Ionicons name="heart" size={14} color={Colors.primary} />
+              <Text style={styles.safetyReminderText}>
+                Truelove is dedicated to kind, safe, and respectful connections.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.safetyModalButton}
+              onPress={() => {
+                setBlockedMessageModal(null);
+                useChatStore.setState({ error: null });
+              }}
+              activeOpacity={0.88}
+            >
+              <Text style={styles.safetyModalButtonText}>I Understand</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -783,5 +828,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textSecondary,
     textAlign: 'center',
+  },
+  safetyModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  safetyModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 10,
+  },
+  safetyIconWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  safetyModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginBottom: 8,
+    textAlign: 'center',
+    letterSpacing: -0.4,
+  },
+  safetyModalBody: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  safetyReminderBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F5',
+    borderWidth: 1,
+    borderColor: '#FED7D7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 8,
+    marginBottom: 20,
+  },
+  safetyReminderText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
+    color: '#9B2C2C',
+    fontWeight: '500',
+  },
+  safetyModalButton: {
+    width: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 16,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  safetyModalButtonText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

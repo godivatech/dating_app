@@ -77,119 +77,69 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   };
 
   return createPortal(
-    <>
+    <div
+      className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm z-[99999] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onClick={onClose}
+    >
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 99998,
-        }}
-        onClick={onClose}
-      />
-
-      <div
-        className="glass-card animate-fade-in"
-        style={{
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '460px',
-          maxWidth: '92vw',
-          backgroundColor: 'var(--bg-canvas)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-lg)',
-          zIndex: 99999,
-          boxShadow: 'var(--shadow-lg)',
-          overflow: 'hidden',
-        }}
+        className="glass-card animate-fade-in w-full max-w-[460px] max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto bg-slate-50"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '18px 22px',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: 'var(--radius-md)',
-                backgroundColor: 'var(--primary-brand-subtle)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ShieldCheck size={18} color="var(--primary-brand)" />
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-2">
+            <div className="w-9 h-9 rounded-lg bg-rose-50 border border-rose-100 flex items-center justify-center flex-shrink-0 text-rose-600">
+              <ShieldCheck size={18} />
             </div>
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 truncate">
                 Admin Gateway Access
               </h3>
-              <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+              <div className="text-xs text-slate-500 truncate">
                 NestJS Live API Credentials &amp; Role Verification
               </div>
             </div>
           </div>
-          <button onClick={onClose} className="btn btn-glass btn-sm" style={{ padding: '6px' }}>
-            <X size={16} />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
+            title="Close modal"
+          >
+            <X size={17} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ padding: '22px' }}>
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col gap-4">
           {/* Status Message */}
           {statusMessage && (
             <div
-              style={{
-                marginBottom: '16px',
-                padding: '10px 14px',
-                borderRadius: 'var(--radius-sm)',
-                backgroundColor: statusMessage.type === 'success' ? 'var(--color-success-bg)' : 'var(--color-danger-bg)',
-                border: `1px solid ${statusMessage.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '13px',
-                color: statusMessage.type === 'success' ? 'var(--color-success)' : 'var(--color-danger)',
-              }}
+              className={`p-3 rounded-lg flex items-center gap-2 text-xs sm:text-sm font-medium border ${
+                statusMessage.type === 'success'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}
             >
-              {statusMessage.type === 'success' ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
+              {statusMessage.type === 'success' ? (
+                <CheckCircle size={15} className="flex-shrink-0 text-emerald-600" />
+              ) : (
+                <AlertCircle size={15} className="flex-shrink-0 text-rose-600" />
+              )}
               <span>{statusMessage.text}</span>
             </div>
           )}
 
           {/* Current Auth State */}
-          <div
-            style={{
-              padding: '14px 16px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <div className="p-3.5 sm:p-4 rounded-lg bg-white border border-slate-200 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                 Gateway Connection
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 600, color: currentUser ? 'var(--color-success)' : 'var(--text-secondary)', marginTop: '2px' }}>
-                {currentUser ? `Active (${currentUser.role || 'ADMIN'})` : 'Simulation / Offline'}
+              <div className={`text-xs sm:text-sm font-semibold mt-0.5 ${currentUser ? 'text-emerald-600' : 'text-slate-600'}`}>
+                {currentUser ? `Active (${currentUser.role || 'ADMIN'})` : 'Simulation / Offline Mode'}
               </div>
               {currentUser && (
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px', fontFamily: 'var(--font-mono)' }}>
+                <div className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                   {currentUser.phoneNumber}
                 </div>
               )}
@@ -198,8 +148,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             {currentUser && (
               <button
                 onClick={handleLogout}
-                className="btn btn-glass btn-sm"
-                style={{ color: 'var(--color-danger)', fontSize: '12px' }}
+                className="btn btn-glass btn-sm text-rose-600 text-xs hover:bg-rose-50 flex-shrink-0"
               >
                 <LogOut size={13} />
                 <span>Disconnect</span>
@@ -208,34 +157,31 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           </div>
 
           {/* Phone Login Section */}
-          <form onSubmit={handlePhoneLogin} style={{ marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+          <form onSubmit={handlePhoneLogin} className="space-y-1.5">
+            <div className="text-xs sm:text-sm font-semibold text-slate-800">
               Instant Staff Dev/Admin Login
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginBottom: '10px' }}>
+            <div className="text-[11px] sm:text-xs text-slate-500 mb-2">
               Direct backend authentication for administrator role:
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Phone
                   size={14}
-                  color="var(--text-tertiary)"
-                  style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+                  className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
                 />
                 <input
                   type="text"
-                  className="input-search"
+                  className="input-search text-xs sm:text-sm pl-8 py-2 w-full"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+919999999999"
-                  style={{ width: '100%', paddingLeft: '34px' }}
                 />
               </div>
               <button
                 type="submit"
                 disabled={isLoading}
-                className="btn btn-primary btn-sm"
-                style={{ whiteSpace: 'nowrap' }}
+                className="btn btn-primary btn-sm text-xs px-3.5 flex-shrink-0"
               >
                 {isLoading ? 'Connecting...' : 'Connect'}
               </button>
@@ -243,30 +189,27 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           </form>
 
           {/* Manual Token Fallback */}
-          <form onSubmit={handleSetManualToken}>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '6px' }}>
+          <form onSubmit={handleSetManualToken} className="space-y-1.5 pt-2 border-t border-slate-200">
+            <div className="text-xs sm:text-sm font-semibold text-slate-800">
               Or Paste Admin JWT Bearer Token
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <div style={{ position: 'relative', flex: 1 }}>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Key
                   size={14}
-                  color="var(--text-tertiary)"
-                  style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+                  className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
                 />
                 <input
                   type="password"
-                  className="input-search"
+                  className="input-search text-xs sm:text-sm pl-8 py-2 w-full"
                   value={manualToken}
                   onChange={(e) => setManualToken(e.target.value)}
                   placeholder="eyJhbGciOiJIUzI1NiIsIn..."
-                  style={{ width: '100%', paddingLeft: '34px' }}
                 />
               </div>
               <button
                 type="submit"
-                className="btn btn-glass btn-sm"
-                style={{ whiteSpace: 'nowrap' }}
+                className="btn btn-glass btn-sm text-xs px-3.5 flex-shrink-0"
               >
                 Save
               </button>
@@ -274,7 +217,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           </form>
         </div>
       </div>
-    </>,
+    </div>,
     document.body,
   );
 };

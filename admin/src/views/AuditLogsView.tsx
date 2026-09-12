@@ -54,40 +54,31 @@ export const AuditLogsView: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      {/* Header Toolbar */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '16px 22px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '14px',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <FileText size={19} color="var(--text-secondary)" />
+    <div className="animate-fade-in flex flex-col gap-4 sm:gap-5">
+      {/* Header Banner */}
+      <div className="glass-card p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex-shrink-0">
+            <FileText size={20} />
+          </div>
           <div>
-            <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">
               Administrative Audit Log
             </h2>
-            <div style={{ fontSize: '13.5px', color: 'var(--text-tertiary)' }}>
+            <div className="text-xs sm:text-[13px] text-slate-500">
               Tamper-evident chronological log of staff sanctions, role changes, and photo reviews
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
           {/* Action Filter Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Filter size={14} color="var(--text-tertiary)" />
+          <div className="flex items-center gap-1.5 flex-1 sm:flex-initial">
+            <Filter size={14} className="text-slate-400 flex-shrink-0" />
             <select
-              className="select-filter"
+              className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial"
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              style={{ fontSize: '12.5px' }}
             >
               <option value="">All Action Types</option>
               <option value="BAN">Bans &amp; Suspensions</option>
@@ -101,26 +92,24 @@ export const AuditLogsView: React.FC = () => {
           </div>
 
           {/* Search Input */}
-          <div style={{ position: 'relative', width: '240px' }}>
+          <div className="relative flex-1 sm:w-56">
             <Search
               size={14}
-              color="var(--text-tertiary)"
-              style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }}
+              className="text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
             />
             <input
               type="text"
-              className="input-search"
+              className="input-search text-xs sm:text-sm pl-8 py-2 w-full"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search audit trail..."
-              style={{ paddingLeft: '32px', fontSize: '12.5px' }}
             />
           </div>
 
           {/* Export CSV Button */}
           <button
             onClick={handleExportCSV}
-            className="btn btn-glass btn-sm"
+            className="btn btn-glass btn-sm text-xs sm:text-sm flex-1 sm:flex-initial whitespace-nowrap"
             title="Download audit trail as CSV"
           >
             <Download size={13} />
@@ -129,86 +118,88 @@ export const AuditLogsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Log Feed */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-          <thead>
-            <tr
-              style={{
-                borderBottom: '1px solid var(--border-subtle)',
-                backgroundColor: 'var(--bg-surface)',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-                color: 'var(--text-tertiary)',
-              }}
-            >
-              <th style={{ padding: '14px 20px' }}>Timestamp</th>
-              <th style={{ padding: '14px 20px' }}>Moderator / Admin</th>
-              <th style={{ padding: '14px 20px' }}>Action Executed</th>
-              <th style={{ padding: '14px 20px' }}>Target Member</th>
-              <th style={{ padding: '14px 20px' }}>Audit Reason / Justification</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr>
-                <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
-                  Loading security audit trail...
-                </td>
+      {/* Log Feed Card */}
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full border-collapse text-left min-w-[760px]">
+            <thead>
+              <tr
+                style={{
+                  borderBottom: '1px solid var(--border-subtle)',
+                  backgroundColor: 'var(--bg-surface)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  color: 'var(--text-tertiary)',
+                }}
+              >
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Timestamp</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Moderator / Admin</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Action Executed</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Target Member</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Audit Reason / Justification</th>
               </tr>
-            ) : filteredLogs.length === 0 ? (
-              <tr>
-                <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
-                  No audit log records found matching query criteria.
-                </td>
-              </tr>
-            ) : (
-              filteredLogs.map((log) => (
-                <tr
-                  key={log.id}
-                  style={{
-                    borderBottom: '1px solid var(--border-subtle)',
-                  }}
-                >
-                  <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                    {new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </td>
-                  <td style={{ padding: '14px 20px', fontSize: '13.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    {log.adminId}
-                  </td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <span
-                      className={`badge ${
-                        log.actionType.includes('BAN')
-                          ? 'badge-danger'
-                          : log.actionType.includes('MUTE') || log.actionType.includes('SHADOWBAN') || log.actionType.includes('WARN')
-                          ? 'badge-warning'
-                          : log.actionType.includes('APPROVE') || log.actionType.includes('RESTORE')
-                          ? 'badge-active'
-                          : 'badge-neutral'
-                      }`}
-                    >
-                      {log.actionType}
-                    </span>
-                  </td>
-                  <td style={{ padding: '14px 20px' }}>
-                    <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {log.targetUserName || 'Member'}
-                    </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                      {log.targetUserId}
-                    </div>
-                  </td>
-                  <td style={{ padding: '14px 20px', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                    {log.reason}
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+                    Loading security audit trail...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: '36px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+                    No audit log records found matching query criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => (
+                  <tr
+                    key={log.id}
+                    style={{
+                      borderBottom: '1px solid var(--border-subtle)',
+                    }}
+                  >
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs text-slate-500 whitespace-nowrap">
+                      {new Date(log.timestamp).toLocaleDateString()} {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </td>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm font-semibold text-slate-800 whitespace-nowrap">
+                      {log.adminId}
+                    </td>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">
+                      <span
+                        className={`badge text-xs ${
+                          log.actionType.includes('BAN')
+                            ? 'badge-danger'
+                            : log.actionType.includes('MUTE') || log.actionType.includes('SHADOWBAN') || log.actionType.includes('WARN')
+                            ? 'badge-warning'
+                            : log.actionType.includes('APPROVE') || log.actionType.includes('RESTORE')
+                            ? 'badge-active'
+                            : 'badge-neutral'
+                        }`}
+                      >
+                        {log.actionType}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                      <div className="text-xs sm:text-sm font-semibold text-slate-900">
+                        {log.targetUserName || 'Member'}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-mono truncate max-w-[130px]" title={log.targetUserId}>
+                        {log.targetUserId.length > 12 ? `${log.targetUserId.slice(0, 8)}...` : log.targetUserId}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm text-slate-600 max-w-xs truncate" title={log.reason}>
+                      {log.reason}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

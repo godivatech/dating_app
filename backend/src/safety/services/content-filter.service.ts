@@ -93,7 +93,7 @@ export class ContentFilterService implements OnModuleInit {
 
       if (primaryViolation.category === ContentViolationCategory.PROFANITY) {
         userMessage =
-          'Your message contains abusive, vulgar, or inappropriate language that is prohibited on Spark.';
+          'Your message contains abusive, vulgar, or inappropriate language that is prohibited on Truelove.';
       } else if (primaryViolation.category === ContentViolationCategory.CONTACT_INFO) {
         userMessage =
           'Sharing phone numbers or off-platform contact handles is restricted to protect member privacy and prevent spam.';

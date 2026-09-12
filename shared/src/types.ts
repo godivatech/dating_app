@@ -1067,4 +1067,35 @@ export interface AdminReviewPhotoDto {
   reason?: string;
 }
 
-
+export interface AdminRevenueOverviewDto {
+  realizedRevenueInr: number;
+  monthlyRunRateInr: number;
+  completedTransactionsCount: number;
+  activeSubscribersCount: number;
+  averageOrderValueInr: number;
+  currency: string;
+  tierBreakdown: Array<{
+    id: string;
+    tier: 'GOLD' | 'PLUS' | 'PACK';
+    name: string;
+    priceDisplay: string;
+    description: string;
+    activeUnits: number;
+    monthlyRevenueInr: number;
+  }>;
+  availableProducts: Array<{
+    id: string;
+    storeProductId: string;
+    productKey: string;
+    displayName: string;
+    tier: string;
+    priceInr: number;
+  }>;
+  benchmarkProjection: {
+    projectedMonthlyRunRateInr: number;
+    projectedSubscribers: number;
+    projectedNotesVolume: number;
+    projectedProfitMarginPercent: number;
+    projectedNetProfitInr: number;
+  };
+}

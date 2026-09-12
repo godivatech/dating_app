@@ -62,80 +62,43 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
 
   return createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop Scrim */}
       <div
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 99998,
-        }}
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99998] transition-opacity"
         onClick={onClose}
       />
 
-      {/* Slide-over Drawer */}
-      <aside
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          height: '100vh',
-          maxHeight: '100vh',
-          width: '500px',
-          maxWidth: '100vw',
-          backgroundColor: 'var(--bg-canvas)',
-          borderLeft: '1px solid var(--border-subtle)',
-          zIndex: 99999,
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: 'var(--shadow-lg)',
-          animation: 'slideInRight 0.2s ease-out',
-        }}
-      >
+      {/* Slide-over Drawer (Responsive: 100vw on mobile, max-w-[500px] on tablet/desktop) */}
+      <aside className="fixed top-0 right-0 bottom-0 h-full h-[100dvh] max-h-[100dvh] w-full sm:max-w-[480px] md:max-w-[520px] bg-slate-50 border-l border-slate-200 z-[99999] flex flex-col shadow-2xl animate-fade-in overflow-hidden">
         {/* Drawer Header */}
-        <div
-          style={{
-            padding: '18px 24px',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            backgroundColor: 'var(--bg-card)',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-white flex-shrink-0">
+          <div className="min-w-0 pr-3">
+            <div className="text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider">
               Member Profile Dossier
             </div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
+            <div className="text-base sm:text-lg font-bold text-slate-900 truncate mt-0.5">
               {detail?.profile?.displayName || 'Loading...'}
             </div>
           </div>
-          <button onClick={onClose} className="btn btn-glass btn-sm" style={{ padding: '6px' }}>
+          <button
+            onClick={onClose}
+            className="p-1.5 sm:p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors flex-shrink-0"
+            title="Close dossier"
+          >
             <X size={18} />
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        {/* Scrollable Content Container */}
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-4">
           {isLoading ? (
-            <div style={{ padding: '36px', textAlign: 'center', fontSize: '14px', color: 'var(--text-tertiary)' }}>
+            <div className="p-8 text-center text-sm text-slate-400">
               Loading user dossier...
             </div>
           ) : detail ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div className="flex flex-col gap-3.5 sm:gap-4">
               {/* User Primary Card */}
-              <div
-                className="glass-card"
-                style={{
-                  padding: '18px',
-                  display: 'flex',
-                  gap: '16px',
-                  alignItems: 'center',
-                }}
-              >
+              <div className="glass-card p-3.5 sm:p-4 flex flex-col xs:flex-row gap-3.5 items-start xs:items-center">
                 <img
                   src={
                     detail.profile?.photos?.[0]?.thumbnailUrl ||
@@ -145,20 +108,17 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                       : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80')
                   }
                   alt="Profile"
-                  style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: 'var(--radius-md)',
-                    objectFit: 'cover',
-                  }}
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg object-cover flex-shrink-0 border border-slate-200"
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+
+                <div className="flex-1 min-w-0 w-full">
+                  {/* Name + Status + Role cluster (Responsive wrap) */}
+                  <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1.5">
+                    <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate max-w-[200px] sm:max-w-none">
                       {detail.profile?.displayName}, {detail.profile?.age}
                     </h2>
                     <span
-                      className={`badge ${
+                      className={`badge text-[11px] ${
                         detail.status === 'ACTIVE'
                           ? 'badge-active'
                           : detail.status === 'BANNED'
@@ -179,17 +139,13 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                         }
                       }}
                       title="Update system authorization role"
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-subtle)',
-                        color: detail.role === 'ADMIN' ? 'var(--primary-brand)' : detail.role === 'MODERATOR' ? 'var(--color-warning)' : 'var(--text-secondary)',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        outline: 'none',
-                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 border border-slate-200 cursor-pointer outline-none ${
+                        detail.role === 'ADMIN'
+                          ? 'text-rose-600'
+                          : detail.role === 'MODERATOR'
+                          ? 'text-amber-600'
+                          : 'text-slate-600'
+                      }`}
                     >
                       <option value="USER">ROLE: USER</option>
                       <option value="MODERATOR">ROLE: MODERATOR</option>
@@ -197,14 +153,14 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                     </select>
                   </div>
 
-                  <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                      <Phone size={14} color="var(--text-tertiary)" />
-                      <span style={{ fontFamily: 'var(--font-mono)' }}>{detail.phoneNumber}</span>
+                  <div className="text-xs sm:text-[13px] text-slate-600 flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <Phone size={13} className="text-slate-400 flex-shrink-0" />
+                      <span className="font-mono">{detail.phoneNumber}</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                      <MapPin size={14} color="var(--text-tertiary)" />
-                      <span>
+                    <div className="flex items-center gap-2 truncate">
+                      <MapPin size={13} className="text-slate-400 flex-shrink-0" />
+                      <span className="truncate">
                         {detail.profile?.locationCity || 'Bengaluru'}, {detail.profile?.locationRegion || 'Karnataka'}
                       </span>
                     </div>
@@ -212,81 +168,117 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Safety Strike Meter */}
-              <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Shield size={16} color="var(--text-secondary)" />
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {/* Safety Strike Meter & Detailed History */}
+              <div className="glass-card p-3.5 sm:p-4">
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Shield size={16} className="text-slate-500" />
+                    <span className="text-xs sm:text-sm font-bold text-slate-900">
                       Safety Strike Status
                     </span>
                   </div>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: (detail.strikes?.length || 0) === 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+                  <span className={`text-xs sm:text-sm font-bold ${
+                    (detail.strikes?.length || 0) === 0 ? 'text-emerald-600' : 'text-rose-600'
+                  }`}>
                     {detail.strikes?.length || 0} of 4 Strikes
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                <div className="flex gap-1.5 mb-2.5">
                   {[1, 2, 3, 4].map((step) => {
                     const isFired = (detail.strikes?.length || 0) >= step;
                     return (
                       <div
                         key={step}
-                        style={{
-                          flex: 1,
-                          height: '6px',
-                          borderRadius: 'var(--radius-full)',
-                          backgroundColor: isFired
+                        className={`flex-1 h-1.5 rounded-full transition-colors ${
+                          isFired
                             ? step === 4
-                              ? 'var(--color-danger)'
-                              : 'var(--color-warning)'
-                            : 'var(--border-subtle)',
-                        }}
+                              ? 'bg-rose-600'
+                              : 'bg-amber-500'
+                            : 'bg-slate-200'
+                        }`}
                       />
                     );
                   })}
                 </div>
 
-                <div style={{ fontSize: '12px', color: 'var(--text-tertiary)' }}>
+                <div className="text-[11px] sm:text-xs text-slate-500 leading-relaxed">
                   Strike 1: Warning • Strike 2: 24h Mute • Strike 3: 7d Shadowban • Strike 4: Ban
                 </div>
+
+                {/* Strike Details & Reason History */}
+                {detail.strikes && detail.strikes.length > 0 && (
+                  <div className="mt-3.5 pt-3 border-t border-slate-200 flex flex-col gap-2">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Strike History &amp; Reason Logs ({detail.strikes.length})
+                    </div>
+                    {detail.strikes.map((strike, sIdx) => {
+                      const formattedAction = (strike.actionTaken || 'SANCTION')
+                        .replace('ADMIN_', '')
+                        .replace(/_/g, ' ');
+                      return (
+                        <div
+                          key={strike.id || sIdx}
+                          className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex flex-col gap-1 text-xs"
+                        >
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                              Strike #{strike.strikeNumber || sIdx + 1}: {formattedAction}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              strike.severity === 'CRITICAL' || strike.severity === 'HIGH'
+                                ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                                : 'bg-amber-100 text-amber-800 border border-amber-200'
+                            }`}>
+                              {strike.severity}
+                            </span>
+                          </div>
+                          <div className="text-slate-700 text-xs mt-0.5 leading-relaxed">
+                            <span className="font-semibold text-slate-900">Reason: </span>
+                            {strike.reason}
+                          </div>
+                          {strike.evidence && (
+                            <div className="text-slate-500 text-[11px]">
+                              <span className="font-semibold text-slate-700">Evidence: </span>
+                              {strike.evidence}
+                            </div>
+                          )}
+                          <div className="text-[10.5px] text-slate-400 mt-0.5">
+                            {new Date(strike.createdAt).toLocaleString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Photos Gallery */}
-              <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+              <div className="glass-card p-3.5 sm:p-4">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 mb-2.5">
                   Profile Media ({detail.profile?.photos?.length || 0})
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
                   {detail.profile?.photos?.map((photo) => (
                     <div
                       key={photo.id}
-                      style={{
-                        position: 'relative',
-                        borderRadius: 'var(--radius-sm)',
-                        overflow: 'hidden',
-                        aspectRatio: '3/4',
-                        backgroundColor: 'var(--bg-canvas)',
-                      }}
+                      className="relative rounded-md overflow-hidden aspect-[3/4] bg-slate-100 border border-slate-200"
                     >
                       <img
                         src={photo.thumbnailUrl || ''}
                         alt="Slot"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        className="w-full h-full object-cover"
                       />
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: '6px',
-                          left: '6px',
-                          padding: '3px 7px',
-                          borderRadius: 'var(--radius-sm)',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          backgroundColor: 'rgba(0,0,0,0.75)',
-                          color: photo.isPrimary ? 'var(--color-success)' : '#FFFFFF',
-                        }}
-                      >
+                      <div className={`absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/75 ${
+                        photo.isPrimary ? 'text-emerald-400' : 'text-white'
+                      }`}>
                         {photo.isPrimary ? 'PRIMARY' : `SLOT ${photo.position + 1}`}
                       </div>
                     </div>
@@ -294,27 +286,20 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                 </div>
               </div>
 
-              {/* Bio & Interests */}
-              <div className="glass-card" style={{ padding: '16px 18px' }}>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+              {/* Bio & Lifestyle */}
+              <div className="glass-card p-3.5 sm:p-4">
+                <div className="text-xs sm:text-sm font-bold text-slate-900 mb-2">
                   Bio &amp; Lifestyle
                 </div>
-                <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginBottom: '14px', lineHeight: 1.45 }}>
+                <p className="text-xs sm:text-[13.5px] text-slate-600 mb-3 leading-relaxed">
                   {detail.profile?.bio || 'No personal bio provided.'}
                 </p>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div className="flex flex-wrap gap-1.5">
                   {detail.profile?.interests?.map((int) => (
                     <span
                       key={int.id}
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: 'var(--radius-sm)',
-                        fontSize: '12.5px',
-                        backgroundColor: 'var(--bg-surface)',
-                        border: '1px solid var(--border-subtle)',
-                        color: 'var(--text-secondary)',
-                      }}
+                      className="px-2.5 py-1 rounded text-xs bg-slate-100 border border-slate-200 text-slate-600 font-medium"
                     >
                       {int.name}
                     </span>
@@ -323,44 +308,44 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
               </div>
 
               {/* Activity Stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div className="glass-card" style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 600 }}>
-                    <Heart size={15} color="var(--text-tertiary)" />
-                    <span>Matches Formed</span>
+              <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                <div className="glass-card p-3 sm:p-3.5">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                    <Heart size={14} />
+                    <span>Matches</span>
                   </div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                     {detail.mutualMatchesCount}
                   </div>
                 </div>
 
-                <div className="glass-card" style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px', color: 'var(--text-tertiary)', fontSize: '12px', fontWeight: 600 }}>
-                    <MessageSquare size={15} color="var(--text-tertiary)" />
+                <div className="glass-card p-3 sm:p-3.5">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-semibold">
+                    <MessageSquare size={14} />
                     <span>Direct Notes</span>
                   </div>
-                  <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '4px' }}>
+                  <div className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">
                     {detail.directNotesSentCount}
                   </div>
                 </div>
               </div>
 
               {/* Subscription Row */}
-              <div className="glass-card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <Crown size={18} color="var(--color-warning)" />
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-                      Subscription: {detail.subscription?.planType || 'FREE TIER'}
+              <div className="glass-card p-3 sm:p-3.5 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <Crown size={18} className="text-amber-500 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
+                      {detail.subscription?.planType || 'FREE TIER'}
                     </div>
                     {detail.subscription?.expiresAt && (
-                      <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '2px' }}>
+                      <div className="text-[11px] text-slate-400 truncate">
                         Valid through: {new Date(detail.subscription.expiresAt).toLocaleDateString()}
                       </div>
                     )}
                   </div>
                 </div>
-                <span className={`badge ${detail.subscription ? 'badge-active' : 'badge-neutral'}`}>
+                <span className={`badge flex-shrink-0 text-xs ${detail.subscription ? 'badge-active' : 'badge-neutral'}`}>
                   {detail.subscription ? 'SUBSCRIBED' : 'FREE'}
                 </span>
               </div>
@@ -368,25 +353,16 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
           ) : null}
         </div>
 
-        {/* Drawer Footer Actions */}
-        <div
-          style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-card)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ fontSize: '13px', color: 'var(--text-tertiary)' }}>
-            User: <code style={{ color: 'var(--text-secondary)' }}>{detail?.id}</code>
+        {/* Drawer Footer Actions (Responsive: handles long UUIDs cleanly) */}
+        <div className="p-3 sm:p-4 border-t border-slate-200 bg-white flex items-center justify-between gap-2 flex-shrink-0">
+          <div className="text-xs text-slate-400 min-w-0 truncate pr-2">
+            ID: <code className="inline-block font-mono text-[11px] text-slate-600 truncate max-w-[120px] sm:max-w-[220px] align-bottom" title={detail?.id}>{detail?.id}</code>
           </div>
           <button
             onClick={() => setIsDisciplineOpen(true)}
-            className="btn btn-warning"
+            className="btn btn-warning btn-sm text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
           >
-            <AlertTriangle size={15} />
+            <AlertTriangle size={14} />
             <span>Apply Sanction</span>
           </button>
         </div>

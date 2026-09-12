@@ -80,6 +80,30 @@ describe('AdminService', () => {
       },
       userSubscription: {
         count: jest.fn().mockResolvedValue(15),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'sub-1',
+            status: SubscriptionStatus.ACTIVE,
+            expiresAt: new Date(Date.now() + 86400000),
+            product: {
+              id: 'prod-gold',
+              tier: SubscriptionTier.GOLD,
+              priceAmount: 49900,
+            },
+          },
+        ]),
+      },
+      subscriptionProduct: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'prod-gold',
+            storeProductId: 'com.sparkdating.gold.1m',
+            productKey: 'SPARK_GOLD_1M',
+            displayName: 'Truelove Gold Tier',
+            tier: 'GOLD',
+            priceAmount: 49900,
+          },
+        ]),
       },
       userAction: {
         count: jest.fn().mockResolvedValue(40),
@@ -118,6 +142,11 @@ describe('AdminService', () => {
         create: jest.fn().mockResolvedValue({ id: 'audit-1' }),
       },
       purchaseTransaction: {
+        count: jest.fn().mockResolvedValue(40),
+        aggregate: jest.fn().mockResolvedValue({
+          _sum: { amount: 49900 },
+          _count: { id: 1 },
+        }),
         findMany: jest.fn().mockResolvedValue([
           {
             id: 'tx-1',
@@ -147,11 +176,15 @@ describe('AdminService', () => {
     mockStorage = {
       getPublicUrl: jest.fn((key) => `https://cdn.sparkdating.com/${key}`),
     };
+    const mockNotifications: any = {
+      createNotification: jest.fn().mockResolvedValue({ id: 'notif-1' }),
+    };
 
     service = new AdminService(
       mockPrisma as PrismaService,
       mockPagination,
       mockStorage as StorageService,
+      mockNotifications,
     );
   });
 
@@ -296,5 +329,19 @@ describe('AdminService', () => {
       expect(txs[0].amount).toBe(49900);
       expect(txs[0].productId).toBe('com.sparkdating.gold.1m');
     });
+
+    it('aggregates live revenue overview, MRR, tier performance, and products', async () => {
+      const overview = await service.getRevenueOverview();
+
+      expect(overview.realizedRevenueInr).toBe(499);
+      expect(overview.completedTransactionsCount).toBe(1);
+      expect(overview.activeSubscribersCount).toBe(1);
+      expect(overview.monthlyRunRateInr).toBe(499);
+      expect(overview.tierBreakdown.length).toBe(3);
+      expect(overview.availableProducts.length).toBe(1);
+      expect(overview.availableProducts[0].storeProductId).toBe('com.sparkdating.gold.1m');
+      expect(overview.benchmarkProjection.projectedMonthlyRunRateInr).toBe(273130);
+    });
   });
 });
+

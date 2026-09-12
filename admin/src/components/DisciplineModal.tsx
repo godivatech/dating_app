@@ -115,92 +115,48 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
 
   return createPortal(
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.45)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 99999,
-        padding: '20px',
-      }}
+      className="fixed inset-0 bg-slate-900/45 backdrop-blur-sm z-[99999] flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="glass-card animate-fade-in"
-        style={{
-          width: '100%',
-          maxWidth: '560px',
-          backgroundColor: 'var(--bg-card)',
-          border: '1px solid var(--border-subtle)',
-          borderRadius: 'var(--radius-xl)',
-          overflow: 'hidden',
-          boxShadow: 'var(--shadow-lg)',
-        }}
+        className="glass-card animate-fade-in w-full max-w-[560px] max-h-[92vh] flex flex-col overflow-hidden shadow-2xl my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div
-          style={{
-            padding: '22px 26px',
-            borderBottom: '1px solid var(--border-subtle)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              style={{
-                width: '42px',
-                height: '42px',
-                borderRadius: '10px',
-                background: 'var(--color-danger-bg)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <ShieldAlert size={22} color="var(--color-danger)" />
+        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-start sm:items-center justify-between gap-3 bg-white flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0 border border-rose-100">
+              <ShieldAlert size={20} />
             </div>
-            <div>
-              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate">
                 Discipline Action &amp; Sanctions
               </h2>
-              <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                Target: <strong style={{ color: 'var(--text-primary)' }}>{userName}</strong> ({userId})
+              <div className="text-xs sm:text-[13px] text-slate-500 mt-0.5 truncate">
+                Target: <strong className="text-slate-800">{userName}</strong>
+                <span className="font-mono text-[11px] text-slate-400 ml-1.5 hidden xs:inline">
+                  ({userId.length > 12 ? `${userId.slice(0, 8)}...` : userId})
+                </span>
               </div>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="btn btn-glass btn-sm"
-            style={{ padding: '6px' }}
+            className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors flex-shrink-0"
+            title="Cancel"
           >
             <X size={18} />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} style={{ padding: '26px' }}>
+        {/* Form Body (Scrollable if height constrained) */}
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-5">
           {/* Action Selector */}
-          <div style={{ marginBottom: '22px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                color: 'var(--text-secondary)',
-                marginBottom: '10px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
               Select Administrative Action
             </label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
               {actionOptions.map((opt) => {
                 const Icon = opt.icon;
                 const isSelected = selectedAction === opt.id;
@@ -208,22 +164,21 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
                   <div
                     key={opt.id}
                     onClick={() => setSelectedAction(opt.id)}
-                    style={{
-                      padding: '14px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: isSelected ? opt.bgColor : 'var(--bg-surface)',
-                      border: isSelected ? `1.5px solid ${opt.color}` : '1px solid var(--border-subtle)',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                    }}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      isSelected
+                        ? 'border-rose-500 bg-rose-50/70 shadow-sm'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-100/70'
+                    }`}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-                      <Icon size={17} color={opt.color} />
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: isSelected ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Icon size={16} color={opt.color} className="flex-shrink-0" />
+                      <span className={`text-xs sm:text-[13px] font-bold ${
+                        isSelected ? 'text-slate-900' : 'text-slate-700'
+                      }`}>
                         {opt.label}
                       </span>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', lineHeight: 1.35 }}>
+                    <div className="text-[11px] sm:text-xs text-slate-500 leading-tight">
                       {opt.description}
                     </div>
                   </div>
@@ -233,42 +188,17 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
           </div>
 
           {/* Quick-fill Reason Templates */}
-          <div style={{ marginBottom: '14px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12px',
-                fontWeight: 700,
-                color: 'var(--text-tertiary)',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-              }}
-            >
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-1.5">
               Quick Presets
             </label>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="flex flex-wrap gap-1.5">
               {quickReasons.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setReason(preset)}
-                  style={{
-                    padding: '5px 12px',
-                    borderRadius: 'var(--radius-full)',
-                    fontSize: '12px',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-subtle)',
-                    color: 'var(--text-secondary)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-default)';
-                    e.currentTarget.style.color = 'var(--text-primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-subtle)';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
+                  className="px-2.5 py-1 rounded-full text-xs bg-slate-100 border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-900 transition-colors"
                 >
                   Preset {idx + 1}
                 </button>
@@ -277,19 +207,9 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
           </div>
 
           {/* Mandatory Reason Input */}
-          <div style={{ marginBottom: '24px' }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: '12.5px',
-                fontWeight: 700,
-                color: 'var(--text-secondary)',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Audit Reason &amp; Justification <span style={{ color: 'var(--color-danger)' }}>*</span>
+          <div>
+            <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+              Audit Reason &amp; Justification <span className="text-rose-600">*</span>
             </label>
             <textarea
               required
@@ -297,35 +217,29 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder="Provide a clear factual audit justification for this administrative sanction..."
-              style={{
-                width: '100%',
-                padding: '12px 16px',
-                backgroundColor: 'var(--bg-card)',
-                border: '1px solid var(--border-subtle)',
-                borderRadius: 'var(--radius-md)',
-                color: 'var(--text-primary)',
-                fontFamily: 'var(--font-body)',
-                fontSize: '14px',
-                lineHeight: 1.5,
-                resize: 'vertical',
-                boxSizing: 'border-box',
-              }}
+              className="w-full p-3 bg-white border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-900 focus:border-slate-400 outline-none transition-colors resize-y"
             />
           </div>
 
           {/* Footer Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px' }}>
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-glass"
+              className="btn btn-glass text-xs sm:text-sm px-3.5 py-2"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className={selectedAction === 'BAN' ? 'btn btn-danger' : selectedAction === 'UNBAN' ? 'btn btn-success' : 'btn btn-warning'}
+              className={`btn text-xs sm:text-sm px-4 py-2 ${
+                selectedAction === 'BAN'
+                  ? 'btn-danger'
+                  : selectedAction === 'UNBAN'
+                  ? 'btn-success'
+                  : 'btn-warning'
+              }`}
               disabled={isSubmitting || !reason.trim()}
             >
               {isSubmitting ? 'Executing...' : `Apply ${selectedAction}`}

@@ -1,8 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* ==========================================================================
      Design System Tokens: Modern Crisp Enterprise Light (Stripe / Shopify / Linear Light)
      Clean, professional, high-contrast, zero eye fatigue.
      ========================================================================== */
+
 
   /* Neutral Background Surfaces (Crisp White & Soft Slate) */
   --bg-canvas: #F8FAFC;
@@ -121,7 +126,9 @@ html, body {
 .app-container {
   display: flex;
   width: 100vw;
+  max-width: 100%;
   height: 100vh;
+  height: 100dvh;
   background-color: var(--bg-canvas);
   overflow: hidden;
 }
@@ -131,6 +138,8 @@ html, body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
+  min-width: 0;
   overflow: hidden;
   background-color: var(--bg-canvas);
   position: relative;
@@ -138,10 +147,25 @@ html, body {
 
 .view-viewport {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  padding: 28px 36px 56px 36px;
+  overflow-x: hidden;
+  padding: 16px 16px 40px 16px;
   position: relative;
 }
+
+@media (min-width: 640px) {
+  .view-viewport {
+    padding: 24px 24px 48px 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .view-viewport {
+    padding: 28px 36px 56px 36px;
+  }
+}
+
 
 /* Clean Enterprise Card */
 .glass-card {

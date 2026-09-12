@@ -104,29 +104,18 @@ export const UsersView: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="animate-fade-in flex flex-col gap-4">
       {/* Search & Filter Toolbar */}
-      <div
-        className="glass-card"
-        style={{
-          padding: '14px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '14px',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div className="glass-card p-3.5 sm:p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">
         {/* Search Bar */}
-        <div style={{ position: 'relative', flex: 1, minWidth: '260px' }}>
+        <div className="relative flex-1 w-full md:min-w-[280px]">
           <Search
             size={14}
-            color="var(--text-tertiary)"
-            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}
+            className="text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"
           />
           <input
             type="text"
-            className="input-search"
+            className="input-search text-xs sm:text-sm pl-9 py-2 w-full"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -137,9 +126,9 @@ export const UsersView: React.FC = () => {
         </div>
 
         {/* Filter Dropdowns & Export */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full md:w-auto">
           <select
-            className="select-filter"
+            className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial"
             value={statusFilter}
             onChange={(e) => {
               setStatusFilter(e.target.value);
@@ -154,7 +143,7 @@ export const UsersView: React.FC = () => {
           </select>
 
           <select
-            className="select-filter"
+            className="select-filter text-xs sm:text-sm flex-1 sm:flex-initial"
             value={roleFilter}
             onChange={(e) => {
               setRoleFilter(e.target.value);
@@ -169,7 +158,7 @@ export const UsersView: React.FC = () => {
 
           <button
             onClick={handleExportCSV}
-            className="btn btn-glass btn-sm"
+            className="btn btn-glass btn-sm text-xs sm:text-sm flex-1 sm:flex-initial whitespace-nowrap"
             title="Export current user list to CSV"
           >
             <Download size={13} />
@@ -179,39 +168,30 @@ export const UsersView: React.FC = () => {
       </div>
 
       {/* Users Table Card */}
-      <div className="glass-card" style={{ overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+      <div className="glass-card overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full border-collapse text-left min-w-[760px]">
+
             <thead>
-              <tr
-                style={{
-                  borderBottom: '1px solid var(--border-subtle)',
-                  backgroundColor: 'var(--bg-surface)',
-                  fontSize: '12.5px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
-                  color: 'var(--text-tertiary)',
-                }}
-              >
-                <th style={{ padding: '14px 20px' }}>Member</th>
-                <th style={{ padding: '14px 20px' }}>Phone Number</th>
-                <th style={{ padding: '14px 20px' }}>Safety Standing</th>
-                <th style={{ padding: '14px 20px' }}>Status</th>
-                <th style={{ padding: '14px 20px' }}>Joined</th>
-                <th style={{ padding: '14px 20px', textAlign: 'right' }}>Actions</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold uppercase tracking-wider text-slate-400">
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Member</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Phone Number</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Safety Standing</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap">Joined</th>
+                <th className="px-4 py-3 sm:px-5 sm:py-3.5 whitespace-nowrap text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 text-sm">
                     Loading member accounts...
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '14px' }}>
+                  <td colSpan={6} className="p-8 text-center text-slate-400 text-sm">
                     No member records found matching query criteria.
                   </td>
                 </tr>
@@ -220,20 +200,11 @@ export const UsersView: React.FC = () => {
                   return (
                     <tr
                       key={user.id}
-                      style={{
-                        borderBottom: '1px solid var(--border-subtle)',
-                        transition: 'background var(--transition-fast)',
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }}
+                      className="border-b border-slate-200 hover:bg-slate-50/70 transition-colors"
                     >
                       {/* Persona Photo & Name */}
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                        <div className="flex items-center gap-3">
                           <img
                             src={
                               user.primaryPhotoUrl ||
@@ -242,34 +213,29 @@ export const UsersView: React.FC = () => {
                                 : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80')
                             }
                             alt="avatar"
-                            style={{
-                              width: '42px',
-                              height: '42px',
-                              borderRadius: 'var(--radius-sm)',
-                              objectFit: 'cover',
-                            }}
+                            className="w-10 h-10 rounded-md object-cover flex-shrink-0 border border-slate-200"
                           />
-                          <div>
-                            <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                          <div className="min-w-0">
+                            <div className="text-xs sm:text-sm font-semibold text-slate-900 truncate">
                               {user.displayName || 'Unset Name'}, {user.age || '—'}
                             </div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                              ID: {user.id}
+                            <div className="text-[11px] text-slate-400 mt-0.5 font-mono truncate max-w-[130px]" title={user.id}>
+                              ID: {user.id.slice(0, 8)}...
                             </div>
                           </div>
                         </div>
                       </td>
 
                       {/* Phone */}
-                      <td style={{ padding: '14px 20px', fontSize: '13.5px', fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13.5px] font-mono text-slate-600 whitespace-nowrap">
                         {user.phoneNumber}
                       </td>
 
                       {/* Safety Standing */}
-                      <td style={{ padding: '14px 20px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span
-                            className={`badge ${
+                            className={`badge text-xs ${
                               user.activeStrikes === 0
                                 ? 'badge-active'
                                 : user.activeStrikes < 3
@@ -280,12 +246,12 @@ export const UsersView: React.FC = () => {
                             {user.activeStrikes === 0 ? 'Good Standing' : `${user.activeStrikes} Strike${user.activeStrikes > 1 ? 's' : ''}`}
                           </span>
                           {user.isMuted && (
-                            <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+                            <span className="badge badge-warning text-[10px]">
                               MUTED
                             </span>
                           )}
                           {user.isShadowBanned && (
-                            <span className="badge badge-neutral" style={{ fontSize: '10px' }}>
+                            <span className="badge badge-neutral text-[10px]">
                               SHADOWBANNED
                             </span>
                           )}
@@ -293,9 +259,9 @@ export const UsersView: React.FC = () => {
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: '14px 20px' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5">
                         <span
-                          className={`badge ${
+                          className={`badge text-xs ${
                             user.status === 'ACTIVE'
                               ? 'badge-active'
                               : user.status === 'BANNED'
@@ -308,16 +274,16 @@ export const UsersView: React.FC = () => {
                       </td>
 
                       {/* Joined Date */}
-                      <td style={{ padding: '14px 20px', fontSize: '13px', color: 'var(--text-tertiary)' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-500 whitespace-nowrap">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '14px 20px', textAlign: 'right' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
                           <button
                             onClick={() => setSelectedUserId(user.id)}
-                            className="btn btn-glass btn-sm"
+                            className="btn btn-glass btn-sm text-xs"
                             title="Inspect complete member profile dossier"
                           >
                             <Eye size={13} />
@@ -330,7 +296,7 @@ export const UsersView: React.FC = () => {
                                 name: user.displayName || 'User',
                               })
                             }
-                            className="btn btn-glass btn-sm"
+                            className="btn btn-glass btn-sm text-xs"
                             title="Apply discipline sanctions"
                           >
                             <AlertTriangle size={13} />
@@ -346,25 +312,14 @@ export const UsersView: React.FC = () => {
           </table>
         </div>
 
-        {/* Pagination Footer */}
-        <div
-          style={{
-            padding: '14px 20px',
-            borderTop: '1px solid var(--border-subtle)',
-            backgroundColor: 'var(--bg-surface)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            fontSize: '13.5px',
-            color: 'var(--text-tertiary)',
-          }}
-        >
+        {/* Responsive Pagination Footer */}
+        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-[13.5px] text-slate-500">
           <div>
-            Showing <strong style={{ color: 'var(--text-secondary)' }}>{users.length}</strong> of{' '}
-            <strong style={{ color: 'var(--text-secondary)' }}>{totalCount}</strong> members
+            Showing <strong className="text-slate-700">{users.length}</strong> of{' '}
+            <strong className="text-slate-700">{totalCount}</strong> members
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
@@ -373,7 +328,7 @@ export const UsersView: React.FC = () => {
               <ChevronLeft size={14} />
               <span>Previous</span>
             </button>
-            <span style={{ padding: '0 8px', fontWeight: 700, color: 'var(--text-secondary)' }}>
+            <span className="px-2 font-bold text-slate-700">
               {page}
             </span>
             <button

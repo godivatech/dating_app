@@ -110,6 +110,44 @@ export interface PurchaseTransactionItem {
   createdAt: string;
 }
 
+export interface RevenueTierItem {
+  id: string;
+  tier: 'GOLD' | 'PLUS' | 'PACK';
+  name: string;
+  priceDisplay: string;
+  description: string;
+  activeUnits: number;
+  monthlyRevenueInr: number;
+}
+
+export interface AvailableStoreProduct {
+  id: string;
+  storeProductId: string;
+  productKey: string;
+  displayName: string;
+  tier: string;
+  priceInr: number;
+}
+
+export interface RevenueOverview {
+  realizedRevenueInr: number;
+  monthlyRunRateInr: number;
+  completedTransactionsCount: number;
+  activeSubscribersCount: number;
+  averageOrderValueInr: number;
+  currency: string;
+  tierBreakdown: RevenueTierItem[];
+  availableProducts: AvailableStoreProduct[];
+  benchmarkProjection: {
+    projectedMonthlyRunRateInr: number;
+    projectedSubscribers: number;
+    projectedNotesVolume: number;
+    projectedProfitMarginPercent: number;
+    projectedNetProfitInr: number;
+  };
+}
+
+
 export interface AuditLogItem {
   id: string;
   adminId: string;
@@ -357,6 +395,93 @@ let mockTransactions: PurchaseTransactionItem[] = [
     createdAt: '2026-03-01T18:40:00.000Z',
   },
 ];
+
+const mockRevenueOverview: RevenueOverview = {
+  realizedRevenueInr: 273130,
+  monthlyRunRateInr: 273130,
+  completedTransactionsCount: 1105,
+  activeSubscribersCount: 425,
+  averageOrderValueInr: 247.18,
+  currency: 'INR',
+  tierBreakdown: [
+    {
+      id: 'truelove-gold',
+      tier: 'GOLD',
+      name: 'Truelove Gold Tier',
+      priceDisplay: '₹499 / mo',
+      description: 'See Who Liked You, 5 Direct Notes/wk, 1 Boost/wk, Incognito Mode',
+      activeUnits: 240,
+      monthlyRevenueInr: 119760,
+    },
+    {
+      id: 'truelove-plus',
+      tier: 'PLUS',
+      name: 'Truelove Plus Tier',
+      priceDisplay: '₹299 / mo',
+      description: 'Unlimited Swipes, Rewind Pass, Passport location travel',
+      activeUnits: 185,
+      monthlyRevenueInr: 55315,
+    },
+    {
+      id: 'direct-notes-packs',
+      tier: 'PACK',
+      name: 'Direct Note Micro-Packs & Boosts',
+      priceDisplay: '₹99 (5) • ₹199 (15) • ₹349 (30)',
+      description: 'A-la-carte direct message invites sent with profile likes',
+      activeUnits: 680,
+      monthlyRevenueInr: 98055,
+    },
+  ],
+  availableProducts: [
+    {
+      id: 'prod-plus-1m',
+      storeProductId: 'com.sparkdating.plus.1m',
+      productKey: 'SPARK_PLUS_1M',
+      displayName: 'Truelove Plus 1 Month',
+      tier: 'PLUS',
+      priceInr: 299,
+    },
+    {
+      id: 'prod-gold-1m',
+      storeProductId: 'com.sparkdating.gold.1m',
+      productKey: 'SPARK_GOLD_1M',
+      displayName: 'Truelove Gold 1 Month',
+      tier: 'GOLD',
+      priceInr: 499,
+    },
+    {
+      id: 'prod-notes-5',
+      storeProductId: 'com.truelove.notes.5',
+      productKey: 'DIRECT_NOTES_5',
+      displayName: '5 Direct Notes Pack',
+      tier: 'PACK',
+      priceInr: 99,
+    },
+    {
+      id: 'prod-notes-15',
+      storeProductId: 'com.truelove.notes.15',
+      productKey: 'DIRECT_NOTES_15',
+      displayName: '15 Direct Notes Pack',
+      tier: 'PACK',
+      priceInr: 199,
+    },
+    {
+      id: 'prod-notes-30',
+      storeProductId: 'com.truelove.notes.30',
+      productKey: 'DIRECT_NOTES_30',
+      displayName: '30 Direct Notes Pack',
+      tier: 'PACK',
+      priceInr: 349,
+    },
+  ],
+  benchmarkProjection: {
+    projectedMonthlyRunRateInr: 273130,
+    projectedSubscribers: 425,
+    projectedNotesVolume: 3922,
+    projectedProfitMarginPercent: 78.7,
+    projectedNetProfitInr: 215000,
+  },
+};
 
 let mockReports: AbuseReportItem[] = [
   {
@@ -814,6 +939,19 @@ class AdminApiService {
     }
     return [...mockTransactions];
   }
+
+  async getRevenueOverview(): Promise<RevenueOverview> {
+    if (this.mode === 'live') {
+      try {
+        const data = await this.fetchWithAuth('/admin/revenue/overview');
+        if (data) return data;
+      } catch (err) {
+        console.warn('Live revenue overview failed, returning simulation records', err);
+      }
+    }
+    return { ...mockRevenueOverview };
+  }
+
 
   async getReports(params?: {
     status?: string;

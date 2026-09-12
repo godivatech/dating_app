@@ -18,6 +18,8 @@ export const App: React.FC = () => {
   const [pendingPhotos, setPendingPhotos] = useState(0);
   const [pendingReports, setPendingReports] = useState(0);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
 
   const refreshGlobalMetrics = async () => {
     setIsRefreshing(true);
@@ -97,12 +99,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
-      {/* Navigation Sidebar */}
+      {/* Navigation Sidebar (Desktop pinned + Mobile slide-over) */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         pendingPhotosCount={pendingPhotos}
         pendingReportsCount={pendingReports}
+        isOpenMobile={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
       {/* Main Content Area */}
@@ -115,7 +119,9 @@ export const App: React.FC = () => {
           onRefresh={handleManualRefresh}
           isRefreshing={isRefreshing}
           onOpenAuth={() => setIsAuthModalOpen(true)}
+          onToggleMobileMenu={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
         />
+
 
         <main className="view-viewport" key={`${activeTab}-${apiMode}-${refreshKey}`}>
           {activeTab === 'overview' && (
