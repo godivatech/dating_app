@@ -69,8 +69,8 @@ export default function MatchesScreen() {
 
   const [incomingLikesData, setIncomingLikesData] = useState<IncomingLikesResponse | null>(null);
 
-  // Prevent screenshots and screen recording when viewing sensitive member profile photos or private notes
-  useScreenCapturePrevention(Boolean(selectedMatch || selectedNotePreview));
+  // Prevent screenshots and screen recording on matches and direct notes screen
+  useScreenCapturePrevention(true);
 
   const fetchIncomingLikes = async () => {
     try {
