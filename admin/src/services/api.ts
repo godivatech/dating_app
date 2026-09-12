@@ -409,9 +409,12 @@ class AdminApiService {
     return this.mode;
   }
 
-  setMode(mode: 'live' | 'mock') {
+  async setMode(mode: 'live' | 'mock'): Promise<void> {
     this.mode = mode;
     localStorage.setItem(STORAGE_KEY_MODE, mode);
+    if (mode === 'live' && !this.token) {
+      await this.loginWithPhone('+919999999999');
+    }
   }
 
   getToken() {
@@ -431,7 +434,7 @@ class AdminApiService {
     phoneNumber: string,
   ): Promise<{ success: boolean; token?: string; user?: any; error?: string }> {
     try {
-      const response = await fetch('/auth/dev-login', {
+      const response = await fetch('/api/v1/auth/dev-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumber }),
@@ -443,7 +446,8 @@ class AdminApiService {
       const data = await response.json();
       if (data && data.accessToken) {
         this.setToken(data.accessToken);
-        this.setMode('live');
+        this.mode = 'live';
+        localStorage.setItem(STORAGE_KEY_MODE, 'live');
         return { success: true, token: data.accessToken, user: data.user };
       }
       return { success: false, error: 'No access token returned' };
@@ -455,7 +459,7 @@ class AdminApiService {
   async verifyAuth(): Promise<{ isAuthenticated: boolean; user?: any }> {
     if (!this.token) return { isAuthenticated: false };
     try {
-      const user = await this.fetchWithAuth('/auth/me');
+      const user = await this.fetchWithAuth('/api/v1/auth/me');
       return { isAuthenticated: true, user };
     } catch {
       return { isAuthenticated: false };
@@ -463,6 +467,15 @@ class AdminApiService {
   }
 
   private async fetchWithAuth(endpoint: string, options: RequestInit = {}) {
+    const url = endpoint.startsWith('/api/v1')
+      ? endpoint
+      : `/api/v1${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+    // Auto-authenticate with seeded admin if token is missing
+    if (!this.token) {
+      await this.loginWithPhone('+919999999999');
+    }
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...(options.headers as any),
@@ -472,10 +485,22 @@ class AdminApiService {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(endpoint, {
+    const response = await fetch(url, {
       ...options,
       headers,
     });
+
+    if (response.status === 401) {
+      // Re-authenticate and retry once
+      const authRes = await this.loginWithPhone('+919999999999');
+      if (authRes.success && authRes.token) {
+        headers['Authorization'] = `Bearer ${authRes.token}`;
+        const retryRes = await fetch(url, { ...options, headers });
+        if (retryRes.ok) {
+          return retryRes.json();
+        }
+      }
+    }
 
     if (!response.ok) {
       throw new Error(`API Error ${response.status}: ${await response.text()}`);

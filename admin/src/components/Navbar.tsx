@@ -95,16 +95,35 @@ export const Navbar: React.FC<NavbarProps> = ({
         {/* API Gateway Mode Toggle */}
         <button
           onClick={onToggleMode}
-          className="btn btn-glass"
+          className="btn"
           style={{
+            backgroundColor: mode === 'live' ? 'var(--color-success-bg)' : 'var(--bg-surface)',
+            border: `1px solid ${mode === 'live' ? 'var(--color-success)' : 'var(--border-subtle)'}`,
             color: mode === 'live' ? 'var(--color-success)' : 'var(--text-secondary)',
             fontSize: '13px',
-            padding: '7px 13px',
+            fontWeight: 600,
+            padding: '7px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            cursor: 'pointer',
+            borderRadius: 'var(--radius-md)',
+            transition: 'all var(--transition-fast)',
           }}
           title="Click to toggle between live NestJS backend and interactive offline mock simulation"
         >
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: mode === 'live' ? 'var(--color-success)' : 'var(--text-muted)',
+              display: 'inline-block',
+              boxShadow: mode === 'live' ? '0 0 8px var(--color-success)' : 'none',
+            }}
+          />
           <Globe size={14} />
-          <span>{mode === 'live' ? 'Live API' : 'Simulation Mode'}</span>
+          <span>{mode === 'live' ? 'Live API (Connected)' : 'Simulation Mode'}</span>
         </button>
 
         {/* Refresh Data Button */}

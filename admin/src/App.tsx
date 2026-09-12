@@ -13,6 +13,7 @@ import { api } from './services/api';
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<NavTab>('overview');
   const [apiMode, setApiMode] = useState<'live' | 'mock'>(api.getMode());
+  const [refreshKey, setRefreshKey] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingPhotos, setPendingPhotos] = useState(0);
   const [pendingReports, setPendingReports] = useState(0);
@@ -36,12 +37,25 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     refreshGlobalMetrics();
-  }, [apiMode]);
+  }, [apiMode, refreshKey]);
 
-  const handleToggleMode = () => {
+  const handleToggleMode = async () => {
     const nextMode = apiMode === 'live' ? 'mock' : 'live';
-    api.setMode(nextMode);
-    setApiMode(nextMode);
+    setIsRefreshing(true);
+    try {
+      await api.setMode(nextMode);
+      setApiMode(api.getMode());
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      console.error('Failed to toggle API mode', err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleManualRefresh = () => {
+    setRefreshKey((k) => k + 1);
+    refreshGlobalMetrics();
   };
 
   const getTabTitle = (tab: NavTab) => {
@@ -98,12 +112,12 @@ export const App: React.FC = () => {
           subtitle={currentMeta.subtitle}
           mode={apiMode}
           onToggleMode={handleToggleMode}
-          onRefresh={refreshGlobalMetrics}
+          onRefresh={handleManualRefresh}
           isRefreshing={isRefreshing}
           onOpenAuth={() => setIsAuthModalOpen(true)}
         />
 
-        <main className="view-viewport">
+        <main className="view-viewport" key={`${activeTab}-${apiMode}-${refreshKey}`}>
           {activeTab === 'overview' && (
             <OverviewView onNavigate={(tab) => setActiveTab(tab)} />
           )}
@@ -121,6 +135,7 @@ export const App: React.FC = () => {
         onClose={() => setIsAuthModalOpen(false)}
         onAuthChanged={() => {
           setApiMode(api.getMode());
+          setRefreshKey((k) => k + 1);
           refreshGlobalMetrics();
         }}
       />
