@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Layers,
   AlertCircle,
+  Coins,
 } from 'lucide-react';
 import {
   api,
@@ -243,6 +244,72 @@ export const RevenueView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Truelove Coin Economy Pulse Widget */}
+      {overview?.coinMetrics && (
+        <div className="glass-card p-3.5 sm:p-4 bg-gradient-to-r from-amber-500/5 via-rose-500/5 to-purple-500/5 border border-amber-200/50">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-md bg-amber-100 text-amber-700">
+                <Coins size={16} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-slate-900">
+                  Prepaid Coin Economy &amp; Micro-Monetization Pulse
+                </h4>
+                <p className="text-[11px] text-slate-500">
+                  Real-time float, burn velocity, and realized revenue from 1-tap UPI recharges
+                </p>
+              </div>
+            </div>
+            <span className="badge badge-active text-[10px] sm:text-xs px-2 py-0.5 self-start sm:self-auto">
+              Live Wallet Float
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Coin Recharges
+              </div>
+              <div className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5">
+                {overview.coinMetrics.totalCoinRechargesCount} packs
+              </div>
+              <div className="text-[10px] text-emerald-600 font-medium">100% UPI Realized</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Recharge Revenue
+              </div>
+              <div className="text-base sm:text-lg font-extrabold text-emerald-600 mt-0.5">
+                {formatInr(overview.coinMetrics.totalCoinRevenueInr)}
+              </div>
+              <div className="text-[10px] text-slate-500 font-medium">Gross Cash Collected</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Wallet Coin Float
+              </div>
+              <div className="text-base sm:text-lg font-extrabold text-amber-600 mt-0.5">
+                🪙 {overview.coinMetrics.totalCoinsInCirculation.toLocaleString('en-IN')}
+              </div>
+              <div className="text-[10px] text-slate-500 font-medium">Held Across User Wallets</div>
+            </div>
+
+            <div className="p-2.5 rounded-lg bg-white/80 border border-slate-200">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                Coins Spent (Burnt)
+              </div>
+              <div className="text-base sm:text-lg font-extrabold text-purple-600 mt-0.5">
+                🔥 {overview.coinMetrics.totalCoinsSpent.toLocaleString('en-IN')}
+              </div>
+              <div className="text-[10px] text-slate-500 font-medium">Notes, Calls &amp; Boosts</div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Benchmark Unit Economics Callout */}
       <div className="glass-card p-3.5 sm:p-5 border-l-4 border-l-rose-600 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4">

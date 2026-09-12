@@ -1136,4 +1136,10 @@ export interface AdminRevenueOverviewDto {
     projectedProfitMarginPercent: number;
     projectedNetProfitInr: number;
   };
+  coinMetrics?: {
+    totalCoinRechargesCount: number;
+    totalCoinRevenueInr: number;
+    totalCoinsInCirculation: number;
+    totalCoinsSpent: number;
+  };
 }

@@ -11,6 +11,7 @@ import {
   Gender,
   SubscriptionTier,
   SubscriptionStatus,
+  CoinTransactionType,
 } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
 
@@ -168,6 +169,28 @@ describe('AdminService', () => {
       },
       authSession: {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
+      userCreditBalance: {
+        findUnique: jest.fn().mockResolvedValue({ userId: 'user-admin-test-1', coins: 100 }),
+        create: jest.fn().mockResolvedValue({ userId: 'user-admin-test-1', coins: 0 }),
+        update: jest.fn().mockResolvedValue({ userId: 'user-admin-test-1', coins: 200 }),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { coins: 1500 } }),
+      },
+      coinTransaction: {
+        create: jest.fn().mockResolvedValue({ id: 'coin-tx-1' }),
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: 'coin-tx-1',
+            userId: 'user-admin-test-1',
+            amount: 100,
+            balanceAfter: 200,
+            type: CoinTransactionType.ADMIN_GRANT,
+            description: 'Support compensation',
+            referenceId: 'admin-1',
+            createdAt: new Date(),
+          },
+        ]),
+        aggregate: jest.fn().mockResolvedValue({ _sum: { amount: -450 } }),
       },
       $transaction: jest.fn().mockImplementation((cb) => cb(mockPrisma)),
     };
@@ -341,6 +364,25 @@ describe('AdminService', () => {
       expect(overview.availableProducts.length).toBe(1);
       expect(overview.availableProducts[0].storeProductId).toBe('com.sparkdating.gold.1m');
       expect(overview.benchmarkProjection.projectedMonthlyRunRateInr).toBe(273130);
+      expect(overview.coinMetrics).toBeDefined();
+      expect(overview.coinMetrics?.totalCoinsInCirculation).toBe(1500);
+      expect(overview.coinMetrics?.totalCoinsSpent).toBe(450);
+    });
+
+    it('grants coins to a user and logs transaction', async () => {
+      const res = await service.grantCoinsToUser('user-admin-test-1', 100, 'VIP promo', 'admin-1');
+
+      expect(res.success).toBe(true);
+      expect(res.newBalance).toBe(200);
+      expect(mockPrisma.coinTransaction.create).toHaveBeenCalled();
+    });
+
+    it('retrieves user coin ledger transaction history', async () => {
+      const history = await service.getUserCoinHistory('user-admin-test-1');
+
+      expect(history.length).toBe(1);
+      expect(history[0].amount).toBe(100);
+      expect(history[0].type).toBe(CoinTransactionType.ADMIN_GRANT);
     });
   });
 });

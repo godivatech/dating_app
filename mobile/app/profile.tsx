@@ -20,6 +20,7 @@ import { useAuthStore } from '../src/stores/auth-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
 import { BottomTabBar } from '../src/components/BottomTabBar';
+import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
 import { Colors } from '../src/theme/colors';
 import { ProfileVisibility } from '../../shared/src/types';
 import { registerForPushNotificationsAsync } from '../src/services/push-notification.service';
@@ -43,6 +44,7 @@ export default function ProfileScreen() {
   const [locale, setLocalLocale] = useState<Locale>(getLocale());
   const [showSafetyModal, setShowSafetyModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showPassbookModal, setShowPassbookModal] = useState<boolean>(false);
   const [showLegalModal, setShowLegalModal] = useState<'TERMS' | 'PRIVACY' | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
   const [isTogglingVisibility, setIsTogglingVisibility] = useState<boolean>(false);
@@ -387,14 +389,25 @@ export default function ProfileScreen() {
                 </Text>
                 <Text style={styles.coinBalanceLabel}>Coins Available</Text>
               </View>
-              <TouchableOpacity
-                style={styles.rechargeCoinsBtn}
-                onPress={() => openPaywall('COINS')}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="flash" size={14} color={Colors.white} style={{ marginRight: 4 }} />
-                <Text style={styles.rechargeCoinsBtnText}>Recharge</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={styles.passbookCoinsBtn}
+                  onPress={() => setShowPassbookModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="receipt-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
+                  <Text style={styles.passbookCoinsBtnText}>Passbook</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.rechargeCoinsBtn}
+                  onPress={() => openPaywall('COINS')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="flash" size={14} color={Colors.white} style={{ marginRight: 4 }} />
+                  <Text style={styles.rechargeCoinsBtnText}>Recharge</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Utility Rate Chips */}
@@ -737,11 +750,32 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Truelove Wallet Passbook Modal */}
+      <WalletPassbookModal
+        visible={showPassbookModal}
+        onClose={() => setShowPassbookModal(false)}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  passbookCoinsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  passbookCoinsBtnText: {
+    color: '#475569',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.primary,

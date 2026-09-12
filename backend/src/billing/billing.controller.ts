@@ -5,6 +5,7 @@ import {
   Body,
   UseGuards,
   Req,
+  Query,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -160,9 +161,13 @@ export class BillingController {
    * Retrieves current user's coin transaction history.
    */
   @Get('coins/history')
-  async getCoinHistory(@Req() req: any): Promise<SafeCoinTransaction[]> {
+  async getCoinHistory(
+    @Req() req: any,
+    @Query('limit') limit?: string,
+  ): Promise<SafeCoinTransaction[]> {
     const userId = req.user.userId;
-    const history = await this.creditService.getCoinHistory(userId);
+    const take = limit ? Math.min(Math.max(parseInt(limit, 10) || 30, 1), 100) : 30;
+    const history = await this.creditService.getCoinHistory(userId, take);
     return history.map((h) => ({
       id: h.id,
       userId: h.userId,

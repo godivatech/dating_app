@@ -384,6 +384,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       clearInterval(timerInterval);
       timerInterval = null;
     }
+    useBillingStore.getState().fetchCreditBalance();
     if (reason === CallEndReason.VIBE_CHECK_COMPLETE) {
       set({
         callState: 'ENDED',

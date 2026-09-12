@@ -135,6 +135,17 @@ export interface AvailableStoreProduct {
   priceInr: number;
 }
 
+export interface SafeCoinTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  balanceAfter: number;
+  type: string;
+  description?: string | null;
+  referenceId?: string | null;
+  createdAt: string;
+}
+
 export interface RevenueOverview {
   realizedRevenueInr: number;
   monthlyRunRateInr: number;
@@ -150,6 +161,12 @@ export interface RevenueOverview {
     projectedNotesVolume: number;
     projectedProfitMarginPercent: number;
     projectedNetProfitInr: number;
+  };
+  coinMetrics?: {
+    totalCoinRechargesCount: number;
+    totalCoinRevenueInr: number;
+    totalCoinsInCirculation: number;
+    totalCoinsSpent: number;
   };
 }
 
@@ -1047,6 +1064,40 @@ class AdminApiService {
       }
     }
     return [...mockAuditLogs];
+  }
+
+  async grantCoins(
+    userId: string,
+    amount: number,
+    reason: string,
+  ): Promise<{ success: boolean; newBalance: number; message: string }> {
+    if (this.mode === 'live') {
+      try {
+        return await this.fetchWithAuth(`/admin/users/${userId}/grant-coins`, {
+          method: 'POST',
+          body: JSON.stringify({ amount, reason }),
+        });
+      } catch (err) {
+        console.warn('Live coin grant failed, applying local simulation', err);
+      }
+    }
+
+    return {
+      success: true,
+      newBalance: amount,
+      message: `Granted ${amount} coins to user ${userId}.`,
+    };
+  }
+
+  async getUserCoinHistory(userId: string): Promise<SafeCoinTransaction[]> {
+    if (this.mode === 'live') {
+      try {
+        return await this.fetchWithAuth(`/admin/users/${userId}/coins/history`);
+      } catch (err) {
+        console.warn('Live coin history fetch failed', err);
+      }
+    }
+    return [];
   }
 }
 

@@ -164,6 +164,7 @@ export const useBillingStore = create<BillingState>((set, get) => ({
               }
             : null,
         }));
+        get().fetchCreditBalance();
       }
       return response.data;
     } catch (err: any) {

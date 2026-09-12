@@ -23,6 +23,7 @@ import {
   SubscriptionStatus,
   ModerationActionType,
   MatchStatus,
+  CoinTransactionType,
 } from '@prisma/client';
 import {
   AdminAnalyticsOverviewDto,
@@ -825,7 +826,25 @@ export class AdminService {
       0,
     );
 
-    // 5. Query all active store products for dynamic filter mapping
+    // 5. Aggregate user coin balances and ledger consumption
+    let totalCoinsInCirculation = 0;
+    let totalCoinsSpent = 0;
+    try {
+      const coinCirculationAgg = await this.prisma.userCreditBalance.aggregate({
+        _sum: { coins: true },
+      });
+      totalCoinsInCirculation = coinCirculationAgg._sum.coins ?? 0;
+
+      const coinSpentAgg = await this.prisma.coinTransaction.aggregate({
+        where: { amount: { lt: 0 } },
+        _sum: { amount: true },
+      });
+      totalCoinsSpent = Math.abs(coinSpentAgg._sum.amount ?? 0);
+    } catch {
+      // Graceful fallback if aggregate table empty
+    }
+
+    // 6. Query all active store products for dynamic filter mapping
     const products = await this.prisma.subscriptionProduct.findMany({
       where: { isActive: true },
       orderBy: { priceAmount: 'asc' },
@@ -840,7 +859,7 @@ export class AdminService {
       priceInr: Number((p.priceAmount / 100).toFixed(2)),
     }));
 
-    // 6. Tier breakdown for dashboard cards
+    // 7. Tier breakdown for dashboard cards
     const tierBreakdown = [
       {
         id: 'coin-wallet-recharge',
@@ -898,7 +917,97 @@ export class AdminService {
         projectedProfitMarginPercent: 78.7,
         projectedNetProfitInr: 215000,
       },
+      coinMetrics: {
+        totalCoinRechargesCount: coinUnits,
+        totalCoinRevenueInr: Number(coinRevenueInr.toFixed(2)),
+        totalCoinsInCirculation,
+        totalCoinsSpent,
+      },
     };
+  }
+
+  /**
+   * Administratively grants coins to a user for support, compensation, or promo.
+   */
+  async grantCoinsToUser(
+    userId: string,
+    amount: number,
+    reason: string,
+    adminId: string,
+  ): Promise<{ success: boolean; newBalance: number; message: string }> {
+    if (!amount || amount <= 0) {
+      throw new BadRequestException('Coin grant amount must be a positive integer.');
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found.');
+    }
+
+    let balance = await this.prisma.userCreditBalance.findUnique({
+      where: { userId },
+    });
+    if (!balance) {
+      balance = await this.prisma.userCreditBalance.create({
+        data: {
+          userId,
+          coins: 0,
+          directNotes: 0,
+          profileBoosts: 0,
+          callPassMinutes: 0,
+        },
+      });
+    }
+
+    const updated = await this.prisma.userCreditBalance.update({
+      where: { userId },
+      data: {
+        coins: { increment: amount },
+      },
+    });
+
+    await this.prisma.coinTransaction.create({
+      data: {
+        userId,
+        amount,
+        balanceAfter: updated.coins,
+        type: CoinTransactionType.ADMIN_GRANT,
+        description: reason || `Administrative grant by admin ${adminId}`,
+        referenceId: adminId,
+      },
+    });
+
+    this.logger.log(
+      `[ADMIN_COIN_GRANT] Admin ${adminId} granted ${amount} coins to User ${userId}. New balance: ${updated.coins}`,
+    );
+
+    return {
+      success: true,
+      newBalance: updated.coins,
+      message: `Successfully granted ${amount} coins to user. New balance: ${updated.coins} coins.`,
+    };
+  }
+
+  /**
+   * Retrieves user's coin transaction history for admin inspection.
+   */
+  async getUserCoinHistory(userId: string, limit = 20) {
+    const transactions = await this.prisma.coinTransaction.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+
+    return transactions.map((t) => ({
+      id: t.id,
+      userId: t.userId,
+      amount: t.amount,
+      balanceAfter: t.balanceAfter,
+      type: t.type,
+      description: t.description,
+      referenceId: t.referenceId,
+      createdAt: t.createdAt.toISOString(),
+    }));
   }
 }
 

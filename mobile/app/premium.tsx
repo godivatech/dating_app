@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore } from '../src/stores/billing-store';
+import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
 import { t } from '../src/i18n/strings';
 import { SubscriptionTier } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
@@ -21,6 +22,7 @@ import { Colors } from '../src/theme/colors';
 export default function PremiumScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [showPassbookModal, setShowPassbookModal] = useState(false);
   const topInset = Math.max(
     insets.top,
     Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 36) : 0,
@@ -173,14 +175,25 @@ export default function PremiumScreen() {
                     Prepaid wallet for 1-tap micro-recharges
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.rechargePillBtn}
-                  onPress={() => openPaywall('COINS')}
-                  activeOpacity={0.85}
-                >
-                  <Ionicons name="flash" size={12} color="#FFFFFF" style={{ marginRight: 3 }} />
-                  <Text style={styles.rechargePillText}>Recharge</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TouchableOpacity
+                    style={styles.passbookPillBtn}
+                    onPress={() => setShowPassbookModal(true)}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="receipt-outline" size={12} color="#475569" style={{ marginRight: 3 }} />
+                    <Text style={styles.passbookPillText}>Passbook</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.rechargePillBtn}
+                    onPress={() => openPaywall('COINS')}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="flash" size={12} color="#FFFFFF" style={{ marginRight: 3 }} />
+                    <Text style={styles.rechargePillText}>Recharge</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={styles.coinVaultBalanceBox}>
@@ -284,6 +297,12 @@ export default function PremiumScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Truelove Wallet Passbook Modal */}
+      <WalletPassbookModal
+        visible={showPassbookModal}
+        onClose={() => setShowPassbookModal(false)}
+      />
     </View>
   );
 }
@@ -567,6 +586,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#B45309',
     marginTop: 1,
+  },
+  passbookPillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  passbookPillText: {
+    color: '#78350F',
+    fontSize: 11.5,
+    fontWeight: '700',
   },
   rechargePillBtn: {
     flexDirection: 'row',

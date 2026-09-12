@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Body,
@@ -123,5 +124,28 @@ export class AdminController {
   @Get('transactions')
   async getTransactions(): Promise<any[]> {
     return this.adminService.getTransactions();
+  }
+
+  /**
+   * Administratively grants coins to a user for support, compensation, or VIP promotion.
+   */
+  @Post('users/:id/grant-coins')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.ADMIN)
+  async grantCoins(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: { amount: number; reason: string },
+  ) {
+    const adminId = req.user.userId;
+    return this.adminService.grantCoinsToUser(id, dto.amount, dto.reason, adminId);
+  }
+
+  /**
+   * Retrieves coin ledger audit trail for a specific user.
+   */
+  @Get('users/:id/coins/history')
+  async getUserCoinHistory(@Param('id') id: string) {
+    return this.adminService.getUserCoinHistory(id);
   }
 }

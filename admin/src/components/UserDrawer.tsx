@@ -10,7 +10,7 @@ import {
   Crown,
   AlertTriangle,
 } from 'lucide-react';
-import { api, UserDetail } from '../services/api';
+import { api, UserDetail, SafeCoinTransaction } from '../services/api';
 import { DisciplineModal, DisciplineAction } from './DisciplineModal';
 
 interface UserDrawerProps {
@@ -27,10 +27,19 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
   const [detail, setDetail] = useState<UserDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isDisciplineOpen, setIsDisciplineOpen] = useState(false);
+  const [showGrantModal, setShowGrantModal] = useState(false);
+  const [grantAmount, setGrantAmount] = useState<number>(50);
+  const [grantReason, setGrantReason] = useState<string>('Customer Support Resolution');
+  const [isGranting, setIsGranting] = useState(false);
+  const [coinHistory, setCoinHistory] = useState<SafeCoinTransaction[]>([]);
+  const [showCoinHistory, setShowCoinHistory] = useState(false);
 
   useEffect(() => {
     if (!userId) {
       setDetail(null);
+      setCoinHistory([]);
+      setShowGrantModal(false);
+      setShowCoinHistory(false);
       return;
     }
 
@@ -44,6 +53,12 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
       .finally(() => {
         if (isMounted) setIsLoading(false);
       });
+
+    api.getUserCoinHistory(userId)
+      .then((history) => {
+        if (isMounted) setCoinHistory(history);
+      })
+      .catch((err) => console.warn('Failed to load coin history', err));
 
     return () => {
       isMounted = false;
@@ -359,10 +374,20 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                       Coin Wallet &amp; Balances
                     </span>
                   </div>
-                  <span className="badge text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                    {detail.creditBalance?.coins ?? 0} COINS
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="badge text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      {detail.creditBalance?.coins ?? 0} COINS
+                    </span>
+                    <button
+                      onClick={() => setShowGrantModal(!showGrantModal)}
+                      className="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                      title="Grant coins to user"
+                    >
+                      + Grant
+                    </button>
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-3 gap-2 text-center text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-100">
                   <div className="bg-slate-50 p-1.5 rounded">
                     <div className="font-bold text-slate-900">{detail.creditBalance?.directNotes ?? 0}</div>
@@ -377,6 +402,98 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                     <div className="text-[10px] text-slate-400">Call Mins</div>
                   </div>
                 </div>
+
+                {/* Inline Coin Grant Form */}
+                {showGrantModal && (
+                  <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-lg animate-fade-in">
+                    <div className="text-xs font-bold text-amber-900 mb-2">Grant Truelove Coins</div>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
+                        <input
+                          type="number"
+                          value={grantAmount}
+                          onChange={(e) => setGrantAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="w-24 px-2 py-1 text-xs border border-amber-300 rounded bg-white text-slate-900 font-bold"
+                          placeholder="Amount"
+                        />
+                        <input
+                          type="text"
+                          value={grantReason}
+                          onChange={(e) => setGrantReason(e.target.value)}
+                          className="flex-1 px-2 py-1 text-xs border border-amber-300 rounded bg-white text-slate-900"
+                          placeholder="Reason / ticket note"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-2 mt-1">
+                        <button
+                          onClick={() => setShowGrantModal(false)}
+                          className="px-2 py-1 text-xs font-medium text-slate-600 hover:text-slate-800"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!detail?.id || grantAmount <= 0) return;
+                            try {
+                              setIsGranting(true);
+                              await api.grantCoins(detail.id, grantAmount, grantReason);
+                              setShowGrantModal(false);
+                              const updated = await api.getUserDetail(detail.id);
+                              setDetail(updated);
+                              const updatedHistory = await api.getUserCoinHistory(detail.id);
+                              setCoinHistory(updatedHistory);
+                            } catch (err: any) {
+                              alert(err.message || 'Failed to grant coins');
+                            } finally {
+                              setIsGranting(false);
+                            }
+                          }}
+                          disabled={isGranting || grantAmount <= 0}
+                          className="px-3 py-1 text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white rounded disabled:opacity-50"
+                        >
+                          {isGranting ? 'Granting...' : `Confirm +${grantAmount} Coins`}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Coin History Toggle & Drawer */}
+                {coinHistory.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-slate-100">
+                    <button
+                      onClick={() => setShowCoinHistory(!showCoinHistory)}
+                      className="text-[11px] font-semibold text-amber-700 hover:text-amber-800 flex items-center justify-between w-full"
+                    >
+                      <span>Coin Ledger Transactions ({coinHistory.length})</span>
+                      <span>{showCoinHistory ? '▲ Hide' : '▼ View'}</span>
+                    </button>
+
+                    {showCoinHistory && (
+                      <div className="mt-2 max-h-36 overflow-y-auto flex flex-col gap-1.5 pr-1">
+                        {coinHistory.map((tx) => (
+                          <div
+                            key={tx.id}
+                            className="flex items-center justify-between p-1.5 rounded bg-slate-50 border border-slate-100 text-[11px]"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="font-medium text-slate-800 truncate">{tx.description || tx.type}</div>
+                              <div className="text-[10px] text-slate-400">
+                                {new Date(tx.createdAt).toLocaleString()}
+                              </div>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <div className={`font-bold ${tx.amount > 0 ? 'text-emerald-600' : 'text-slate-700'}`}>
+                                {tx.amount > 0 ? `+${tx.amount}` : tx.amount} 🪙
+                              </div>
+                              <div className="text-[10px] text-slate-400">Bal: {tx.balanceAfter}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : null}
