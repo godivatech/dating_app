@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldCheck, X, Key, Phone, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
 import { api } from '../services/api';
 
@@ -75,7 +76,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
     onAuthChanged();
   };
 
-  return (
+  return createPortal(
     <>
       <div
         style={{
@@ -83,7 +84,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           inset: 0,
           backgroundColor: 'rgba(15, 23, 42, 0.45)',
           backdropFilter: 'blur(4px)',
-          zIndex: 80,
+          zIndex: 99998,
         }}
         onClick={onClose}
       />
@@ -100,7 +101,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           backgroundColor: 'var(--bg-canvas)',
           border: '1px solid var(--border-subtle)',
           borderRadius: 'var(--radius-lg)',
-          zIndex: 90,
+          zIndex: 99999,
           boxShadow: 'var(--shadow-lg)',
           overflow: 'hidden',
         }}
@@ -273,6 +274,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           </form>
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 };

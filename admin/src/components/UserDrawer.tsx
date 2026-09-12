@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Shield,
@@ -59,16 +60,16 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
     if (onDisciplineSuccess) onDisciplineSuccess();
   };
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
         style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.4)',
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
           backdropFilter: 'blur(4px)',
-          zIndex: 60,
+          zIndex: 99998,
         }}
         onClick={onClose}
       />
@@ -80,11 +81,13 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
           top: 0,
           right: 0,
           bottom: 0,
+          height: '100vh',
+          maxHeight: '100vh',
           width: '500px',
           maxWidth: '100vw',
           backgroundColor: 'var(--bg-canvas)',
           borderLeft: '1px solid var(--border-subtle)',
-          zIndex: 70,
+          zIndex: 99999,
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-lg)',
@@ -136,7 +139,10 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                 <img
                   src={
                     detail.profile?.photos?.[0]?.thumbnailUrl ||
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'
+                    detail.profile?.photos?.[0]?.mediumUrl ||
+                    (detail.profile?.gender === 'MAN'
+                      ? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'
+                      : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80')
                   }
                   alt="Profile"
                   style={{
@@ -396,6 +402,7 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
           onConfirm={handleDiscipline}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 };

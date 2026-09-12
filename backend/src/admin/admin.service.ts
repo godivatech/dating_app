@@ -189,8 +189,13 @@ export class AdminService {
     const now = new Date();
     const mappedUsers: AdminUserListItemDto[] = items.map((u) => {
       const primaryPhoto = u.profile?.photos?.[0];
-      const photoUrl = primaryPhoto?.thumbnailKey
-        ? this.storageService.getPublicUrl(primaryPhoto.thumbnailKey)
+      const photoKey =
+        primaryPhoto?.thumbnailKey ||
+        primaryPhoto?.mediumKey ||
+        primaryPhoto?.largeKey ||
+        primaryPhoto?.objectKey;
+      const photoUrl = photoKey
+        ? this.storageService.getPublicUrl(photoKey)
         : null;
 
       const isMuted = Boolean(
@@ -283,14 +288,14 @@ export class AdminService {
             status: p.status,
             position: p.position,
             isPrimary: p.position === 0 && p.status === PhotoStatus.APPROVED,
-            thumbnailUrl: p.thumbnailKey
-              ? this.storageService.getPublicUrl(p.thumbnailKey)
+            thumbnailUrl: (p.thumbnailKey || p.mediumKey || p.objectKey)
+              ? this.storageService.getPublicUrl(p.thumbnailKey || p.mediumKey || p.objectKey)
               : null,
-            mediumUrl: p.mediumKey
-              ? this.storageService.getPublicUrl(p.mediumKey)
+            mediumUrl: (p.mediumKey || p.largeKey || p.objectKey)
+              ? this.storageService.getPublicUrl(p.mediumKey || p.largeKey || p.objectKey)
               : null,
-            largeUrl: p.largeKey
-              ? this.storageService.getPublicUrl(p.largeKey)
+            largeUrl: (p.largeKey || p.objectKey)
+              ? this.storageService.getPublicUrl(p.largeKey || p.objectKey)
               : null,
             width: p.width,
             height: p.height,

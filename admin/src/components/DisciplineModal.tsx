@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ShieldAlert, X, AlertTriangle, CheckCircle, Ban, VolumeX, EyeOff, RotateCcw } from 'lucide-react';
 
 export type DisciplineAction =
@@ -112,17 +113,17 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
     },
   ];
 
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backgroundColor: 'rgba(15, 23, 42, 0.45)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 100,
+        zIndex: 99999,
         padding: '20px',
       }}
       onClick={onClose}
@@ -332,6 +333,7 @@ export const DisciplineModal: React.FC<DisciplineModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
