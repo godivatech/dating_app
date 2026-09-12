@@ -107,7 +107,12 @@ export class AdminService {
       this.prisma.purchaseTransaction.count({
         where: {
           status: 'COMPLETED',
-          storeProductId: { contains: 'notes' },
+          OR: [
+            { storeProductId: { contains: 'coin', mode: 'insensitive' } },
+            { storeProductId: { contains: 'notes', mode: 'insensitive' } },
+            { storeProductId: { contains: 'boost', mode: 'insensitive' } },
+            { storeProductId: { contains: 'call', mode: 'insensitive' } },
+          ],
         },
       }),
       this.prisma.report.count({
@@ -118,11 +123,27 @@ export class AdminService {
       }),
     ]);
 
-    // Accurate live monthly recurring run-rate (MRR)
+    // Accurate live monthly recurring run-rate (MRR) + realized prepaid micro-recharges
     let estimatedMonthlyRevenueInr = 0;
     for (const sub of activeSubsWithProducts) {
       const priceInr = (sub.product?.priceAmount ?? 29900) / 100;
       estimatedMonthlyRevenueInr += priceInr;
+    }
+
+    try {
+      const completedRecharges = await this.prisma.purchaseTransaction.aggregate({
+        where: {
+          status: 'COMPLETED',
+          OR: [
+            { storeProductId: { contains: 'coin', mode: 'insensitive' } },
+            { storeProductId: { contains: 'COIN_PACK', mode: 'insensitive' } },
+          ],
+        },
+        _sum: { amount: true },
+      });
+      estimatedMonthlyRevenueInr += (completedRecharges._sum.amount ?? 0) / 100;
+    } catch {
+      // Graceful fallback
     }
 
     return {
@@ -799,9 +820,9 @@ export class AdminService {
       where: {
         status: 'COMPLETED',
         OR: [
-          { storeProductId: { contains: 'notes' } },
-          { storeProductId: { contains: 'boost' } },
-          { storeProductId: { contains: 'call' } },
+          { storeProductId: { contains: 'notes', mode: 'insensitive' } },
+          { storeProductId: { contains: 'boost', mode: 'insensitive' } },
+          { storeProductId: { contains: 'call', mode: 'insensitive' } },
         ],
       },
     });
@@ -816,7 +837,10 @@ export class AdminService {
     const coinTx = await this.prisma.purchaseTransaction.findMany({
       where: {
         status: 'COMPLETED',
-        storeProductId: { contains: 'coins' },
+        OR: [
+          { storeProductId: { contains: 'coin', mode: 'insensitive' } },
+          { storeProductId: { contains: 'COIN_PACK', mode: 'insensitive' } },
+        ],
       },
     });
 

@@ -89,10 +89,12 @@ export class PurchaseService {
     }
 
     // 3. Find matching subscription product
+    const normalizedStoreProductId = dto.storeProductId.replace('com.sparkdating.', 'com.truelove.');
     const product = await this.prisma.subscriptionProduct.findFirst({
       where: {
         OR: [
           { storeProductId: dto.storeProductId },
+          { storeProductId: normalizedStoreProductId },
           { productKey: dto.storeProductId },
         ],
       },

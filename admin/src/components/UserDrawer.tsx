@@ -438,6 +438,7 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                               setIsGranting(true);
                               await api.grantCoins(detail.id, grantAmount, grantReason);
                               setShowGrantModal(false);
+                              onDisciplineSuccess?.();
                               const updated = await api.getUserDetail(detail.id);
                               setDetail(updated);
                               const updatedHistory = await api.getUserCoinHistory(detail.id);

@@ -123,7 +123,7 @@ export const PaywallModal: React.FC = () => {
     return [
       {
         id: 'cp-100',
-        storeProductId: 'com.sparkdating.coins.100',
+        storeProductId: 'com.truelove.coins.100',
         productKey: 'COIN_PACK_100',
         displayName: '100 Truelove Coins',
         displayPrice: '₹99',
@@ -137,7 +137,7 @@ export const PaywallModal: React.FC = () => {
       },
       {
         id: 'cp-250',
-        storeProductId: 'com.sparkdating.coins.250',
+        storeProductId: 'com.truelove.coins.250',
         productKey: 'COIN_PACK_250',
         displayName: '250 Truelove Coins',
         displayPrice: '₹199',
@@ -151,7 +151,7 @@ export const PaywallModal: React.FC = () => {
       },
       {
         id: 'cp-700',
-        storeProductId: 'com.sparkdating.coins.700',
+        storeProductId: 'com.truelove.coins.700',
         productKey: 'COIN_PACK_700',
         displayName: '700 Truelove Coins',
         displayPrice: '₹499',

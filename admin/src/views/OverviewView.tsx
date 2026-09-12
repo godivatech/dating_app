@@ -117,10 +117,10 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
           <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5 flex-wrap">
             <div>
               <h2 className="text-sm sm:text-base lg:text-lg font-bold text-slate-900 tracking-tight">
-                Monetization &amp; Direct Note Performance
+                Monetization &amp; Coin Economy Performance
               </h2>
               <div className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
-                Truelove Plus (₹299) • Truelove Gold (₹499) • Direct Note Packs (₹99 / ₹199 / ₹349)
+                Truelove Plus (₹299) • Truelove Gold (₹499) • Coin Wallet (₹99 / ₹199 / ₹499)
               </div>
             </div>
             <button
@@ -159,13 +159,13 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
 
             <div className="p-3 sm:p-4 rounded-lg bg-slate-50 border border-slate-200 col-span-2 sm:col-span-1 min-w-0">
               <div className="text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">
-                Direct Note Packs
+                Coin Recharges &amp; Packs
               </div>
               <div className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 leading-tight truncate">
                 {analytics?.directNotePacksCount ?? 0}
               </div>
               <div className="text-[10.5px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
-                A-la-carte revenue
+                Prepaid micro-revenue
               </div>
             </div>
           </div>
