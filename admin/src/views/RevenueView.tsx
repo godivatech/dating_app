@@ -377,7 +377,7 @@ export const RevenueView: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5">
 
         {isLoadingOverview ? (
-          [1, 2, 3].map((i) => (
+          [1, 2, 3, 4].map((i) => (
             <div key={i} className="glass-card p-4 sm:p-5 min-h-[160px] opacity-60">
               <div className="h-4.5 w-1/2 bg-slate-200 rounded mb-3 animate-pulse" />
               <div className="h-3.5 w-4/5 bg-slate-200 rounded animate-pulse" />
@@ -387,18 +387,31 @@ export const RevenueView: React.FC = () => {
           overview?.tierBreakdown.map((stream) => (
             <div
               key={stream.id}
-              className="glass-card p-4 sm:p-5 flex flex-col justify-between"
+              className={`glass-card p-4 sm:p-5 flex flex-col justify-between ${
+                stream.tier === 'COIN'
+                  ? 'border-amber-300/80 bg-gradient-to-b from-amber-50/30 to-white'
+                  : ''
+              }`}
             >
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-base sm:text-[16.5px] font-bold text-slate-900 truncate">
-                    {stream.name}
-                  </span>
-                  <span className="badge badge-neutral text-xs px-2.5 py-1 flex-shrink-0">
-                    {stream.priceDisplay}
-                  </span>
+                <div className="flex flex-col gap-1.5 mb-2.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="text-sm sm:text-[15.5px] font-bold text-slate-900 leading-snug">
+                      {stream.name}
+                    </h4>
+                    {stream.tier === 'COIN' && (
+                      <span className="badge text-[10px] px-2 py-0.5 font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300 flex-shrink-0">
+                        🪙 Wallet
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <span className="badge badge-neutral text-[11px] font-semibold px-2 py-0.5">
+                      {stream.priceDisplay}
+                    </span>
+                  </div>
                 </div>
-                <p className="text-xs sm:text-[13.5px] text-slate-500 mb-4 leading-relaxed">
+                <p className="text-xs sm:text-[13px] text-slate-500 mb-4 leading-relaxed">
                   {stream.description}
                 </p>
               </div>
@@ -570,9 +583,21 @@ export const RevenueView: React.FC = () => {
                       <div className="text-[11px] sm:text-xs text-slate-400 mt-0.5">{tx.userPhone || 'No Phone'}</div>
                     </td>
                     <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-[13px] text-slate-600">
-                      <span className="badge badge-neutral text-xs px-2 py-0.5">
+                      <div className="font-semibold text-slate-900 text-xs sm:text-[13px]">
+                        {overview?.availableProducts?.find((p) => p.storeProductId === tx.productId || p.productKey === tx.productId)?.displayName ||
+                          (tx.productId.includes('coins.100') ? '🪙 100 Coins Starter Pack' :
+                          tx.productId.includes('coins.250') ? '🪙 250 Coins Popular Pack' :
+                          tx.productId.includes('coins.700') ? '🪙 700 Coins Best Value' :
+                          tx.productId.includes('gold') ? 'Truelove Gold (1 Month)' :
+                          tx.productId.includes('plus') ? 'Truelove Plus (1 Month)' :
+                          tx.productId.includes('notes.5') ? '5 Direct Notes Pack' :
+                          tx.productId.includes('notes.15') ? '15 Direct Notes Pack' :
+                          tx.productId.includes('notes.30') ? '30 Direct Notes Pack' :
+                          tx.productId)}
+                      </div>
+                      <div className="font-mono text-[10.5px] text-slate-400 mt-0.5">
                         {tx.productId}
-                      </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm font-bold text-slate-900">
                       ₹{(tx.amount / 100).toFixed(2)}
