@@ -82,6 +82,12 @@ export interface UserDetail {
     expiresAt: string | null;
     status: string;
   } | null;
+  creditBalance?: {
+    coins: number;
+    directNotes: number;
+    profileBoosts: number;
+    callPassMinutes: number;
+  } | null;
   mutualMatchesCount: number;
   directNotesSentCount: number;
 }

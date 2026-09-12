@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/auth-store';
@@ -32,7 +32,13 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuthStore();
   const { profile, toggleVisibility, fetchProfile, uploadPhoto } = useProfileStore();
-  const { billingStatus, openPaywall } = useBillingStore();
+  const { billingStatus, creditBalance, fetchCreditBalance, openPaywall } = useBillingStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchCreditBalance();
+    }, [fetchCreditBalance]),
+  );
 
   const [locale, setLocalLocale] = useState<Locale>(getLocale());
   const [showSafetyModal, setShowSafetyModal] = useState<boolean>(false);
@@ -354,28 +360,71 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* "Get more matches" Monetization Banner */}
-          <View style={styles.monetizationBanner}>
-            <View style={styles.bannerTopRow}>
-              <View style={styles.starIconBox}>
-                <Ionicons name="sparkles" size={18} color={Colors.primary} />
+          {/* Truelove Coin Wallet Card */}
+          <View style={styles.coinWalletCard}>
+            <View style={styles.coinWalletHeader}>
+              <View style={styles.coinBadgeIcon}>
+                <Text style={{ fontSize: 22 }}>🪙</Text>
               </View>
-              <View style={styles.bannerTextCol}>
-                <Text style={styles.bannerHeading}>Get more matches</Text>
-                <Text style={styles.bannerSubheading}>
-                  Be seen by more people in Encounters
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.coinWalletTitle}>Truelove Coin Wallet</Text>
+                  <View style={styles.prepaidPill}>
+                    <Text style={styles.prepaidPillText}>PREPAID</Text>
+                  </View>
+                </View>
+                <Text style={styles.coinWalletSubtitle}>
+                  1-Tap micro-recharges for direct notes & calls
                 </Text>
+              </View>
+            </View>
+
+            {/* Coin Balance & Recharge Row */}
+            <View style={styles.coinBalanceRow}>
+              <View>
+                <Text style={styles.coinBalanceValue}>
+                  🪙 {creditBalance?.coins ?? 0}
+                </Text>
+                <Text style={styles.coinBalanceLabel}>Coins Available</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.rechargeCoinsBtn}
+                onPress={() => openPaywall('COINS')}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="flash" size={14} color={Colors.white} style={{ marginRight: 4 }} />
+                <Text style={styles.rechargeCoinsBtnText}>Recharge</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Utility Rate Chips */}
+            <View style={styles.utilityChipsRow}>
+              <View style={styles.utilityChipPill}>
+                <Text style={styles.utilityChipText}>15🪙 Note</Text>
+              </View>
+              <View style={styles.utilityChipPill}>
+                <Text style={styles.utilityChipText}>30🪙 Boost</Text>
+              </View>
+              <View style={styles.utilityChipPill}>
+                <Text style={styles.utilityChipText}>20🪙 Call</Text>
+              </View>
+              <View style={styles.utilityChipPill}>
+                <Text style={styles.utilityChipText}>5🪙 Rewind</Text>
               </View>
             </View>
 
             <View style={styles.bannerDivider} />
 
+            {/* VIP Plans Link */}
             <TouchableOpacity
               style={styles.upgradeLinkBtn}
-              onPress={() => openPaywall('SEE_LIKES')}
+              onPress={() => openPaywall('SUBSCRIPTIONS')}
               activeOpacity={0.8}
             >
-              <Text style={styles.upgradeLinkText}>Upgrade to Premium</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="sparkles" size={15} color={Colors.primary} />
+                <Text style={styles.upgradeLinkText}>Explore Plus & Gold VIP Plans</Text>
+              </View>
               <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
             </TouchableOpacity>
           </View>
@@ -853,43 +902,119 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     overflow: 'hidden',
   },
-  monetizationBanner: {
-    backgroundColor: Colors.white,
+  coinWalletCard: {
+    backgroundColor: '#FFFDF7',
     borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.borderLight,
+    padding: 18,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
     marginBottom: 20,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  bannerTopRow: {
+  coinWalletHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  starIconBox: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
+  coinBadgeIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF3C7',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
   },
-  bannerTextCol: {
-    flex: 1,
+  coinWalletTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#92400E',
   },
-  bannerHeading: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+  prepaidPill: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
-  bannerSubheading: {
+  prepaidPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  coinWalletSubtitle: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    color: '#B45309',
     marginTop: 2,
+  },
+  coinBalanceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FEF9C3',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#FDE047',
+  },
+  coinBalanceValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#78350F',
+  },
+  coinBalanceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
+    marginTop: 1,
+  },
+  rechargeCoinsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D97706',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    shadowColor: '#B45309',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rechargeCoinsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  utilityChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 12,
+  },
+  utilityChipPill: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  utilityChipText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#92400E',
   },
   bannerDivider: {
     height: 1,
-    backgroundColor: Colors.borderLight,
+    backgroundColor: '#FDE68A',
     marginVertical: 12,
   },
   upgradeLinkBtn: {

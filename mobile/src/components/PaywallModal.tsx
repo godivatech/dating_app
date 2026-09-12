@@ -58,9 +58,13 @@ export const PaywallModal: React.FC = () => {
     paywallTriggerReason === 'CALL' ||
     paywallTriggerReason === 'vibe_check_complete' ||
     paywallTriggerReason === 'call_pass';
+  const isRewindTrigger =
+    paywallTriggerReason === 'REWIND_PASS' ||
+    paywallTriggerReason === 'rewind_pass';
 
   const isFocusedMode =
-    !isBrowseMode && (isDirectNoteTrigger || isBoostTrigger || isCallTrigger);
+    !isBrowseMode &&
+    (isDirectNoteTrigger || isBoostTrigger || isCallTrigger || isRewindTrigger);
 
   useEffect(() => {
     if (paywallVisible) {
@@ -350,7 +354,9 @@ export const PaywallModal: React.FC = () => {
                         ? 'mail'
                         : isBoostTrigger
                           ? 'flash'
-                          : 'videocam'
+                          : isRewindTrigger
+                            ? 'refresh-circle'
+                            : 'videocam'
                     }
                     size={32}
                     color={Colors.primary}
@@ -361,14 +367,18 @@ export const PaywallModal: React.FC = () => {
                     ? 'Stand Out with a Direct Note'
                     : isBoostTrigger
                       ? 'Get 10x More Matches'
-                      : 'Keep the Chemistry Going!'}
+                      : isRewindTrigger
+                        ? 'Rewind Your Last Swipe'
+                        : 'Keep the Chemistry Going!'}
                 </Text>
                 <Text style={styles.focusedSubtitle}>
                   {isDirectNoteTrigger
                     ? 'Direct Notes appear at the top of their screen with 5x higher reply rates.'
                     : isBoostTrigger
                       ? 'Be the #1 profile in your city for 30 minutes during peak swipe hours.'
-                      : 'Grab a Call Pass or unlock Unlimited VIP Calling with Truelove Gold.'}
+                      : isRewindTrigger
+                        ? 'Changed your mind? Go back to that profile with just 5 Coins or Truelove Plus.'
+                        : 'Grab a Call Pass or unlock Unlimited VIP Calling with Truelove Gold.'}
                 </Text>
               </View>
 
@@ -381,7 +391,9 @@ export const PaywallModal: React.FC = () => {
                       ? 'Requires 15 Coins per Direct Note'
                       : isBoostTrigger
                         ? 'Requires 30 Coins for 30-min Profile Boost'
-                        : 'Requires 20 Coins for 15-min Call Pass'}
+                        : isRewindTrigger
+                          ? 'Requires 5 Coins to Rewind a Pass'
+                          : 'Requires 20 Coins for 15-min Call Pass'}
                   </Text>
                   <Text style={styles.focusedCoinCostSubtitle}>
                     Current Wallet: {creditBalance?.coins ?? 0} Coins • 1-Tap UPI Recharge
@@ -475,7 +487,9 @@ export const PaywallModal: React.FC = () => {
                           ? '• Unlimited Direct Notes (Never buy packs again)\n• See Who Liked You + Weekly Free Boosts'
                           : isBoostTrigger
                             ? '• 1 Free Profile Boost every week\n• Unlimited Direct Notes + See Who Liked You'
-                            : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
+                            : isRewindTrigger
+                              ? '• Unlimited Rewinds on all passes\n• See Who Liked You + Unlimited Likes'
+                              : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
                       </Text>
                     </View>
                     <View style={styles.goldUpsellPriceBox}>

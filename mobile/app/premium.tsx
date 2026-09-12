@@ -27,8 +27,10 @@ export default function PremiumScreen() {
   );
   const {
     billingStatus,
+    creditBalance,
     isLoading,
     fetchBillingStatus,
+    fetchCreditBalance,
     openPaywall,
     cancelSubscription,
     restorePurchases,
@@ -37,6 +39,7 @@ export default function PremiumScreen() {
 
   useEffect(() => {
     fetchBillingStatus();
+    fetchCreditBalance();
   }, []);
 
   const handleCancel = () => {
@@ -156,6 +159,54 @@ export default function PremiumScreen() {
                   <Text style={styles.activeBannerText}>Active Membership</Text>
                 </View>
               )}
+            </View>
+
+            {/* Truelove Prepaid Coin Wallet & Consumable Credits */}
+            <View style={styles.coinVaultCard}>
+              <View style={styles.coinVaultHeader}>
+                <View style={styles.coinVaultIconBox}>
+                  <Text style={{ fontSize: 20 }}>🪙</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.coinVaultTitle}>Truelove Coin Wallet</Text>
+                  <Text style={styles.coinVaultSub}>
+                    Prepaid wallet for 1-tap micro-recharges
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.rechargePillBtn}
+                  onPress={() => openPaywall('COINS')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="flash" size={12} color="#FFFFFF" style={{ marginRight: 3 }} />
+                  <Text style={styles.rechargePillText}>Recharge</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.coinVaultBalanceBox}>
+                <Text style={styles.coinVaultBalanceValue}>
+                  🪙 {creditBalance?.coins ?? 0}
+                </Text>
+                <Text style={styles.coinVaultBalanceLabel}>
+                  Coins Available • Instant UPI
+                </Text>
+              </View>
+
+              {/* Consumable Balances Row */}
+              <View style={styles.consumablesGrid}>
+                <View style={styles.consumableItem}>
+                  <Text style={styles.consumableCount}>{creditBalance?.directNotes ?? 0}</Text>
+                  <Text style={styles.consumableLabel}>Direct Notes</Text>
+                </View>
+                <View style={styles.consumableItem}>
+                  <Text style={styles.consumableCount}>{creditBalance?.profileBoosts ?? 0}</Text>
+                  <Text style={styles.consumableLabel}>Profile Boosts</Text>
+                </View>
+                <View style={styles.consumableItem}>
+                  <Text style={styles.consumableCount}>{creditBalance?.callPassMinutes ?? 0}m</Text>
+                  <Text style={styles.consumableLabel}>Call Minutes</Text>
+                </View>
+              </View>
             </View>
 
             {/* Active Capabilities / Entitlements */}
@@ -480,5 +531,102 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  coinVaultCard: {
+    backgroundColor: '#FFFDF7',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    marginBottom: 20,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  coinVaultHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  coinVaultIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  coinVaultTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  coinVaultSub: {
+    fontSize: 11,
+    color: '#B45309',
+    marginTop: 1,
+  },
+  rechargePillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D97706',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  rechargePillText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  coinVaultBalanceBox: {
+    backgroundColor: '#FEF9C3',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#FDE047',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  coinVaultBalanceValue: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#78350F',
+  },
+  coinVaultBalanceLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#92400E',
+  },
+  consumablesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginTop: 10,
+  },
+  consumableItem: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  consumableCount: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  consumableLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B45309',
+    marginTop: 2,
   },
 });

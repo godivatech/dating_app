@@ -1072,6 +1072,7 @@ export interface AdminUserDetailDto {
     expiresAt: string | null;
     status: string;
   } | null;
+  creditBalance?: UserCreditBalanceDto | null;
   mutualMatchesCount: number;
   directNotesSentCount: number;
 }

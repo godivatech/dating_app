@@ -70,11 +70,14 @@ export class CallService {
       return { isVibeCheck: false, maxDurationSeconds: 3600 };
     }
 
-    // Check Call Pass consumable balances (>= 15 minutes)
+    // Check Call Pass consumable balances (>= 15 minutes) or Coin Wallet (>= 20 coins)
     const balances = await this.prisma.userCreditBalance.findMany({
       where: {
         userId: { in: [callerUserId, receiverUserId] },
-        callPassMinutes: { gte: 15 },
+        OR: [
+          { callPassMinutes: { gte: 15 } },
+          { coins: { gte: 20 } },
+        ],
       },
       orderBy: { callPassMinutes: 'desc' },
     });

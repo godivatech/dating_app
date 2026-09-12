@@ -349,6 +349,35 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                   {detail.subscription ? 'SUBSCRIBED' : 'FREE'}
                 </span>
               </div>
+
+              {/* Coin Wallet & Consumable Credits Row */}
+              <div className="glass-card p-3 sm:p-3.5">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">🪙</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-900">
+                      Coin Wallet &amp; Balances
+                    </span>
+                  </div>
+                  <span className="badge text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    {detail.creditBalance?.coins ?? 0} COINS
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center text-[11px] text-slate-600 mt-2 pt-2 border-t border-slate-100">
+                  <div className="bg-slate-50 p-1.5 rounded">
+                    <div className="font-bold text-slate-900">{detail.creditBalance?.directNotes ?? 0}</div>
+                    <div className="text-[10px] text-slate-400">Notes</div>
+                  </div>
+                  <div className="bg-slate-50 p-1.5 rounded">
+                    <div className="font-bold text-slate-900">{detail.creditBalance?.profileBoosts ?? 0}</div>
+                    <div className="text-[10px] text-slate-400">Boosts</div>
+                  </div>
+                  <div className="bg-slate-50 p-1.5 rounded">
+                    <div className="font-bold text-slate-900">{detail.creditBalance?.callPassMinutes ?? 0}m</div>
+                    <div className="text-[10px] text-slate-400">Call Mins</div>
+                  </div>
+                </div>
+              </div>
             </div>
           ) : null}
         </div>

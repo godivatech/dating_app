@@ -81,6 +81,8 @@ export default function DiscoveryScreen() {
     }
 
     const availableBoosts = creditBalance?.profileBoosts ?? 0;
+    const availableCoins = creditBalance?.coins ?? 0;
+
     if (availableBoosts > 0) {
       Alert.alert(
         '⚡ Activate Profile Boost',
@@ -95,6 +97,30 @@ export default function DiscoveryScreen() {
                 const res = await activateBoost();
                 if (res?.success) {
                   showPill('⚡ Boost Activated! (30m)');
+                  fetchCreditBalance();
+                }
+              } catch (err: any) {
+                Alert.alert('Boost Failed', err.message || 'Could not activate boost.');
+              }
+            },
+          },
+        ],
+      );
+    } else if (availableCoins >= 30) {
+      Alert.alert(
+        '⚡ Activate Profile Boost',
+        `You have 🪙 ${availableCoins} Coins available.\n\nBoost your profile for 30 minutes using 30 Coins to get 10x more views and front-row card ranking!`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Boost Me (30 🪙)',
+            style: 'default',
+            onPress: async () => {
+              try {
+                const res = await activateBoost();
+                if (res?.success) {
+                  showPill('⚡ Boost Activated with 30 🪙! (30m)');
+                  fetchCreditBalance();
                 }
               } catch (err: any) {
                 Alert.alert('Boost Failed', err.message || 'Could not activate boost.');
@@ -293,7 +319,10 @@ export default function DiscoveryScreen() {
       return;
     }
     const success = await undoLastPass();
-    if (!success) {
+    if (success) {
+      showPill('⏪ Rewound last profile!');
+      fetchCreditBalance();
+    } else {
       const storeError = useDiscoveryStore.getState().error;
       if (
         storeError &&

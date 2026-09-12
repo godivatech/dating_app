@@ -274,6 +274,7 @@ export class AdminService {
           include: { product: true },
           take: 1,
         },
+        creditBalance: true,
       },
     });
 
@@ -368,6 +369,21 @@ export class AdminService {
             status: activeSub.status as any,
           }
         : null,
+      creditBalance: user.creditBalance
+        ? {
+            coins: user.creditBalance.coins ?? 0,
+            directNotes: user.creditBalance.directNotes,
+            profileBoosts: user.creditBalance.profileBoosts,
+            callPassMinutes: user.creditBalance.callPassMinutes,
+            boostExpiresAt: null,
+          }
+        : {
+            coins: 0,
+            directNotes: 0,
+            profileBoosts: 0,
+            callPassMinutes: 0,
+            boostExpiresAt: null,
+          },
       mutualMatchesCount,
       directNotesSentCount,
     };
