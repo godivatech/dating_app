@@ -225,6 +225,14 @@ export const PaywallModal: React.FC = () => {
     await purchaseProduct(selectedProductId);
   };
 
+  // Helper to extract clean coin pack title without duplicated badge text
+  const getCoinTitle = (prod: SafeSubscriptionProduct) => {
+    if (prod.productKey === 'COIN_PACK_100') return '100 Coins';
+    if (prod.productKey === 'COIN_PACK_250') return '250 Coins';
+    if (prod.productKey === 'COIN_PACK_700') return '700 Coins';
+    return prod.displayName.replace(/\s*\(\+.*?\)/g, '').replace(/\s*\(Starter\)/g, '');
+  };
+
   // Helper for pack description & badges (clean, customer-friendly labels)
   const getUnitInfo = (prod: SafeSubscriptionProduct) => {
     if (prod.productKey.startsWith('COIN_PACK_')) {
@@ -232,10 +240,10 @@ export const PaywallModal: React.FC = () => {
         return { label: 'Starter Pack • ~6 Notes or 5 Calls', badge: null, bonus: null };
       }
       if (prod.productKey === 'COIN_PACK_250') {
-        return { label: 'Popular Pack • +25% Bonus Coins', badge: '🔥 MOST POPULAR', bonus: '+25% EXTRA' };
+        return { label: 'Popular Pack • ~16 Notes or 12 Calls', badge: 'MOST POPULAR', bonus: '+25% Extra' };
       }
       if (prod.productKey === 'COIN_PACK_700') {
-        return { label: 'Power Pack • +40% Bonus Coins', badge: '⭐ BEST VALUE', bonus: '+40% EXTRA' };
+        return { label: 'Power Pack • ~46 Notes or 35 Calls', badge: 'BEST VALUE', bonus: '+40% Extra' };
       }
     }
     if (prod.productKey.startsWith('DIRECT_NOTES_')) {
@@ -423,8 +431,15 @@ export const PaywallModal: React.FC = () => {
                       activeOpacity={0.85}
                     >
                       {unitInfo.badge && (
-                        <View style={styles.cardPopularBadge}>
-                          <Text style={styles.cardPopularBadgeText}>{unitInfo.badge}</Text>
+                        <View
+                          style={[
+                            styles.cardTopRibbon,
+                            prod.productKey === 'COIN_PACK_700'
+                              ? styles.cardTopRibbonBestValue
+                              : styles.cardTopRibbonPopular,
+                          ]}
+                        >
+                          <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
                         </View>
                       )}
 
@@ -439,28 +454,34 @@ export const PaywallModal: React.FC = () => {
                           {isSelected && <View style={styles.radioInner} />}
                         </View>
 
-                        {/* Title & Description */}
-                        <View style={{ flex: 1, marginLeft: 12 }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
+                        {/* Title & Description Column */}
+                        <View style={styles.packContentColumn}>
+                          <View style={styles.packTitleRow}>
+                            <Text style={styles.focusedPackTitle} numberOfLines={1}>
+                              {getCoinTitle(prod)}
+                            </Text>
                             {unitInfo.bonus && (
                               <View style={styles.bonusPill}>
                                 <Text style={styles.bonusPillText}>{unitInfo.bonus}</Text>
                               </View>
                             )}
                           </View>
-                          <Text style={styles.focusedPackUnit}>{unitInfo.label}</Text>
+                          <Text style={styles.focusedPackUnit} numberOfLines={1}>
+                            {unitInfo.label}
+                          </Text>
                         </View>
 
-                        {/* Total Price */}
-                        <Text
-                          style={[
-                            styles.focusedPackPrice,
-                            isSelected && styles.focusedPackPriceSelected,
-                          ]}
-                        >
-                          {prod.displayPrice}
-                        </Text>
+                        {/* Total Price Column */}
+                        <View style={styles.packPriceColumn}>
+                          <Text
+                            style={[
+                              styles.focusedPackPrice,
+                              isSelected && styles.focusedPackPriceSelected,
+                            ]}
+                          >
+                            {prod.displayPrice}
+                          </Text>
+                        </View>
                       </View>
                     </TouchableOpacity>
                   );
@@ -480,23 +501,25 @@ export const PaywallModal: React.FC = () => {
                   <View style={styles.goldUpsellBadge}>
                     <Text style={styles.goldUpsellBadgeText}>VIP UNLIMITED ACCESS</Text>
                   </View>
-                  <View style={styles.goldUpsellHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.goldUpsellTitle}>Truelove Gold</Text>
-                      <Text style={styles.goldUpsellPerks}>
-                        {isDirectNoteTrigger
-                          ? '• Unlimited Direct Notes (Never buy packs again)\n• See Who Liked You + Weekly Free Boosts'
-                          : isBoostTrigger
-                            ? '• 1 Free Profile Boost every week\n• Unlimited Direct Notes + See Who Liked You'
-                            : isRewindTrigger
-                              ? '• Unlimited Rewinds on all passes\n• See Who Liked You + Unlimited Likes'
-                              : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
-                      </Text>
-                    </View>
-                    <View style={styles.goldUpsellPriceBox}>
-                      <Text style={styles.goldUpsellMonthlyPrice}>₹399</Text>
-                      <Text style={styles.goldUpsellMonthlyLabel}>/ month</Text>
-                      <Text style={styles.goldUpsellBilledText}>₹1,199 billed 3-mo</Text>
+                  <View style={styles.goldUpsellBody}>
+                    <View style={styles.goldUpsellHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.goldUpsellTitle}>Truelove Gold</Text>
+                        <Text style={styles.goldUpsellPerks}>
+                          {isDirectNoteTrigger
+                            ? '• Unlimited Direct Notes (Never buy packs again)\n• See Who Liked You + Weekly Free Boosts'
+                            : isBoostTrigger
+                              ? '• 1 Free Profile Boost every week\n• Unlimited Direct Notes + See Who Liked You'
+                              : isRewindTrigger
+                                ? '• Unlimited Rewinds on all passes\n• See Who Liked You + Unlimited Likes'
+                                : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
+                        </Text>
+                      </View>
+                      <View style={styles.goldUpsellPriceBox}>
+                        <Text style={styles.goldUpsellMonthlyPrice}>₹399</Text>
+                        <Text style={styles.goldUpsellMonthlyLabel}>/ month</Text>
+                        <Text style={styles.goldUpsellBilledText}>₹1,199 billed 3-mo</Text>
+                      </View>
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -632,22 +655,22 @@ export const PaywallModal: React.FC = () => {
                   <View style={styles.utilityMatrix}>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>💌</Text>
-                      <Text style={styles.utilityChipTitle}>Direct Note</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Direct Note</Text>
                       <Text style={styles.utilityChipCost}>15 🪙</Text>
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>⚡</Text>
-                      <Text style={styles.utilityChipTitle}>Profile Boost</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Profile Boost</Text>
                       <Text style={styles.utilityChipCost}>30 🪙</Text>
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>📞</Text>
-                      <Text style={styles.utilityChipTitle}>15m Call</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>15m Call</Text>
                       <Text style={styles.utilityChipCost}>20 🪙</Text>
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>↩️</Text>
-                      <Text style={styles.utilityChipTitle}>Rewind</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Rewind</Text>
                       <Text style={styles.utilityChipCost}>5 🪙</Text>
                     </View>
                   </View>
@@ -675,17 +698,19 @@ export const PaywallModal: React.FC = () => {
                           {unitInfo.badge && (
                             <View
                               style={[
-                                styles.cardPopularBadge,
-                                isBestValue && { backgroundColor: '#10B981' },
+                                styles.cardTopRibbon,
+                                isBestValue
+                                  ? styles.cardTopRibbonBestValue
+                                  : styles.cardTopRibbonPopular,
                               ]}
                             >
-                              <Text style={styles.cardPopularBadgeText}>
+                              <Text style={styles.cardTopRibbonText}>
                                 {unitInfo.badge}
                               </Text>
                             </View>
                           )}
 
-                          <View style={styles.focusedPackRow}>
+                          <View style={styles.coinPackCardBody}>
                             <View
                               style={[
                                 styles.radioCircle,
@@ -695,26 +720,32 @@ export const PaywallModal: React.FC = () => {
                               {isSelected && <View style={styles.radioInner} />}
                             </View>
 
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                <Text style={styles.focusedPackTitle}>{prod.displayName}</Text>
+                            <View style={styles.packContentColumn}>
+                              <View style={styles.packTitleRow}>
+                                <Text style={styles.focusedPackTitle} numberOfLines={1}>
+                                  {getCoinTitle(prod)}
+                                </Text>
                                 {unitInfo.bonus && (
                                   <View style={styles.bonusPill}>
                                     <Text style={styles.bonusPillText}>{unitInfo.bonus}</Text>
                                   </View>
                                 )}
                               </View>
-                              <Text style={styles.focusedPackUnit}>{unitInfo.label}</Text>
+                              <Text style={styles.focusedPackUnit} numberOfLines={1}>
+                                {unitInfo.label}
+                              </Text>
                             </View>
 
-                            <Text
-                              style={[
-                                styles.focusedPackPrice,
-                                isSelected && styles.focusedPackPriceSelected,
-                              ]}
-                            >
-                              {prod.displayPrice}
-                            </Text>
+                            <View style={styles.packPriceColumn}>
+                              <Text
+                                style={[
+                                  styles.focusedPackPrice,
+                                  isSelected && styles.focusedPackPriceSelected,
+                                ]}
+                              >
+                                {prod.displayPrice}
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
@@ -769,17 +800,19 @@ export const PaywallModal: React.FC = () => {
                       onPress={() => setBillingPeriod('QUARTERLY')}
                       activeOpacity={0.8}
                     >
-                      <View style={styles.durationSaveBadge}>
-                        <Text style={styles.durationSaveBadgeText}>SAVE 22%</Text>
+                      <View style={styles.durationBtnInner}>
+                        <Text
+                          style={[
+                            styles.durationBtnText,
+                            billingPeriod === 'QUARTERLY' && styles.durationBtnTextActive,
+                          ]}
+                        >
+                          3 Months
+                        </Text>
+                        <View style={styles.durationSaveBadgeInline}>
+                          <Text style={styles.durationSaveBadgeText}>SAVE 22%</Text>
+                        </View>
                       </View>
-                      <Text
-                        style={[
-                          styles.durationBtnText,
-                          billingPeriod === 'QUARTERLY' && styles.durationBtnTextActive,
-                        ]}
-                      >
-                        3 Months
-                      </Text>
                     </TouchableOpacity>
                   </View>
 
@@ -806,51 +839,53 @@ export const PaywallModal: React.FC = () => {
                           onPress={() => setSelectedProductId(goldProd.storeProductId)}
                           activeOpacity={0.85}
                         >
-                          <View style={styles.cardHeaderBadgeGold}>
-                            <Text style={styles.cardHeaderBadgeTextGold}>
+                          <View style={styles.membershipTopRibbonGold}>
+                            <Text style={styles.membershipTopRibbonTextGold}>
                               MOST POPULAR • BEST DEAL
                             </Text>
                           </View>
 
-                          <View style={styles.membershipCardTop}>
-                            <View>
-                              <Text style={styles.membershipTitleGold}>Truelove Gold</Text>
-                              <Text style={styles.membershipSubtext}>The ultimate VIP experience</Text>
+                          <View style={styles.membershipCardBody}>
+                            <View style={styles.membershipCardTop}>
+                              <View>
+                                <Text style={styles.membershipTitleGold}>Truelove Gold</Text>
+                                <Text style={styles.membershipSubtext}>The ultimate VIP experience</Text>
+                              </View>
+                              <View style={styles.membershipPriceBox}>
+                                <Text style={styles.membershipMonthlyPriceGold}>
+                                  {monthlyCost}
+                                </Text>
+                                <Text style={styles.membershipMonthlyLabel}>/ mo</Text>
+                              </View>
                             </View>
-                            <View style={styles.membershipPriceBox}>
-                              <Text style={styles.membershipMonthlyPriceGold}>
-                                {monthlyCost}
-                              </Text>
-                              <Text style={styles.membershipMonthlyLabel}>/ mo</Text>
-                            </View>
-                          </View>
 
-                          <Text style={styles.membershipBillingSubtext}>
-                            {billingPeriod === 'QUARTERLY'
-                              ? `Billed as ₹1,199 every 3 months (${dailyCost})`
-                              : 'Billed monthly. Cancel anytime.'}
-                          </Text>
+                            <Text style={styles.membershipBillingSubtext}>
+                              {billingPeriod === 'QUARTERLY'
+                                ? `Billed as ₹1,199 every 3 months (${dailyCost})`
+                                : 'Billed monthly. Cancel anytime.'}
+                            </Text>
 
-                          <View style={styles.perksList}>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkTextBold}>Unlimited Direct Notes</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkTextBold}>See Who Liked You (Unblur)</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkText}>1 Free Weekly Profile Boost</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkText}>Unlimited HD Video & Audio Calls</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                              <Text style={styles.perkText}>Unlimited Swipes & Rewind Pass</Text>
+                            <View style={styles.perksList}>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>Unlimited Direct Notes</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>See Who Liked You (Unblur)</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Text style={styles.perkText}>1 Free Weekly Profile Boost</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Text style={styles.perkText}>Unlimited HD Video & Audio Calls</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Text style={styles.perkText}>Unlimited Swipes & Rewind Pass</Text>
+                              </View>
                             </View>
                           </View>
                         </TouchableOpacity>
@@ -877,41 +912,43 @@ export const PaywallModal: React.FC = () => {
                           onPress={() => setSelectedProductId(plusProd.storeProductId)}
                           activeOpacity={0.85}
                         >
-                          <View style={styles.membershipCardTop}>
-                            <View>
-                              <Text style={styles.membershipTitle}>Truelove Plus</Text>
-                              <Text style={styles.membershipSubtext}>Core dating essentials</Text>
+                          <View style={styles.membershipCardBody}>
+                            <View style={styles.membershipCardTop}>
+                              <View>
+                                <Text style={styles.membershipTitle}>Truelove Plus</Text>
+                                <Text style={styles.membershipSubtext}>Core dating essentials</Text>
+                              </View>
+                              <View style={styles.membershipPriceBox}>
+                                <Text style={styles.membershipMonthlyPrice}>
+                                  {monthlyCost}
+                                </Text>
+                                <Text style={styles.membershipMonthlyLabel}>/ mo</Text>
+                              </View>
                             </View>
-                            <View style={styles.membershipPriceBox}>
-                              <Text style={styles.membershipMonthlyPrice}>
-                                {monthlyCost}
-                              </Text>
-                              <Text style={styles.membershipMonthlyLabel}>/ mo</Text>
-                            </View>
-                          </View>
 
-                          <Text style={styles.membershipBillingSubtext}>
-                            {billingPeriod === 'QUARTERLY'
-                              ? `Billed as ₹699 every 3 months (${dailyCost})`
-                              : 'Billed monthly. Cancel anytime.'}
-                          </Text>
+                            <Text style={styles.membershipBillingSubtext}>
+                              {billingPeriod === 'QUARTERLY'
+                                ? `Billed as ₹699 every 3 months (${dailyCost})`
+                                : 'Billed monthly. Cancel anytime.'}
+                            </Text>
 
-                          <View style={styles.perksList}>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                              <Text style={styles.perkText}>Unlimited Swipes & Likes</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                              <Text style={styles.perkText}>Rewind Pass (Undo left swipe)</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                              <Text style={styles.perkText}>5 Direct Notes daily</Text>
-                            </View>
-                            <View style={styles.perkRow}>
-                              <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                              <Text style={styles.perkText}>5 Super Likes daily</Text>
+                            <View style={styles.perksList}>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>Unlimited Swipes & Likes</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>Rewind Pass (Undo left swipe)</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>5 Direct Notes daily</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>5 Super Likes daily</Text>
+                              </View>
                             </View>
                           </View>
                         </TouchableOpacity>
@@ -944,8 +981,15 @@ export const PaywallModal: React.FC = () => {
                           activeOpacity={0.85}
                         >
                           {unitInfo.badge && (
-                            <View style={styles.cardPopularBadge}>
-                              <Text style={styles.cardPopularBadgeText}>{unitInfo.badge}</Text>
+                            <View
+                              style={[
+                                styles.cardTopRibbon,
+                                unitInfo.badge.includes('BEST VALUE')
+                                  ? styles.cardTopRibbonBestValue
+                                  : styles.cardTopRibbonPopular,
+                              ]}
+                            >
+                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
                             </View>
                           )}
                           <View style={styles.sectionPackRow}>
@@ -957,18 +1001,20 @@ export const PaywallModal: React.FC = () => {
                             >
                               {isSelected && <View style={styles.radioInner} />}
                             </View>
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                              <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
+                            <View style={styles.packContentColumn}>
+                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
+                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
                             </View>
-                            <Text
-                              style={[
-                                styles.sectionPackPrice,
-                                isSelected && styles.sectionPackPriceSelected,
-                              ]}
-                            >
-                              {prod.displayPrice}
-                            </Text>
+                            <View style={styles.packPriceColumn}>
+                              <Text
+                                style={[
+                                  styles.sectionPackPrice,
+                                  isSelected && styles.sectionPackPriceSelected,
+                                ]}
+                              >
+                                {prod.displayPrice}
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
@@ -997,8 +1043,15 @@ export const PaywallModal: React.FC = () => {
                           activeOpacity={0.85}
                         >
                           {unitInfo.badge && (
-                            <View style={styles.cardPopularBadge}>
-                              <Text style={styles.cardPopularBadgeText}>{unitInfo.badge}</Text>
+                            <View
+                              style={[
+                                styles.cardTopRibbon,
+                                unitInfo.badge.includes('BEST VALUE')
+                                  ? styles.cardTopRibbonBestValue
+                                  : styles.cardTopRibbonPopular,
+                              ]}
+                            >
+                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
                             </View>
                           )}
                           <View style={styles.sectionPackRow}>
@@ -1010,18 +1063,20 @@ export const PaywallModal: React.FC = () => {
                             >
                               {isSelected && <View style={styles.radioInner} />}
                             </View>
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                              <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
+                            <View style={styles.packContentColumn}>
+                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
+                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
                             </View>
-                            <Text
-                              style={[
-                                styles.sectionPackPrice,
-                                isSelected && styles.sectionPackPriceSelected,
-                              ]}
-                            >
-                              {prod.displayPrice}
-                            </Text>
+                            <View style={styles.packPriceColumn}>
+                              <Text
+                                style={[
+                                  styles.sectionPackPrice,
+                                  isSelected && styles.sectionPackPriceSelected,
+                                ]}
+                              >
+                                {prod.displayPrice}
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
@@ -1050,8 +1105,15 @@ export const PaywallModal: React.FC = () => {
                           activeOpacity={0.85}
                         >
                           {unitInfo.badge && (
-                            <View style={styles.cardPopularBadge}>
-                              <Text style={styles.cardPopularBadgeText}>{unitInfo.badge}</Text>
+                            <View
+                              style={[
+                                styles.cardTopRibbon,
+                                unitInfo.badge.includes('BEST VALUE')
+                                  ? styles.cardTopRibbonBestValue
+                                  : styles.cardTopRibbonPopular,
+                              ]}
+                            >
+                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
                             </View>
                           )}
                           <View style={styles.sectionPackRow}>
@@ -1063,18 +1125,20 @@ export const PaywallModal: React.FC = () => {
                             >
                               {isSelected && <View style={styles.radioInner} />}
                             </View>
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                              <Text style={styles.sectionPackName}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit}>{unitInfo.label}</Text>
+                            <View style={styles.packContentColumn}>
+                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
+                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
                             </View>
-                            <Text
-                              style={[
-                                styles.sectionPackPrice,
-                                isSelected && styles.sectionPackPriceSelected,
-                              ]}
-                            >
-                              {prod.displayPrice}
-                            </Text>
+                            <View style={styles.packPriceColumn}>
+                              <Text
+                                style={[
+                                  styles.sectionPackPrice,
+                                  isSelected && styles.sectionPackPriceSelected,
+                                ]}
+                              >
+                                {prod.displayPrice}
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
@@ -1262,35 +1326,39 @@ const styles = StyleSheet.create({
   focusedPackCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    position: 'relative',
+    overflow: 'hidden',
   },
   focusedPackCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: 'rgba(253, 93, 101, 0.03)',
   },
-  cardPopularBadge: {
-    position: 'absolute',
-    top: -9,
-    right: 14,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-    zIndex: 2,
+  cardTopRibbon: {
+    paddingVertical: 3.5,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardPopularBadgeText: {
-    fontSize: 9,
+  cardTopRibbonPopular: {
+    backgroundColor: Colors.primary,
+  },
+  cardTopRibbonBestValue: {
+    backgroundColor: '#059669',
+  },
+  cardTopRibbonText: {
+    fontSize: 9.5,
     fontWeight: '800',
     color: Colors.white,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   focusedPackRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   radioCircle: {
     width: 22,
@@ -1309,6 +1377,22 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: Colors.primary,
+  },
+  packContentColumn: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  packTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  packPriceColumn: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginLeft: 8,
+    minWidth: 52,
   },
   focusedPackTitle: {
     fontSize: 15,
@@ -1333,30 +1417,31 @@ const styles = StyleSheet.create({
   goldUpsellCard: {
     backgroundColor: '#FFFBEB',
     borderRadius: 16,
-    padding: 16,
     borderWidth: 1.5,
     borderColor: '#FDE68A',
     marginBottom: 16,
-    position: 'relative',
+    overflow: 'hidden',
   },
   goldUpsellCardSelected: {
     borderColor: '#D97706',
     backgroundColor: '#FEF3C7',
   },
   goldUpsellBadge: {
-    position: 'absolute',
-    top: -10,
-    left: 14,
     backgroundColor: '#D97706',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
+    paddingVertical: 3.5,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   goldUpsellBadgeText: {
-    fontSize: 9,
+    fontSize: 9.5,
     fontWeight: '800',
     color: Colors.white,
     letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  goldUpsellBody: {
+    padding: 14,
   },
   goldUpsellHeader: {
     flexDirection: 'row',
@@ -1474,10 +1559,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 9,
-    position: 'relative',
   },
   durationBtnActive: {
     backgroundColor: Colors.backgroundSecondary,
+  },
+  durationBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
   },
   durationBtnText: {
     fontSize: 13,
@@ -1488,19 +1578,17 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.textPrimary,
   },
-  durationSaveBadge: {
-    position: 'absolute',
-    top: -8,
-    right: 8,
+  durationSaveBadgeInline: {
     backgroundColor: '#10B981',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 5,
   },
   durationSaveBadgeText: {
-    fontSize: 8,
+    fontSize: 8.5,
     fontWeight: '800',
     color: Colors.white,
+    letterSpacing: 0.3,
   },
 
   /* Memberships Cards */
@@ -1510,34 +1598,35 @@ const styles = StyleSheet.create({
   membershipCard: {
     backgroundColor: Colors.white,
     borderRadius: 18,
-    padding: 16,
     borderWidth: 1.5,
     borderColor: Colors.border,
+    overflow: 'hidden',
   },
   membershipCardGold: {
     borderColor: '#F59E0B',
     backgroundColor: '#FFFCF2',
-    position: 'relative',
   },
   membershipCardSelected: {
     borderColor: Colors.primary,
     borderWidth: 2,
     backgroundColor: 'rgba(253, 93, 101, 0.03)',
   },
-  cardHeaderBadgeGold: {
-    position: 'absolute',
-    top: -10,
-    left: 16,
+  membershipTopRibbonGold: {
     backgroundColor: '#D97706',
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardHeaderBadgeTextGold: {
-    fontSize: 9,
+  membershipTopRibbonTextGold: {
+    fontSize: 9.5,
     fontWeight: '800',
     color: Colors.white,
-    letterSpacing: 0.5,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  membershipCardBody: {
+    padding: 16,
   },
   membershipCardTop: {
     flexDirection: 'row',
@@ -1630,21 +1719,22 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   sectionPackCard: {
-    backgroundColor: Colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
     marginBottom: 8,
     borderWidth: 1.5,
-    borderColor: 'transparent',
-    position: 'relative',
+    borderColor: Colors.border,
+    overflow: 'hidden',
   },
   sectionPackCardSelected: {
     borderColor: Colors.primary,
-    backgroundColor: 'rgba(253, 93, 101, 0.05)',
+    backgroundColor: 'rgba(253, 93, 101, 0.03)',
   },
   sectionPackRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   sectionPackName: {
     fontSize: 14,
@@ -1801,52 +1891,55 @@ const styles = StyleSheet.create({
   },
   utilityMatrix: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    justifyContent: 'space-between',
     marginBottom: 14,
   },
   utilityChip: {
-    flex: 1,
-    minWidth: '22%',
+    width: '23%',
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
     paddingVertical: 8,
-    paddingHorizontal: 6,
+    paddingHorizontal: 2,
     alignItems: 'center',
   },
   utilityChipEmoji: {
-    fontSize: 18,
-    marginBottom: 4,
+    fontSize: 16,
+    marginBottom: 3,
   },
   utilityChipTitle: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '600',
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 2,
   },
   utilityChipCost: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     color: Colors.primary,
   },
   coinPackCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 14,
     marginBottom: 10,
     borderWidth: 1.5,
     borderColor: Colors.border,
-    position: 'relative',
+    overflow: 'hidden',
   },
   coinPackCardSelected: {
     borderColor: Colors.primary,
     backgroundColor: 'rgba(253, 93, 101, 0.03)',
   },
   coinPackCardPopular: {
-    borderColor: '#F59E0B',
+    borderColor: '#FD5D65',
+  },
+  coinPackCardBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   bonusPill: {
     backgroundColor: '#ECFDF5',
