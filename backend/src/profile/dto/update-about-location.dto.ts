@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsNumber,
   IsOptional,
   IsString,
@@ -34,4 +35,10 @@ export class UpdateAboutLocationDto {
   @Min(-180, { message: 'Longitude must be between -180 and 180' })
   @Max(180, { message: 'Longitude must be between -180 and 180' })
   longitude?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  languages?: string[];
 }
+

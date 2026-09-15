@@ -60,6 +60,6 @@ describe('BaselineRankingStrategy', () => {
     expect(ranked[0].candidate.id).toBe('high-1');
     expect(ranked[1].candidate.id).toBe('low-1');
     expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
-    expect(strategy.version).toBe('baseline-v1');
+    expect(strategy.version).toBe('baseline-v2-global-lang');
   });
 });

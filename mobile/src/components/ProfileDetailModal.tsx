@@ -24,6 +24,7 @@ export interface ProfileDetailData {
   distanceKm?: number | null;
   distanceDisplay?: string;
   interests?: string[];
+  languages?: string[];
 }
 
 interface ProfileDetailModalProps {
@@ -148,6 +149,26 @@ export const ProfileDetailModal: React.FC<ProfileDetailModalProps> = ({
                 ))}
               </View>
             </View>
+
+            {/* Section: Languages Spoken */}
+            {profile.languages && profile.languages.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Languages I Speak</Text>
+                <View style={styles.interestsGrid}>
+                  {profile.languages.map((lang: string, index: number) => (
+                    <View key={index} style={styles.languagePill}>
+                      <Ionicons
+                        name="chatbubble-ellipses-outline"
+                        size={13}
+                        color={Colors.primary}
+                        style={styles.pillCheck}
+                      />
+                      <Text style={styles.languagePillText}>{lang}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Quick Decision Actions at bottom of profile */}
             <View style={styles.bottomActionsRow}>
@@ -320,6 +341,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: Colors.primary,
+  },
+  languagePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  languagePillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textPrimary,
   },
   bottomActionsRow: {
     flexDirection: 'row',

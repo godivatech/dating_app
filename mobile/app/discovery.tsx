@@ -32,7 +32,7 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 export default function DiscoveryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { profile: myProfile, completion, fetchProfile } = useProfileStore();
+  const { profile: myProfile, completion, fetchProfile, savePreferences } = useProfileStore();
   const { creditBalance, activateBoost, openPaywall, fetchCreditBalance } = useBillingStore();
   const {
     candidates,
@@ -134,6 +134,34 @@ export default function DiscoveryScreen() {
     }
   };
 
+  const isGlobalMode = myProfile?.preferences?.globalMode === true;
+
+  const handleToggleGlobalMode = async () => {
+    const nextMode = !isGlobalMode;
+    try {
+      const success = await savePreferences({
+        preferredGenderMode:
+          myProfile?.preferences?.preferredGenderMode || ('SELECTED' as any),
+        preferredGenders: myProfile?.preferences?.preferredGenders || [],
+        minAge: myProfile?.preferences?.minAge ?? 18,
+        maxAge: myProfile?.preferences?.maxAge ?? 35,
+        relationshipIntent:
+          myProfile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
+        globalMode: nextMode,
+      });
+      if (success) {
+        showPill(
+          nextMode
+            ? '🌐 Global Mode: Exploring Worldwide'
+            : '📍 Local Mode: Exploring Nearby',
+        );
+        fetchDiscoveryFeed(true);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not switch discovery mode.');
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchCreditBalance();
@@ -191,7 +219,7 @@ export default function DiscoveryScreen() {
     }, [fetchProfile, fetchDiscoveryFeed, fetchUnreadCount]),
   );
 
-  // Filter candidates in real-time by Name, City, Region, Bio, or Interests
+  // Filter candidates in real-time by Name, City, Region, Bio, Interests, or Languages
   const filteredCandidates = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return candidates;
@@ -203,13 +231,16 @@ export default function DiscoveryScreen() {
       const interests =
         c.interests?.map((i) => i.name?.toLowerCase() || (i as any)?.interest?.name?.toLowerCase() || '').join(' ') || '';
       const intent = c.relationshipIntent?.toLowerCase() || '';
+      const languages =
+        c.languages?.map((l) => l.toLowerCase()).join(' ') || '';
       return (
         name.includes(q) ||
         city.includes(q) ||
         region.includes(q) ||
         bio.includes(q) ||
         interests.includes(q) ||
-        intent.includes(q)
+        intent.includes(q) ||
+        languages.includes(q)
       );
     });
   }, [candidates, searchQuery]);
@@ -392,6 +423,21 @@ export default function DiscoveryScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[
+              styles.headerSquareBtn,
+              isGlobalMode && styles.globalBtnActive,
+            ]}
+            onPress={handleToggleGlobalMode}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isGlobalMode ? 'earth' : 'earth-outline'}
+              size={18}
+              color={isGlobalMode ? Colors.primary : Colors.textPrimary}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.headerSquareBtn}
             onPress={() => router.push('/(onboarding)/preferences' as any)}
             activeOpacity={0.7}
@@ -401,13 +447,13 @@ export default function DiscoveryScreen() {
         </View>
       </View>
 
-      {/* Search Bar */}
+      {/* Search Bar & Global Scope Indicator */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
           <Feather name="search" size={18} color={Colors.textMuted} style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search partners by name, city, interest..."
+            placeholder="Search partners by name, city, language..."
             placeholderTextColor={Colors.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -425,6 +471,19 @@ export default function DiscoveryScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Global Mode Scope Indicator Banner */}
+        {isGlobalMode && (
+          <View style={styles.globalModeBanner}>
+            <Ionicons name="earth" size={13} color={Colors.primary} />
+            <Text style={styles.globalModeBannerText}>
+              Global Mode Active: Exploring matches across India & worldwide
+            </Text>
+            <TouchableOpacity onPress={handleToggleGlobalMode} activeOpacity={0.7}>
+              <Text style={styles.switchModeText}>Local</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {isFiltering && (
           <View style={styles.searchFilterBadgeRow}>
@@ -560,6 +619,7 @@ export default function DiscoveryScreen() {
                   bio: candidate.bio || undefined,
                   photos: candidate.photos,
                   interests: candidate.interests?.map((i) => i.name) || [],
+                  languages: candidate.languages || [],
                   distanceKm: candidate.distanceKm,
                   distanceDisplay: candidate.distanceDisplay,
                 })
@@ -683,6 +743,21 @@ export default function DiscoveryScreen() {
                         ? `${candidate.locationCity}${candidate.locationRegion ? `, ${candidate.locationRegion}` : ''}`
                         : candidate.distanceDisplay || 'Nearby'}
                     </Text>
+
+                    {/* Spoken Languages Badge */}
+                    {candidate.languages && candidate.languages.length > 0 && (
+                      <View style={styles.candidateLanguagesBadge}>
+                        <Ionicons
+                          name="chatbubble-ellipses-outline"
+                          size={11}
+                          color="#FCA5A5"
+                          style={{ marginRight: 4 }}
+                        />
+                        <Text style={styles.candidateLanguagesText} numberOfLines={1}>
+                          {candidate.languages.slice(0, 3).join(' • ')}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
                   {/* Social Badges on Bottom Right */}
@@ -1320,5 +1395,46 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  globalBtnActive: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  globalModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  globalModeBannerText: {
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  switchModeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primary,
+    textDecorationLine: 'underline',
+  },
+  candidateLanguagesBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  candidateLanguagesText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

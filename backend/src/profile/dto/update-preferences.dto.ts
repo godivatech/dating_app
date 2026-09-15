@@ -1,4 +1,13 @@
-import { IsEnum, IsInt, IsOptional, IsArray, Min, Max } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsArray,
+  IsBoolean,
+  IsString,
+  Min,
+  Max,
+} from 'class-validator';
 import {
   Gender,
   PreferredGenderMode,
@@ -34,4 +43,14 @@ export class UpdatePreferencesDto {
       'Relationship intent must be LONG_TERM, MARRIAGE, SERIOUS_DATING, OPEN_TO_EXPLORE, or CASUAL',
   })
   relationshipIntent: RelationshipIntent;
+
+  @IsOptional()
+  @IsBoolean()
+  globalMode?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  preferredLanguages?: string[];
 }
+

@@ -118,4 +118,65 @@ describe('FeatureExtractionService', () => {
     expect(features.qualityScore).toBe(1.0);
     expect(features.freshnessScore).toBe(1.0);
   });
+
+  it('should calculate language communication compatibility correctly', () => {
+    const userWithLang = {
+      ...user,
+      languages: ['English', 'Tamil'],
+      preferences: {
+        ...user.preferences,
+        preferredLanguages: ['English'],
+      },
+    };
+
+    const candidateShared = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      languages: ['English', 'Hindi'],
+    };
+
+    const candidateDisjoint = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      languages: ['German', 'French'],
+    };
+
+    const candidateEmpty = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      languages: [],
+    };
+
+    const featShared = service.extractFeatures(userWithLang, candidateShared);
+    const featDisjoint = service.extractFeatures(userWithLang, candidateDisjoint);
+    const featEmpty = service.extractFeatures(userWithLang, candidateEmpty);
+
+    expect(featShared.sharedLanguagesCount).toBe(1);
+    expect(featShared.languageOverlap).toBeGreaterThanOrEqual(0.7);
+    expect(featDisjoint.sharedLanguagesCount).toBe(0);
+    expect(featDisjoint.languageOverlap).toBe(0.1);
+    expect(featEmpty.languageOverlap).toBe(0.45);
+  });
+
+  it('should relax distance penalty when globalMode is enabled', () => {
+    const globalUser = {
+      ...user,
+      preferences: {
+        ...user.preferences,
+        globalMode: true,
+      },
+    };
+
+    const distantCandidate = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      locationCity: 'Delhi',
+      locationRegion: 'Delhi',
+      locationCountry: 'IN',
+    };
+
+    const localFeatures = service.extractFeatures(user, distantCandidate);
+    const globalFeatures = service.extractFeatures(globalUser, distantCandidate);
+
+    // In local mode, different state in India is 0.3
+    expect(localFeatures.locationMatch).toBe(0.3);
+    // In global mode, distance penalty is relaxed to 0.85
+    expect(globalFeatures.locationMatch).toBe(0.85);
+  });
 });

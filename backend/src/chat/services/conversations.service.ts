@@ -453,6 +453,7 @@ export class ConversationsService {
       age,
       gender: candidate.gender,
       bio: candidate.bio,
+      languages: candidate.languages || [],
       locationCity: candidate.locationCity,
       locationRegion: candidate.locationRegion,
       locationCountry: candidate.locationCountry,

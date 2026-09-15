@@ -61,6 +61,20 @@ const BIO_STARTERS = [
   '📚 Bookworm by day, aspiring chef by night.',
 ];
 
+const POPULAR_LANGUAGES = [
+  'English',
+  'Tamil',
+  'Hindi',
+  'Malayalam',
+  'Telugu',
+  'Kannada',
+  'Marathi',
+  'Bengali',
+  'French',
+  'German',
+  'Spanish',
+];
+
 export default function AboutLocationScreen() {
   const router = useRouter();
   const { profile, saveAboutLocation, isLoading, error, clearError } = useProfileStore();
@@ -70,6 +84,11 @@ export default function AboutLocationScreen() {
   const [region, setRegion] = useState(profile?.locationRegion || '');
   const [latitude, setLatitude] = useState<number | undefined>(profile?.latitude || undefined);
   const [longitude, setLongitude] = useState<number | undefined>(profile?.longitude || undefined);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>(
+    profile?.languages && profile.languages.length > 0
+      ? profile.languages
+      : ['English', 'Tamil'],
+  );
 
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectedLocation, setDetectedLocation] = useState<string | null>(null);
@@ -80,8 +99,21 @@ export default function AboutLocationScreen() {
       if (profile.bio) setBio(profile.bio);
       if (profile.locationCity) setCity(profile.locationCity);
       if (profile.locationRegion) setRegion(profile.locationRegion);
+      if (profile.languages && profile.languages.length > 0) {
+        setSelectedLanguages(profile.languages);
+      }
     }
   }, [profile]);
+
+  const toggleLanguage = (lang: string) => {
+    setSelectedLanguages((prev) => {
+      if (prev.includes(lang)) {
+        if (prev.length === 1) return prev; // Keep at least one language
+        return prev.filter((l) => l !== lang);
+      }
+      return [...prev, lang];
+    });
+  };
 
   const handleAutoDetect = async () => {
     setIsDetecting(true);
@@ -173,6 +205,7 @@ export default function AboutLocationScreen() {
       locationRegion: trimmedRegion || undefined,
       latitude,
       longitude,
+      languages: selectedLanguages,
     });
 
     if (success) {
@@ -243,6 +276,50 @@ export default function AboutLocationScreen() {
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
+              </View>
+            </View>
+
+            {/* Languages I Speak */}
+            <View style={styles.inputGroup}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.label}>Languages I Speak</Text>
+                <Text style={styles.counterText}>{selectedLanguages.length} selected</Text>
+              </View>
+              <Text style={styles.fieldHelper}>
+                Select languages you speak to find matches you can comfortably communicate with.
+              </Text>
+              <View style={styles.languagesWrap}>
+                {POPULAR_LANGUAGES.map((lang) => {
+                  const isSelected = selectedLanguages.includes(lang);
+                  return (
+                    <TouchableOpacity
+                      key={lang}
+                      style={[
+                        styles.languageChip,
+                        isSelected && styles.languageChipSelected,
+                      ]}
+                      onPress={() => toggleLanguage(lang)}
+                      activeOpacity={0.75}
+                    >
+                      {isSelected ? (
+                        <Ionicons
+                          name="checkmark"
+                          size={13}
+                          color={Colors.white}
+                          style={{ marginRight: 4 }}
+                        />
+                      ) : null}
+                      <Text
+                        style={[
+                          styles.languageChipText,
+                          isSelected && styles.languageChipTextSelected,
+                        ]}
+                      >
+                        {lang}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
 
@@ -612,5 +689,41 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  fieldHelper: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    lineHeight: 17,
+    marginTop: -2,
+    marginBottom: 6,
+  },
+  languagesWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
+  languageChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  languageChipSelected: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  languageChipText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  languageChipTextSelected: {
+    color: Colors.white,
+    fontWeight: '700',
   },
 });

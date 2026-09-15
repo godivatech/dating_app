@@ -119,6 +119,8 @@ export interface DatingPreferences {
   minAge: number;
   maxAge: number;
   relationshipIntent: RelationshipIntent;
+  globalMode: boolean;
+  preferredLanguages: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -130,6 +132,7 @@ export interface SafeDatingProfile {
   age: number; // Derived dynamically from UTC calendar date of birth
   gender: Gender;
   bio: string | null;
+  languages: string[];
   locationCity: string | null;
   locationRegion: string | null;
   locationCountry: string;
@@ -217,6 +220,8 @@ export interface UpdatePreferencesDto {
   minAge: number;
   maxAge: number;
   relationshipIntent: RelationshipIntent;
+  globalMode?: boolean;
+  preferredLanguages?: string[];
 }
 
 export interface UpdateInterestsDto {
@@ -225,6 +230,7 @@ export interface UpdateInterestsDto {
 
 export interface UpdateAboutLocationDto {
   bio?: string;
+  languages?: string[];
   locationCity: string;
   locationRegion?: string;
   latitude?: number;
@@ -253,6 +259,7 @@ export interface DiscoveryCandidate {
   age: number; // Derived dynamically from UTC calendar date of birth
   gender: Gender;
   bio: string | null;
+  languages: string[];
   locationCity: string | null;
   locationRegion: string | null;
   locationCountry: string;

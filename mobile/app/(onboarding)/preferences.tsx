@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -42,6 +43,9 @@ export default function PreferencesScreen() {
   const [intent, setIntent] = useState<RelationshipIntent>(
     profile?.preferences?.relationshipIntent || RelationshipIntent.LONG_TERM,
   );
+  const [globalMode, setGlobalMode] = useState<boolean>(
+    profile?.preferences?.globalMode || false,
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +55,7 @@ export default function PreferencesScreen() {
       setMinAge(String(profile.preferences.minAge));
       setMaxAge(String(profile.preferences.maxAge));
       setIntent(profile.preferences.relationshipIntent);
+      setGlobalMode(!!profile.preferences.globalMode);
     }
   }, [profile]);
 
@@ -94,6 +99,7 @@ export default function PreferencesScreen() {
       minAge: numMin,
       maxAge: numMax,
       relationshipIntent: intent,
+      globalMode,
     });
 
     if (success) {
@@ -194,6 +200,38 @@ export default function PreferencesScreen() {
                 }}
               />
             </View>
+          </View>
+        </View>
+
+        {/* Dating Scope / Global Mode */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Discovery Scope</Text>
+          <View style={styles.scopeCard}>
+            <View style={styles.scopeInfo}>
+              <View style={styles.scopeTitleRow}>
+                <Ionicons
+                  name={globalMode ? 'earth' : 'location-sharp'}
+                  size={18}
+                  color={globalMode ? Colors.primary : Colors.textMuted}
+                />
+                <Text style={styles.scopeTitle}>
+                  {globalMode
+                    ? 'Explore Everywhere (Global)'
+                    : 'Nearby Dating (Local)'}
+                </Text>
+              </View>
+              <Text style={styles.scopeSubText}>
+                {globalMode
+                  ? 'Active: See compatible singles from across India and worldwide. Distance penalties are lifted.'
+                  : 'Prioritizes verified singles living in your city and state first.'}
+              </Text>
+            </View>
+            <Switch
+              value={globalMode}
+              onValueChange={setGlobalMode}
+              trackColor={{ false: Colors.border, true: Colors.primary }}
+              thumbColor={Colors.white}
+            />
           </View>
         </View>
 
@@ -384,5 +422,35 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  scopeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.backgroundSecondary,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  scopeInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  scopeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  scopeTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+  },
+  scopeSubText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
 });

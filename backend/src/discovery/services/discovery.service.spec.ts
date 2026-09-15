@@ -196,7 +196,7 @@ describe('DiscoveryService', () => {
     expect(feed.candidates[0].photos[0].thumbnailUrl).toContain(
       'https://cdn.datingapp.com/',
     );
-    expect(feed.algorithmVersion).toBe('baseline-v1');
+    expect(feed.algorithmVersion).toBe('baseline-v2-global-lang');
   });
 
   it('should return PROFILE_HIDDEN if requesting user has visibility HIDDEN', async () => {

@@ -138,6 +138,7 @@ model DatingProfile {
   dateOfBirth        DateTime            // UTC calendar date
   gender             Gender
   bio                String?
+  languages          String[]            @default([])
   locationCity       String?
   locationRegion     String?
   locationCountry    String              @default("IN")
@@ -170,6 +171,8 @@ model DatingPreferences {
   minAge              Int                 @default(18)
   maxAge              Int                 @default(100)
   relationshipIntent  RelationshipIntent  @default(SERIOUS_DATING)
+  globalMode          Boolean             @default(false)
+  preferredLanguages  String[]            @default([])
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 

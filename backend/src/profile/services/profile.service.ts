@@ -130,6 +130,7 @@ export class ProfileService {
       age: evaluation.age,
       gender: profile.gender as any,
       bio: profile.bio,
+      languages: profile.languages ?? [],
       locationCity: profile.locationCity,
       locationRegion: profile.locationRegion,
       locationCountry: profile.locationCountry,
@@ -145,6 +146,8 @@ export class ProfileService {
             minAge: profile.preferences.minAge,
             maxAge: profile.preferences.maxAge,
             relationshipIntent: profile.preferences.relationshipIntent as any,
+            globalMode: profile.preferences.globalMode ?? false,
+            preferredLanguages: profile.preferences.preferredLanguages ?? [],
             createdAt: profile.preferences.createdAt.toISOString(),
             updatedAt: profile.preferences.updatedAt.toISOString(),
           }
@@ -299,6 +302,10 @@ export class ProfileService {
           minAge: dto.minAge,
           maxAge: dto.maxAge,
           relationshipIntent: dto.relationshipIntent,
+          ...(dto.globalMode !== undefined ? { globalMode: dto.globalMode } : {}),
+          ...(dto.preferredLanguages !== undefined
+            ? { preferredLanguages: dto.preferredLanguages }
+            : {}),
         },
         create: {
           profileId: profile.id,
@@ -307,6 +314,8 @@ export class ProfileService {
           minAge: dto.minAge,
           maxAge: dto.maxAge,
           relationshipIntent: dto.relationshipIntent,
+          globalMode: dto.globalMode ?? false,
+          preferredLanguages: dto.preferredLanguages ?? [],
         },
       });
 
@@ -458,6 +467,11 @@ export class ProfileService {
 
     const hasCoordinates = isValidCoordinate(dto.latitude, dto.longitude);
 
+    const cleanedLanguages =
+      dto.languages !== undefined
+        ? dto.languages.map((l) => l.trim()).filter(Boolean)
+        : undefined;
+
     await this.prisma.$transaction(async (tx) => {
       await tx.datingProfile.update({
         where: { id: profile.id },
@@ -465,6 +479,9 @@ export class ProfileService {
           bio: trimmedBio || null,
           locationCity: trimmedCity,
           locationRegion: trimmedRegion || null,
+          ...(cleanedLanguages !== undefined
+            ? { languages: cleanedLanguages }
+            : {}),
           ...(hasCoordinates
             ? {
                 latitude: dto.latitude,

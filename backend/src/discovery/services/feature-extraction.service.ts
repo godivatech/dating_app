@@ -10,6 +10,8 @@ export interface DiscoveryFeatures {
   ageProximity: number; // 0.0 to 1.0
   interestOverlap: number; // 0.0 to 1.0 (Jaccard similarity)
   sharedInterestsCount: number;
+  languageOverlap: number; // 0.0 to 1.0
+  sharedLanguagesCount: number;
   locationMatch: number; // 0.0 to 1.0
   intentMatch: number; // 0.0 to 1.0
   qualityScore: number; // 0.0 to 1.0
@@ -27,10 +29,14 @@ export class FeatureExtractionService {
       candidateProfile?.dateOfBirth,
     );
 
-    const { overlap, count } = this.calculateInterestOverlap(
-      userProfile?.interests,
-      candidateProfile?.interests,
-    );
+    const { overlap: interestOverlap, count: sharedInterestsCount } =
+      this.calculateInterestOverlap(
+        userProfile?.interests,
+        candidateProfile?.interests,
+      );
+
+    const { overlap: languageOverlap, count: sharedLanguagesCount } =
+      this.calculateLanguageOverlap(userProfile, candidateProfile);
 
     const locationMatch = this.calculateLocationMatch(
       userProfile,
@@ -47,8 +53,10 @@ export class FeatureExtractionService {
 
     return {
       ageProximity,
-      interestOverlap: overlap,
-      sharedInterestsCount: count,
+      interestOverlap,
+      sharedInterestsCount,
+      languageOverlap,
+      sharedLanguagesCount,
       locationMatch,
       intentMatch,
       qualityScore,
@@ -106,8 +114,83 @@ export class FeatureExtractionService {
     };
   }
 
+  /**
+   * Calculates language communication compatibility.
+   * Compares candidate's spoken languages against user's spoken and preferred languages.
+   */
+  private calculateLanguageOverlap(
+    userProfile?: any,
+    candidateProfile?: any,
+  ): { overlap: number; count: number } {
+    if (!userProfile || !candidateProfile) {
+      return { overlap: 0.5, count: 0 };
+    }
+
+    const userSpoken: string[] = Array.isArray(userProfile.languages)
+      ? userProfile.languages
+      : [];
+    const userPreferred: string[] = Array.isArray(
+      userProfile.preferences?.preferredLanguages,
+    )
+      ? userProfile.preferences.preferredLanguages
+      : [];
+    const candSpoken: string[] = Array.isArray(candidateProfile.languages)
+      ? candidateProfile.languages
+      : [];
+
+    const userLangSet = new Set(
+      [...userSpoken, ...userPreferred]
+        .map((l) => (typeof l === 'string' ? l.trim().toLowerCase() : ''))
+        .filter(Boolean),
+    );
+
+    const candLangSet = new Set(
+      candSpoken
+        .map((l) => (typeof l === 'string' ? l.trim().toLowerCase() : ''))
+        .filter(Boolean),
+    );
+
+    // If neither profile has configured languages, neutral baseline
+    if (userLangSet.size === 0 && candLangSet.size === 0) {
+      return { overlap: 0.6, count: 0 };
+    }
+
+    // If user hasn't specified languages yet, neutral baseline
+    if (userLangSet.size === 0) {
+      return { overlap: 0.5, count: 0 };
+    }
+
+    // If candidate hasn't configured languages yet, soft default to avoid hard penalty
+    if (candLangSet.size === 0) {
+      return { overlap: 0.45, count: 0 };
+    }
+
+    let shared = 0;
+    for (const lang of candLangSet) {
+      if (userLangSet.has(lang)) {
+        shared++;
+      }
+    }
+
+    if (shared === 0) {
+      // Both specified languages with 0 overlap (e.g., Tamil-only vs German-only)
+      return { overlap: 0.1, count: 0 };
+    }
+
+    // High compatibility when sharing at least one language
+    const ratio = shared / Math.min(userLangSet.size, candLangSet.size);
+    const score = Math.min(1.0, 0.7 + 0.3 * ratio);
+
+    return {
+      overlap: score,
+      count: shared,
+    };
+  }
+
   private calculateLocationMatch(user?: any, candidate?: any): number {
     if (!user || !candidate) return 0.0;
+
+    const isGlobalMode = user?.preferences?.globalMode === true;
 
     // 1. If both profiles have valid GPS coordinates, compute geodesic distance score
     if (
@@ -125,6 +208,12 @@ export class FeatureExtractionService {
         if (distanceKm <= 5) return 1.0;
         if (distanceKm <= 15) return 0.95;
         if (distanceKm <= 30) return 0.85;
+
+        // In Global Mode, distance penalties are significantly relaxed
+        if (isGlobalMode) {
+          return 0.85;
+        }
+
         if (distanceKm <= 50) return 0.7;
         if (distanceKm <= 100) return 0.5;
         if (distanceKm <= 200) return 0.3;
@@ -138,6 +227,11 @@ export class FeatureExtractionService {
 
     if (userCity && candCity && userCity === candCity) {
       return 1.0; // Same city
+    }
+
+    // In Global Mode, national or international candidates are welcomed
+    if (isGlobalMode) {
+      return 0.85;
     }
 
     const userRegion = user.locationRegion?.trim().toLowerCase();
