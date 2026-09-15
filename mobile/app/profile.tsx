@@ -395,8 +395,8 @@ export default function ProfileScreen() {
                   onPress={() => setShowPassbookModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="receipt-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
-                  <Text style={styles.passbookCoinsBtnText}>Passbook</Text>
+                  <Ionicons name="time-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
+                  <Text style={styles.passbookCoinsBtnText}>History</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

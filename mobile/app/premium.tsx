@@ -181,8 +181,8 @@ export default function PremiumScreen() {
                     onPress={() => setShowPassbookModal(true)}
                     activeOpacity={0.8}
                   >
-                    <Ionicons name="receipt-outline" size={12} color="#475569" style={{ marginRight: 3 }} />
-                    <Text style={styles.passbookPillText}>Passbook</Text>
+                    <Ionicons name="time-outline" size={12} color="#475569" style={{ marginRight: 3 }} />
+                    <Text style={styles.passbookPillText}>History</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity

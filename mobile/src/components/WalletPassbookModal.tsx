@@ -6,11 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   FlatList,
-  ActivityIndicator,
-  SafeAreaView,
-  StatusBar,
   Platform,
+  StatusBar as RNStatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
 import { useBillingStore } from '../stores/billing-store';
@@ -29,6 +29,12 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
     fetchCreditBalance,
     openPaywall,
   } = useBillingStore();
+
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(
+    insets.top,
+    Platform.OS === 'android' ? (RNStatusBar.currentHeight ?? 36) : 0,
+  );
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -155,17 +161,17 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      transparent={false}
+      statusBarTranslucent={false}
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle={Platform.OS === 'ios' ? 'dark-content' : 'default'} />
-
+      <StatusBar style="dark" />
+      <View style={[styles.safeArea, { paddingTop: topInset + 6 }]}>
         {/* Header Bar */}
         <View style={styles.headerBar}>
           <View style={styles.headerTitleGroup}>
-            <Text style={styles.headerTitle}>Truelove Passbook</Text>
-            <Text style={styles.headerSubtitle}>Double-entry coin ledger</Text>
+            <Text style={styles.headerTitle}>Coin Wallet & History</Text>
+            <Text style={styles.headerSubtitle}>Balance & Transaction History</Text>
           </View>
           <View style={styles.headerActions}>
             <TouchableOpacity
@@ -230,7 +236,10 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
             data={coinHistory}
             keyExtractor={(item) => item.id}
             renderItem={renderTransaction}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: Math.max(insets.bottom, 24) + 20 },
+            ]}
             showsVerticalScrollIndicator={false}
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
@@ -241,8 +250,8 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
                 </View>
                 <Text style={styles.emptyTitle}>No Transactions Yet</Text>
                 <Text style={styles.emptySubtitle}>
-                  Your coin ledger will record all UPI micro-recharges, direct notes, boosts,
-                  and call minutes right here with cryptographic transparency.
+                  Your coin wallet records all recharges, direct notes, boosts,
+                  and call minutes right here.
                 </Text>
                 <TouchableOpacity
                   style={styles.emptyRechargeBtn}
@@ -256,7 +265,7 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
             }
           />
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
