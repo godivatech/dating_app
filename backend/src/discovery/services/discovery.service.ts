@@ -118,9 +118,11 @@ export class DiscoveryService {
     const userProfile = user.profile;
 
     // 4. Candidate Generation (Bounded Pool from PostgreSQL)
+    const targetCity = userProfile.preferences?.targetCity;
     const rawPool = await this.candidateGenerator.generateCandidatePool(
       userProfile.id,
       limit,
+      targetCity,
     );
 
     // 5. Mutual Preference Compatibility Filtering (Reciprocal Gender & Age)
@@ -243,10 +245,24 @@ export class DiscoveryService {
       status: pi.interest?.status || 'ACTIVE',
     }));
 
+    const isTargetCityActive = !!userProfile?.preferences?.targetCity;
+    const originLat =
+      isTargetCityActive && userProfile?.preferences?.targetLatitude != null
+        ? userProfile.preferences.targetLatitude
+        : userProfile?.latitude;
+    const originLng =
+      isTargetCityActive && userProfile?.preferences?.targetLongitude != null
+        ? userProfile.preferences.targetLongitude
+        : userProfile?.longitude;
+    const originCity =
+      isTargetCityActive && userProfile?.preferences?.targetCity
+        ? userProfile.preferences.targetCity
+        : userProfile?.locationCity;
+
     const { distanceKm, distanceDisplay } = calculateRelativeDistance(
-      userProfile?.latitude,
-      userProfile?.longitude,
-      userProfile?.locationCity,
+      originLat,
+      originLng,
+      originCity,
       candidate.latitude,
       candidate.longitude,
       candidate.locationCity,

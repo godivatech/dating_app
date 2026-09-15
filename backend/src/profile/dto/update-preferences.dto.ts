@@ -5,6 +5,7 @@ import {
   IsArray,
   IsBoolean,
   IsString,
+  IsNumber,
   Min,
   Max,
 } from 'class-validator';
@@ -52,5 +53,22 @@ export class UpdatePreferencesDto {
   @IsArray()
   @IsString({ each: true })
   preferredLanguages?: string[];
+
+  @IsOptional()
+  @IsString()
+  targetCity?: string | null;
+
+  @IsOptional()
+  @IsString()
+  targetRegion?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  targetLatitude?: number | null;
+
+  @IsOptional()
+  @IsNumber()
+  targetLongitude?: number | null;
 }
+
 

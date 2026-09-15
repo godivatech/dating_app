@@ -159,6 +159,7 @@ model DatingProfile {
   @@index([status, visibility])
   @@index([gender])
   @@index([locationCountry, locationRegion, locationCity])
+  @@index([locationCity, status, visibility])
   @@index([latitude, longitude])
 }
 
@@ -173,6 +174,10 @@ model DatingPreferences {
   relationshipIntent  RelationshipIntent  @default(SERIOUS_DATING)
   globalMode          Boolean             @default(false)
   preferredLanguages  String[]            @default([])
+  targetCity          String?
+  targetRegion        String?
+  targetLatitude      Float?
+  targetLongitude     Float?
   createdAt           DateTime            @default(now())
   updatedAt           DateTime            @updatedAt
 

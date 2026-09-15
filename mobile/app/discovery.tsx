@@ -21,6 +21,7 @@ import { useBillingStore } from '../src/stores/billing-store';
 import { useNotificationsStore } from '../src/stores/notifications-store';
 import { ProfileDetailModal } from '../src/components/ProfileDetailModal';
 import { SendNoteModal } from '../src/components/SendNoteModal';
+import { CityPassportModal } from '../src/components/CityPassportModal';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ActionType } from '../../shared/src/types';
@@ -57,6 +58,7 @@ export default function DiscoveryScreen() {
   const [likeHeartAnim] = useState(new Animated.Value(0));
   const [showHeartOverlay, setShowHeartOverlay] = useState(false);
   const [noteModalVisible, setNoteModalVisible] = useState(false);
+  const [passportModalVisible, setPassportModalVisible] = useState(false);
 
   // Boost state & countdown
   const isBoostActive = useMemo(() => {
@@ -134,7 +136,10 @@ export default function DiscoveryScreen() {
     }
   };
 
-  const isGlobalMode = myProfile?.preferences?.globalMode === true;
+  const targetCity = myProfile?.preferences?.targetCity;
+  const targetRegion = myProfile?.preferences?.targetRegion;
+  const isTargetCityActive = !!targetCity;
+  const isGlobalMode = myProfile?.preferences?.globalMode === true && !isTargetCityActive;
 
   const handleToggleGlobalMode = async () => {
     const nextMode = !isGlobalMode;
@@ -148,17 +153,65 @@ export default function DiscoveryScreen() {
         relationshipIntent:
           myProfile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
         globalMode: nextMode,
+        targetCity: null,
+        targetRegion: null,
       });
       if (success) {
         showPill(
           nextMode
-            ? '🌐 Global Mode: Exploring Worldwide'
+            ? '🌐 Worldwide Mode: Exploring Globally'
             : '📍 Local Mode: Exploring Nearby',
         );
         fetchDiscoveryFeed(true);
       }
     } catch {
       Alert.alert('Error', 'Could not switch discovery mode.');
+    }
+  };
+
+  const handleSelectTargetCity = async (city: string, region?: string) => {
+    try {
+      const success = await savePreferences({
+        preferredGenderMode:
+          myProfile?.preferences?.preferredGenderMode || ('SELECTED' as any),
+        preferredGenders: myProfile?.preferences?.preferredGenders || [],
+        minAge: myProfile?.preferences?.minAge ?? 18,
+        maxAge: myProfile?.preferences?.maxAge ?? 35,
+        relationshipIntent:
+          myProfile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
+        globalMode: false,
+        targetCity: city,
+        targetRegion: region || null,
+      });
+      if (success) {
+        showPill(`✈️ Passport: Exploring ${city}`);
+        fetchDiscoveryFeed(true);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not set destination city.');
+    }
+  };
+
+  const handleResetTargetCity = async () => {
+    try {
+      const success = await savePreferences({
+        preferredGenderMode:
+          myProfile?.preferences?.preferredGenderMode || ('SELECTED' as any),
+        preferredGenders: myProfile?.preferences?.preferredGenders || [],
+        minAge: myProfile?.preferences?.minAge ?? 18,
+        maxAge: myProfile?.preferences?.maxAge ?? 35,
+        relationshipIntent:
+          myProfile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
+        globalMode: false,
+        targetCity: null,
+        targetRegion: null,
+      });
+      if (success) {
+        showPill('📍 Restored to local nearby discovery');
+        fetchDiscoveryFeed(true);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not reset destination city.');
     }
   };
 
@@ -422,18 +475,29 @@ export default function DiscoveryScreen() {
             )}
           </TouchableOpacity>
 
+          {/* Target City Passport / Worldwide Exploration Button */}
           <TouchableOpacity
             style={[
               styles.headerSquareBtn,
-              isGlobalMode && styles.globalBtnActive,
+              isTargetCityActive
+                ? styles.passportBtnActive
+                : isGlobalMode
+                ? styles.globalBtnActive
+                : null,
             ]}
-            onPress={handleToggleGlobalMode}
+            onPress={() => setPassportModalVisible(true)}
             activeOpacity={0.7}
           >
             <Ionicons
-              name={isGlobalMode ? 'earth' : 'earth-outline'}
+              name={isTargetCityActive ? 'airplane' : isGlobalMode ? 'earth' : 'earth-outline'}
               size={18}
-              color={isGlobalMode ? Colors.primary : Colors.textPrimary}
+              color={
+                isTargetCityActive
+                  ? '#8B5CF6'
+                  : isGlobalMode
+                  ? Colors.primary
+                  : Colors.textPrimary
+              }
             />
           </TouchableOpacity>
 
@@ -447,8 +511,76 @@ export default function DiscoveryScreen() {
         </View>
       </View>
 
-      {/* Search Bar & Global Scope Indicator */}
+      {/* Search Bar & Scope Indicator */}
       <View style={styles.searchSection}>
+        {/* Discovery Scope Selector Bar */}
+        <View style={styles.scopeBarRow}>
+          <TouchableOpacity
+            style={[
+              styles.scopePill,
+              isTargetCityActive && styles.scopePillPassport,
+              isGlobalMode && styles.scopePillGlobal,
+            ]}
+            onPress={() => setPassportModalVisible(true)}
+            activeOpacity={0.75}
+          >
+            <Ionicons
+              name={
+                isTargetCityActive
+                  ? 'airplane'
+                  : isGlobalMode
+                  ? 'earth'
+                  : 'location'
+              }
+              size={13}
+              color={
+                isTargetCityActive
+                  ? '#8B5CF6'
+                  : isGlobalMode
+                  ? Colors.primary
+                  : Colors.textSecondary
+              }
+            />
+            <Text
+              style={[
+                styles.scopePillText,
+                isTargetCityActive && styles.scopePillTextPassport,
+                isGlobalMode && styles.scopePillTextGlobal,
+              ]}
+              numberOfLines={1}
+            >
+              {isTargetCityActive
+                ? `Passport: ${targetCity}`
+                : isGlobalMode
+                ? 'Worldwide Mode'
+                : `Nearby (${myProfile?.locationCity || 'Local'})`}
+            </Text>
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={
+                isTargetCityActive
+                  ? '#8B5CF6'
+                  : isGlobalMode
+                  ? Colors.primary
+                  : Colors.textMuted
+              }
+            />
+          </TouchableOpacity>
+
+          {(isTargetCityActive || isGlobalMode) && (
+            <TouchableOpacity
+              style={styles.scopeResetBtn}
+              onPress={handleResetTargetCity}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close-circle" size={14} color={Colors.textMuted} />
+              <Text style={styles.scopeResetBtnText}>Reset to Local</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <View style={styles.searchBar}>
           <Feather name="search" size={18} color={Colors.textMuted} style={styles.searchIcon} />
           <TextInput
@@ -471,6 +603,19 @@ export default function DiscoveryScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Passport Mode Scope Indicator Banner */}
+        {isTargetCityActive && (
+          <View style={styles.passportModeBanner}>
+            <Ionicons name="airplane" size={13} color="#8B5CF6" />
+            <Text style={styles.passportModeBannerText} numberOfLines={1}>
+              Passport Active: Exploring singles in {targetCity}
+            </Text>
+            <TouchableOpacity onPress={handleResetTargetCity} activeOpacity={0.7}>
+              <Text style={styles.switchModePassportText}>Reset</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Global Mode Scope Indicator Banner */}
         {isGlobalMode && (
@@ -561,28 +706,53 @@ export default function DiscoveryScreen() {
       ) : !candidate ? (
         <View style={[styles.emptyContainer, { paddingBottom: 60 + insets.bottom }]}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons name="sparkles" size={32} color={Colors.primary} />
+            <Ionicons
+              name={isTargetCityActive ? 'airplane' : 'sparkles'}
+              size={32}
+              color={isTargetCityActive ? '#8B5CF6' : Colors.primary}
+            />
           </View>
-          <Text style={styles.emptyTitle}>You're all caught up!</Text>
+          <Text style={styles.emptyTitle}>
+            {isTargetCityActive
+              ? `All caught up in ${targetCity}!`
+              : "You're all caught up!"}
+          </Text>
           <Text style={styles.emptySubText}>
-            Check back soon for more discoverable profiles near you.
+            {isTargetCityActive
+              ? `You have reviewed all available profiles in ${targetCity}. Choose another destination or return to your local feed.`
+              : 'Check back soon for more discoverable profiles near you.'}
           </Text>
           <View style={styles.emptyActionRow}>
-            <TouchableOpacity
-              style={styles.refreshBtn}
-              onPress={() => fetchDiscoveryFeed(true)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.refreshBtnText}>Refresh Feed</Text>
-            </TouchableOpacity>
+            {isTargetCityActive ? (
+              <TouchableOpacity
+                style={styles.refreshBtn}
+                onPress={handleResetTargetCity}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.refreshBtnText}>Reset to Local Feed</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.refreshBtn}
+                onPress={() => fetchDiscoveryFeed(true)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.refreshBtnText}>Refresh Feed</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.adjustPrefBtn}
-              onPress={() => router.push('/(onboarding)/preferences' as any)}
+              onPress={() => setPassportModalVisible(true)}
               activeOpacity={0.85}
             >
-              <Ionicons name="options-outline" size={16} color={Colors.textPrimary} style={{ marginRight: 6 }} />
-              <Text style={styles.adjustPrefBtnText}>Filters</Text>
+              <Ionicons
+                name="airplane-outline"
+                size={16}
+                color={Colors.textPrimary}
+                style={{ marginRight: 6 }}
+              />
+              <Text style={styles.adjustPrefBtnText}>Change City</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -711,7 +881,7 @@ export default function DiscoveryScreen() {
               {/* Top Right Floating Chip: Dynamic Relative Distance */}
               <View style={styles.distancePill}>
                 <Ionicons
-                  name="location-sharp"
+                  name={isTargetCityActive ? 'airplane' : 'location-sharp'}
                   size={12}
                   color={Colors.white}
                   style={{ marginRight: 4 }}
@@ -886,6 +1056,16 @@ export default function DiscoveryScreen() {
         }}
       />
 
+      {/* City Passport Modal */}
+      <CityPassportModal
+        visible={passportModalVisible}
+        currentCity={targetCity}
+        homeCity={myProfile?.locationCity}
+        onClose={() => setPassportModalVisible(false)}
+        onSelectCity={handleSelectTargetCity}
+        onResetLocation={handleResetTargetCity}
+      />
+
       {/* Floating Confirmation Pill Toast */}
       {toastPill.visible && (
         <Animated.View
@@ -967,9 +1147,94 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+  passportBtnActive: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#8B5CF6',
+  },
   searchSection: {
     paddingHorizontal: 20,
     marginBottom: 12,
+  },
+  scopeBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  scopePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 1,
+    maxWidth: '75%',
+  },
+  scopePillPassport: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#C4B5FD',
+  },
+  scopePillGlobal: {
+    backgroundColor: Colors.primaryLight,
+    borderColor: Colors.primary,
+  },
+  scopePillText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+  },
+  scopePillTextPassport: {
+    color: '#6D28D9',
+    fontWeight: '700',
+  },
+  scopePillTextGlobal: {
+    color: Colors.primary,
+    fontWeight: '700',
+  },
+  scopeResetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  scopeResetBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textMuted,
+  },
+  passportModeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    marginTop: 8,
+    gap: 8,
+  },
+  passportModeBannerText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6D28D9',
+    flex: 1,
+  },
+  switchModePassportText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8B5CF6',
   },
   searchBar: {
     flexDirection: 'row',

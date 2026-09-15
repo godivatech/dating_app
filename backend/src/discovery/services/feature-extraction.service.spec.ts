@@ -179,4 +179,34 @@ describe('FeatureExtractionService', () => {
     // In global mode, distance penalty is relaxed to 0.85
     expect(globalFeatures.locationMatch).toBe(0.85);
   });
+
+  it('should return 1.0 location match for candidate in targetCity (Passport Mode)', () => {
+    const passportUser = {
+      ...user,
+      preferences: {
+        ...user.preferences,
+        targetCity: 'Mumbai',
+      },
+    };
+
+    const mumbaiCandidate = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      locationCity: 'Mumbai',
+      locationRegion: 'Maharashtra',
+      locationCountry: 'IN',
+    };
+
+    const delhiCandidate = {
+      dateOfBirth: new Date('1998-05-15T00:00:00.000Z'),
+      locationCity: 'Delhi',
+      locationRegion: 'Delhi',
+      locationCountry: 'IN',
+    };
+
+    const featMumbai = service.extractFeatures(passportUser, mumbaiCandidate);
+    const featDelhi = service.extractFeatures(passportUser, delhiCandidate);
+
+    expect(featMumbai.locationMatch).toBe(1.0);
+    expect(featDelhi.locationMatch).toBe(0.8);
+  });
 });

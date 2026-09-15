@@ -31,6 +31,7 @@ export class CandidateGeneratorService {
   async generateCandidatePool(
     requestingProfileId: string,
     requestedLimit: number,
+    targetCity?: string | null,
   ): Promise<any[]> {
     const poolSize = Math.min(
       Math.max(requestedLimit * 4, 40),
@@ -39,10 +40,21 @@ export class CandidateGeneratorService {
 
     const now = new Date();
 
+    const targetCityFilter =
+      targetCity && targetCity.trim()
+        ? {
+            locationCity: {
+              equals: targetCity.trim(),
+              mode: 'insensitive' as const,
+            },
+          }
+        : {};
+
     const baseWhere = {
       id: { not: requestingProfileId },
       status: ProfileStatus.READY,
       visibility: ProfileVisibility.VISIBLE,
+      ...targetCityFilter,
       user: {
         status: UserStatus.ACTIVE,
         OR: [

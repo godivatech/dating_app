@@ -148,6 +148,10 @@ export class ProfileService {
             relationshipIntent: profile.preferences.relationshipIntent as any,
             globalMode: profile.preferences.globalMode ?? false,
             preferredLanguages: profile.preferences.preferredLanguages ?? [],
+            targetCity: profile.preferences.targetCity ?? null,
+            targetRegion: profile.preferences.targetRegion ?? null,
+            targetLatitude: profile.preferences.targetLatitude ?? null,
+            targetLongitude: profile.preferences.targetLongitude ?? null,
             createdAt: profile.preferences.createdAt.toISOString(),
             updatedAt: profile.preferences.updatedAt.toISOString(),
           }
@@ -306,6 +310,18 @@ export class ProfileService {
           ...(dto.preferredLanguages !== undefined
             ? { preferredLanguages: dto.preferredLanguages }
             : {}),
+          ...(dto.targetCity !== undefined
+            ? { targetCity: dto.targetCity ? dto.targetCity.trim() : null }
+            : {}),
+          ...(dto.targetRegion !== undefined
+            ? { targetRegion: dto.targetRegion ? dto.targetRegion.trim() : null }
+            : {}),
+          ...(dto.targetLatitude !== undefined
+            ? { targetLatitude: dto.targetLatitude }
+            : {}),
+          ...(dto.targetLongitude !== undefined
+            ? { targetLongitude: dto.targetLongitude }
+            : {}),
         },
         create: {
           profileId: profile.id,
@@ -316,6 +332,10 @@ export class ProfileService {
           relationshipIntent: dto.relationshipIntent,
           globalMode: dto.globalMode ?? false,
           preferredLanguages: dto.preferredLanguages ?? [],
+          targetCity: dto.targetCity ? dto.targetCity.trim() : null,
+          targetRegion: dto.targetRegion ? dto.targetRegion.trim() : null,
+          targetLatitude: dto.targetLatitude ?? null,
+          targetLongitude: dto.targetLongitude ?? null,
         },
       });
 

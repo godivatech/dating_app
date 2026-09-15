@@ -190,6 +190,35 @@ export class FeatureExtractionService {
   private calculateLocationMatch(user?: any, candidate?: any): number {
     if (!user || !candidate) return 0.0;
 
+    const targetCity = user?.preferences?.targetCity?.trim().toLowerCase();
+    const candCity = candidate?.locationCity?.trim().toLowerCase();
+
+    // 0. If Target City / Passport Mode is active
+    if (targetCity) {
+      if (candCity && candCity === targetCity) {
+        return 1.0;
+      }
+      const targetLat = user?.preferences?.targetLatitude;
+      const targetLng = user?.preferences?.targetLongitude;
+      if (
+        isValidCoordinate(targetLat, targetLng) &&
+        isValidCoordinate(candidate.latitude, candidate.longitude)
+      ) {
+        const distanceKm = calculateHaversineDistanceKm(
+          targetLat,
+          targetLng,
+          candidate.latitude,
+          candidate.longitude,
+        );
+        if (distanceKm !== null) {
+          if (distanceKm <= 30) return 0.95;
+          if (distanceKm <= 75) return 0.8;
+          return Math.max(0.1, 1 / (1 + distanceKm / 50));
+        }
+      }
+      return 0.8;
+    }
+
     const isGlobalMode = user?.preferences?.globalMode === true;
 
     // 1. If both profiles have valid GPS coordinates, compute geodesic distance score
@@ -223,7 +252,6 @@ export class FeatureExtractionService {
 
     // 2. Graceful hierarchical fallback based on City / Region / Country
     const userCity = user.locationCity?.trim().toLowerCase();
-    const candCity = candidate.locationCity?.trim().toLowerCase();
 
     if (userCity && candCity && userCity === candCity) {
       return 1.0; // Same city

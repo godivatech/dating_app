@@ -14,6 +14,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { StepperHeader } from '../../src/components/StepperHeader';
+import { CityPassportModal } from '../../src/components/CityPassportModal';
 import { useProfileStore } from '../../src/stores/profile-store';
 import {
   Gender,
@@ -46,6 +47,13 @@ export default function PreferencesScreen() {
   const [globalMode, setGlobalMode] = useState<boolean>(
     profile?.preferences?.globalMode || false,
   );
+  const [targetCity, setTargetCity] = useState<string | null | undefined>(
+    profile?.preferences?.targetCity,
+  );
+  const [targetRegion, setTargetRegion] = useState<string | null | undefined>(
+    profile?.preferences?.targetRegion,
+  );
+  const [passportModalVisible, setPassportModalVisible] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,6 +64,8 @@ export default function PreferencesScreen() {
       setMaxAge(String(profile.preferences.maxAge));
       setIntent(profile.preferences.relationshipIntent);
       setGlobalMode(!!profile.preferences.globalMode);
+      setTargetCity(profile.preferences.targetCity);
+      setTargetRegion(profile.preferences.targetRegion);
     }
   }, [profile]);
 
@@ -100,6 +110,8 @@ export default function PreferencesScreen() {
       maxAge: numMax,
       relationshipIntent: intent,
       globalMode,
+      targetCity: globalMode ? null : targetCity,
+      targetRegion: globalMode ? null : targetRegion,
     });
 
     if (success) {
@@ -203,10 +215,64 @@ export default function PreferencesScreen() {
           </View>
         </View>
 
-        {/* Dating Scope / Global Mode */}
+        {/* Dating Scope / Target City Passport & Global Mode */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Discovery Scope</Text>
-          <View style={styles.scopeCard}>
+
+          {/* Target City Passport Card */}
+          <TouchableOpacity
+            style={[styles.passportCard, !!targetCity && styles.passportCardActive]}
+            onPress={() => setPassportModalVisible(true)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.passportCardHeader}>
+              <View style={[styles.passportIconCircle, !!targetCity && styles.passportIconCircleActive]}>
+                <Ionicons
+                  name="airplane"
+                  size={20}
+                  color={targetCity ? '#7C3AED' : '#8B5CF6'}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.passportCardTitle}>
+                  {targetCity ? `Target City: ${targetCity}` : 'Destination Passport (Travel Mode)'}
+                </Text>
+                <Text style={styles.passportCardSub}>
+                  {targetCity
+                    ? `Exploring singles living in ${targetCity}${targetRegion ? `, ${targetRegion}` : ''}`
+                    : 'Explore singles in another city (Chennai, Bengaluru, Mumbai, Dubai, etc.)'}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
+            </View>
+
+            {!!targetCity && (
+              <View style={styles.passportActionsRow}>
+                <TouchableOpacity
+                  style={styles.changePassportBtn}
+                  onPress={() => setPassportModalVisible(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="swap-horizontal" size={14} color="#7C3AED" style={{ marginRight: 4 }} />
+                  <Text style={styles.changePassportBtnText}>Change City</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.resetPassportBtn}
+                  onPress={() => {
+                    setTargetCity(null);
+                    setTargetRegion(null);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="close-circle-outline" size={14} color={Colors.textMuted} style={{ marginRight: 4 }} />
+                  <Text style={styles.resetPassportBtnText}>Reset to Local</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Global Mode Switch Card */}
+          <View style={[styles.scopeCard, { marginTop: 12 }]}>
             <View style={styles.scopeInfo}>
               <View style={styles.scopeTitleRow}>
                 <Ionicons
@@ -216,19 +282,25 @@ export default function PreferencesScreen() {
                 />
                 <Text style={styles.scopeTitle}>
                   {globalMode
-                    ? 'Explore Everywhere (Global)'
-                    : 'Nearby Dating (Local)'}
+                    ? 'Explore Worldwide (Global)'
+                    : 'Nearby Discovery (Local)'}
                 </Text>
               </View>
               <Text style={styles.scopeSubText}>
                 {globalMode
-                  ? 'Active: See compatible singles from across India and worldwide. Distance penalties are lifted.'
-                  : 'Prioritizes verified singles living in your city and state first.'}
+                  ? 'Active: See compatible singles from across India and worldwide. Distance restrictions lifted.'
+                  : 'Prioritizes verified singles living in your local area and city first.'}
               </Text>
             </View>
             <Switch
               value={globalMode}
-              onValueChange={setGlobalMode}
+              onValueChange={(val) => {
+                setGlobalMode(val);
+                if (val) {
+                  setTargetCity(null);
+                  setTargetRegion(null);
+                }
+              }}
               trackColor={{ false: Colors.border, true: Colors.primary }}
               thumbColor={Colors.white}
             />
@@ -280,6 +352,23 @@ export default function PreferencesScreen() {
           )}
         </TouchableOpacity>
       </ScrollView>
+
+      {/* City Passport Modal */}
+      <CityPassportModal
+        visible={passportModalVisible}
+        currentCity={targetCity}
+        homeCity={profile?.locationCity}
+        onClose={() => setPassportModalVisible(false)}
+        onSelectCity={(city, region) => {
+          setTargetCity(city);
+          setTargetRegion(region || null);
+          setGlobalMode(false);
+        }}
+        onResetLocation={() => {
+          setTargetCity(null);
+          setTargetRegion(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -452,5 +541,80 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     lineHeight: 16,
+  },
+  passportCard: {
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  passportCardActive: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+  },
+  passportCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  passportIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  passportIconCircleActive: {
+    backgroundColor: '#DDD6FE',
+  },
+  passportCardTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 3,
+  },
+  passportCardSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    lineHeight: 16,
+  },
+  passportActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#DDD6FE',
+  },
+  changePassportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  changePassportBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#7C3AED',
+  },
+  resetPassportBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+  },
+  resetPassportBtnText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textMuted,
   },
 });

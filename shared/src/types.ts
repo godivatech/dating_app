@@ -121,6 +121,10 @@ export interface DatingPreferences {
   relationshipIntent: RelationshipIntent;
   globalMode: boolean;
   preferredLanguages: string[];
+  targetCity?: string | null;
+  targetRegion?: string | null;
+  targetLatitude?: number | null;
+  targetLongitude?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -222,6 +226,10 @@ export interface UpdatePreferencesDto {
   relationshipIntent: RelationshipIntent;
   globalMode?: boolean;
   preferredLanguages?: string[];
+  targetCity?: string | null;
+  targetRegion?: string | null;
+  targetLatitude?: number | null;
+  targetLongitude?: number | null;
 }
 
 export interface UpdateInterestsDto {
