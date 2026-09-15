@@ -114,7 +114,7 @@ What if your app becomes a viral voice-dating sensation where users talk signifi
 
 How does the calling cost compare to subscription revenue in India?
 
-### Revenue Assumptions (Spark Plus / Gold Plans):
+### Revenue Assumptions (Truelove Plus / Gold VIP Plans & Coins Wallet):
 * 3% of MAU subscribe to VIP membership at an average of **₹499 / month**.
 
 ```
@@ -147,6 +147,6 @@ To guarantee that Agora usage never exceeds expected margins:
    - Agora RTC access tokens are generated with strict expiration timestamps (`privilegeExpiredTs = currentTimestamp + 3600`).
 3. **Daily Tiered Limits for Free Accounts**:
    - Free tier users receive a daily quota of **20 minutes of calling**.
-   - Unlimited calling is reserved for **VIP Spark Plus / Gold subscribers**, directly funding infrastructure overages.
+   - Unlimited calling is reserved for **VIP Truelove Gold subscribers (or via Truelove Coins wallet: 25 coins for 15 mins)**, directly funding infrastructure overages.
 4. **Automatic Heartbeat Disconnect**:
    - WebSocket disconnects immediately trigger channel leave events, preventing abandoned background calls.
