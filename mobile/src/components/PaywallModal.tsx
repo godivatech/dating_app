@@ -309,13 +309,13 @@ export const PaywallModal: React.FC = () => {
   const getUnitInfo = (prod: SafeSubscriptionProduct) => {
     if (prod.productKey.startsWith('COIN_PACK_')) {
       if (prod.productKey === 'COIN_PACK_100') {
-        return { label: 'Starter Pack • ~6 Notes or 5 Calls', badge: null, bonus: null };
+        return { label: 'Starter Balance', badge: null, bonus: null };
       }
       if (prod.productKey === 'COIN_PACK_250') {
-        return { label: 'Popular Pack • ~16 Notes or 12 Calls', badge: 'MOST POPULAR', bonus: '+25% Extra' };
+        return { label: 'Most Popular Choice', badge: 'MOST POPULAR', bonus: '+25% EXTRA' };
       }
       if (prod.productKey === 'COIN_PACK_700') {
-        return { label: 'Power Pack • ~46 Notes or 35 Calls', badge: 'BEST VALUE', bonus: '+40% Extra' };
+        return { label: 'Best Value Bundle', badge: 'BEST VALUE', bonus: '+40% EXTRA' };
       }
     }
     if (prod.productKey.startsWith('DIRECT_NOTES_')) {
@@ -358,7 +358,7 @@ export const PaywallModal: React.FC = () => {
     >
       <StatusBar style="dark" />
       <View style={[styles.safeArea, { paddingTop: topInset + 10 }]}>
-        {/* Top Navigation Bar */}
+        {/* Top Navigation Bar with Clean Integrated Coin Balance Pill */}
         <View style={styles.navBar}>
           <TouchableOpacity
             onPress={closePaywall}
@@ -369,15 +369,13 @@ export const PaywallModal: React.FC = () => {
             <Ionicons name="close" size={20} color={Colors.textPrimary} />
           </TouchableOpacity>
 
-          {isFocusedMode && (
-            <TouchableOpacity
-              onPress={() => setIsBrowseMode(true)}
-              style={styles.browseAllBtn}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.browseAllText}>Browse All Plans &gt;</Text>
-            </TouchableOpacity>
-          )}
+          {/* Clean Integrated Coin Balance on top right */}
+          <View style={styles.navCoinBalancePill}>
+            <Ionicons name="sparkles" size={13} color="#F59E0B" />
+            <Text style={styles.navCoinBalanceText}>
+              {creditBalance?.coins ?? 0} Coins
+            </Text>
+          </View>
         </View>
 
         <ScrollView
@@ -388,27 +386,6 @@ export const PaywallModal: React.FC = () => {
           bounces={false}
           showsVerticalScrollIndicator={false}
         >
-          {/* User Credit Vault Indicator */}
-          {creditBalance !== null && (
-            <View style={styles.creditVaultCard}>
-              <View style={styles.creditItemCoins}>
-                <Text style={styles.creditCoinEmoji}>🪙</Text>
-                <View>
-                  <Text style={styles.creditCoinsAmount}>
-                    {creditBalance?.coins ?? 0} <Text style={styles.creditCoinsUnit}>Coins</Text>
-                  </Text>
-                  <Text style={styles.creditCoinsSub}>Wallet Balance</Text>
-                </View>
-              </View>
-              <View style={styles.creditQuickRates}>
-                <Text style={styles.creditRateTag}>15c Note</Text>
-                <Text style={styles.creditRateTag}>30c Boost</Text>
-                <Text style={styles.creditRateTag}>20c Call</Text>
-                <Text style={styles.creditRateTag}>30c City</Text>
-              </View>
-            </View>
-          )}
-
           {/* ========================================================================= */}
           {/* 1. FOCUSED MODE: IN-THE-MOMENT HIGH-INTENT CONTEXTUAL SCREEN               */}
           {/* ========================================================================= */}
@@ -675,56 +652,29 @@ export const PaywallModal: React.FC = () => {
               {/* TAB 1: COIN WALLET RECHARGE */}
               {paywallActiveTab === 'COINS' ? (
                 <View style={styles.coinRechargeContainer}>
-                  {/* Hero Wallet Card */}
-                  <View style={styles.coinWalletHero}>
-                    <View style={styles.coinWalletHeroRow}>
-                      <View style={styles.coinWalletBadge}>
-                        <Text style={styles.coinWalletBadgeEmoji}>🪙</Text>
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.coinWalletBalanceTitle}>
-                          {creditBalance?.coins ?? 0} Truelove Coins
-                        </Text>
-                        <Text style={styles.coinWalletBalanceSubtitle}>
-                          Prepaid wallet • Use on notes, boosts, calls & travel • Never expires
-                        </Text>
-                      </View>
+                  {/* Clean Sleek Coin Benefits Strip */}
+                  <View style={styles.sleekBenefitRow}>
+                    <View style={styles.sleekBenefitItem}>
+                      <Ionicons name="mail" size={13} color={Colors.primary} />
+                      <Text style={styles.sleekBenefitText}>Notes <Text style={styles.sleekBenefitBold}>15🪙</Text></Text>
                     </View>
-                  </View>
-
-                  {/* Coin Utility Breakdown */}
-                  <Text style={styles.sectionHeading}>Coins Utility Rate</Text>
-                  <View style={styles.utilityMatrix}>
-                    <View style={styles.utilityChip}>
-                      <Text style={styles.utilityChipEmoji}>💌</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Direct Note</Text>
-                      <Text style={styles.utilityChipCost}>15 🪙</Text>
+                    <View style={styles.sleekBenefitItem}>
+                      <Ionicons name="flash" size={13} color="#F59E0B" />
+                      <Text style={styles.sleekBenefitText}>Boost <Text style={styles.sleekBenefitBold}>30🪙</Text></Text>
                     </View>
-                    <View style={styles.utilityChip}>
-                      <Text style={styles.utilityChipEmoji}>⚡</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Boost</Text>
-                      <Text style={styles.utilityChipCost}>30 🪙</Text>
+                    <View style={styles.sleekBenefitItem}>
+                      <Ionicons name="videocam" size={13} color="#8B5CF6" />
+                      <Text style={styles.sleekBenefitText}>Call <Text style={styles.sleekBenefitBold}>20🪙</Text></Text>
                     </View>
-                    <View style={styles.utilityChip}>
-                      <Text style={styles.utilityChipEmoji}>📞</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>15m Call</Text>
-                      <Text style={styles.utilityChipCost}>20 🪙</Text>
-                    </View>
-                    <View style={styles.utilityChip}>
-                      <Text style={styles.utilityChipEmoji}>✈️</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Passport</Text>
-                      <Text style={styles.utilityChipCost}>30 🪙</Text>
-                    </View>
-                    <View style={styles.utilityChip}>
-                      <Text style={styles.utilityChipEmoji}>↩️</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Rewind</Text>
-                      <Text style={styles.utilityChipCost}>5 🪙</Text>
+                    <View style={styles.sleekBenefitItem}>
+                      <Ionicons name="airplane" size={13} color="#059669" />
+                      <Text style={styles.sleekBenefitText}>City <Text style={styles.sleekBenefitBold}>30🪙</Text></Text>
                     </View>
                   </View>
 
                   {/* 3 Core Recharge Cards */}
-                  <Text style={[styles.sectionHeading, { marginTop: 14 }]}>
-                    Select Recharge Amount
+                  <Text style={[styles.sectionHeading, { marginTop: 10 }]}>
+                    Select Pack
                   </Text>
                   <View style={styles.packsList}>
                     {coinPacks.map((prod) => {
@@ -1190,63 +1140,46 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.primary,
   },
-
-  /* Credit Vault Bar */
-  creditVaultCard: {
+  navCoinBalancePill: {
     flexDirection: 'row',
-    backgroundColor: '#FFFDF7',
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
     borderWidth: 1,
     borderColor: '#FDE68A',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
-  creditItemCoins: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  creditCoinEmoji: {
-    fontSize: 22,
-  },
-  creditCoinsAmount: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#92400E',
-  },
-  creditCoinsUnit: {
+  navCoinBalanceText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#B45309',
+    color: '#92400E',
   },
-  creditCoinsSub: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#B45309',
+  sleekBenefitRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 14,
   },
-  creditQuickRates: {
+  sleekBenefitItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  creditRateTag: {
-    backgroundColor: '#FEF3C7',
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-    fontSize: 9.5,
+  sleekBenefitText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  sleekBenefitBold: {
+    color: Colors.textPrimary,
     fontWeight: '700',
-    color: '#92400E',
   },
 
   /* Focused Mode */
