@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,6 +8,9 @@ import {
   ScrollView,
   Image,
   Dimensions,
+  Vibration,
+  Alert,
+  Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -23,6 +26,7 @@ import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
 import { WelcomeScreen } from '../src/components/WelcomeScreen';
 import { BrandedSplashScreen } from '../src/components/BrandedSplashScreen';
+import { ActionType } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -47,12 +51,81 @@ export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { status: authStatus, user } = useAuthStore();
-  const { profile, completion, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
-  const { candidates, fetchDiscoveryFeed } = useDiscoveryStore();
+  const { candidates, fetchDiscoveryFeed, recordAction } = useDiscoveryStore();
   const { unreadCount, fetchUnreadCount } = useNotificationsStore();
-  const { fetchBillingStatus } = useBillingStore();
+  const { fetchBillingStatus, openPaywall } = useBillingStore();
 
   const [selectedProfileForModal, setSelectedProfileForModal] = useState<ProfileDetailData | null>(null);
+  const [toastPill, setToastPill] = useState<{ visible: boolean; text: string }>({ visible: false, text: '' });
+  const toastPillAnim = useRef(new Animated.Value(0)).current;
+  const toastPillTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showPill = (text: string) => {
+    if (toastPillTimeout.current) clearTimeout(toastPillTimeout.current);
+    setToastPill({ visible: true, text });
+    Animated.spring(toastPillAnim, {
+      toValue: 1,
+      friction: 6,
+      tension: 50,
+      useNativeDriver: true,
+    }).start();
+
+    toastPillTimeout.current = setTimeout(() => {
+      Animated.timing(toastPillAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => setToastPill({ visible: false, text: '' }));
+    }, 2200);
+  };
+
+  const handleModalLike = async (profileId: string) => {
+    const personName = selectedProfileForModal?.name || 'them';
+    setSelectedProfileForModal(null);
+    try {
+      Vibration.vibrate(35);
+      showPill(`❤️ Liked ${personName}!`);
+      const result = await recordAction(profileId, ActionType.LIKE);
+      if (result?.matched) {
+        Alert.alert(
+          "🎉 It's a Match!",
+          `You and ${personName} liked each other! Start chatting now.`,
+          [
+            { text: 'Keep Browsing', style: 'cancel' },
+            {
+              text: 'Say Hello',
+              style: 'default',
+              onPress: () => router.push('/conversations' as any),
+            },
+          ],
+        );
+      } else if (!result) {
+        const storeError = useDiscoveryStore.getState().error;
+        if (
+          storeError &&
+          (storeError.toLowerCase().includes('quota') || storeError.toLowerCase().includes('limit'))
+        ) {
+          openPaywall('DAILY_LIKES');
+        }
+      }
+      fetchDiscoveryFeed(true);
+    } catch (_err) {
+      showPill(`Could not like ${personName}`);
+    }
+  };
+
+  const handleModalPass = async (profileId: string) => {
+    const personName = selectedProfileForModal?.name || 'them';
+    setSelectedProfileForModal(null);
+    try {
+      Vibration.vibrate(20);
+      showPill(`Passed on ${personName}`);
+      await recordAction(profileId, ActionType.PASS);
+      fetchDiscoveryFeed(true);
+    } catch (_err) {
+      // ignore
+    }
+  };
 
   // Splash display state: only active on initial cold launch
   const [minSplashElapsed, setMinSplashElapsed] = useState(globalHasShownSplash);
@@ -357,11 +430,36 @@ export default function IndexScreen() {
         visible={!!selectedProfileForModal}
         profile={selectedProfileForModal}
         onClose={() => setSelectedProfileForModal(null)}
+        onLike={(profileId) => handleModalLike(profileId)}
+        onPass={(profileId) => handleModalPass(profileId)}
         onStartChat={() => {
           setSelectedProfileForModal(null);
           router.push('/conversations' as any);
         }}
       />
+
+      {/* Floating Confirmation Pill Toast */}
+      {toastPill.visible && (
+        <Animated.View
+          style={[
+            styles.floatingToastPill,
+            {
+              opacity: toastPillAnim,
+              transform: [
+                {
+                  translateY: toastPillAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [15, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <Text style={styles.floatingToastPillText}>{toastPill.text}</Text>
+        </Animated.View>
+      )}
     </SafeAreaView>
   );
 }
@@ -663,5 +761,26 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 12,
     fontWeight: '600',
+  },
+  floatingToastPill: {
+    position: 'absolute',
+    top: 70,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+    zIndex: 999,
+  },
+  floatingToastPillText: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });
