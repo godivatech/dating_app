@@ -18,7 +18,7 @@ import {
   SpendCoinsResponse,
 } from '../../../shared/src/types';
 
-export type PaywallTab = 'COINS' | 'SUBSCRIPTIONS' | 'PACKS';
+export type PaywallTab = 'COINS' | 'SUBSCRIPTIONS';
 export type PaywallPackCategory = 'ALL' | 'DIRECT_NOTES' | 'BOOST' | 'CALL';
 
 interface BillingState {
@@ -285,9 +285,7 @@ export const useBillingStore = create<BillingState>((set, get) => ({
       reasonOrTab === 'view_plans'
     ) {
       tab = 'SUBSCRIPTIONS';
-    } else if (reasonOrTab === 'PACKS') {
-      tab = 'PACKS';
-    } else if (reasonOrTab === 'COINS') {
+    } else if (reasonOrTab === 'COINS' || reasonOrTab === 'PACKS') {
       tab = 'COINS';
     } else if (
       reasonOrTab === 'DIRECT_NOTES' ||
@@ -306,6 +304,13 @@ export const useBillingStore = create<BillingState>((set, get) => ({
     ) {
       tab = 'COINS';
       cat = 'CALL';
+    } else if (
+      reasonOrTab === 'PASSPORT' ||
+      reasonOrTab === 'city_passport' ||
+      reasonOrTab === 'target_city'
+    ) {
+      tab = 'COINS';
+      cat = 'ALL';
     } else if (reasonOrTab === 'REWIND_PASS' || reasonOrTab === 'rewind_pass') {
       tab = 'COINS';
       cat = 'ALL';

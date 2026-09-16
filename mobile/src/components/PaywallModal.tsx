@@ -62,10 +62,18 @@ export const PaywallModal: React.FC = () => {
   const isRewindTrigger =
     paywallTriggerReason === 'REWIND_PASS' ||
     paywallTriggerReason === 'rewind_pass';
+  const isPassportTrigger =
+    paywallTriggerReason === 'PASSPORT' ||
+    paywallTriggerReason === 'city_passport' ||
+    paywallTriggerReason === 'target_city';
 
   const isFocusedMode =
     !isBrowseMode &&
-    (isDirectNoteTrigger || isBoostTrigger || isCallTrigger || isRewindTrigger);
+    (isDirectNoteTrigger ||
+      isBoostTrigger ||
+      isCallTrigger ||
+      isRewindTrigger ||
+      isPassportTrigger);
 
   useEffect(() => {
     if (paywallVisible) {
@@ -75,43 +83,90 @@ export const PaywallModal: React.FC = () => {
     }
   }, [paywallVisible]);
 
-  // Product groups
-  const plusMonthly = products.find(
-    (p) => p.productKey === 'TRUELOVE_PLUS_1M' || p.productKey === 'SPARK_PLUS_1M',
-  );
-  const plusQuarterly = products.find(
-    (p) => p.productKey === 'TRUELOVE_PLUS_3M' || p.productKey === 'SPARK_PLUS_3M',
-  );
-  const goldMonthly = products.find(
-    (p) => p.productKey === 'TRUELOVE_GOLD_1M' || p.productKey === 'SPARK_GOLD_1M',
-  );
-  const goldQuarterly = products.find(
-    (p) => p.productKey === 'TRUELOVE_GOLD_3M' || p.productKey === 'SPARK_GOLD_3M',
-  );
+  // Guaranteed Fallback Subscriptions so VIP Plans cards NEVER disappear or return null
+  const plusMonthly: SafeSubscriptionProduct = useMemo(() => {
+    return (
+      products.find(
+        (p) => p.productKey === 'TRUELOVE_PLUS_1M' || p.productKey === 'SPARK_PLUS_1M',
+      ) || {
+        id: 'fallback-plus-1m',
+        storeProductId: 'com.truelove.plus.1m',
+        productKey: 'TRUELOVE_PLUS_1M',
+        displayName: 'Truelove Plus',
+        displayPrice: '₹299',
+        priceAmount: 299,
+        currency: 'INR',
+        tier: SubscriptionTier.PLUS,
+        billingPeriod: 'MONTHLY' as any,
+        isActive: true,
+        platform: Platform.OS === 'ios' ? ('IOS' as any) : ('ANDROID' as any),
+        description: 'Core dating essentials: unlimited likes & rewinds',
+      }
+    );
+  }, [products]);
 
-  const directNotePacks = useMemo(
-    () =>
-      products
-        .filter((p) => p.productKey.startsWith('DIRECT_NOTES_'))
-        .sort((a, b) => a.priceAmount - b.priceAmount),
-    [products],
-  );
+  const plusQuarterly: SafeSubscriptionProduct = useMemo(() => {
+    return (
+      products.find(
+        (p) => p.productKey === 'TRUELOVE_PLUS_3M' || p.productKey === 'SPARK_PLUS_3M',
+      ) || {
+        id: 'fallback-plus-3m',
+        storeProductId: 'com.truelove.plus.3m',
+        productKey: 'TRUELOVE_PLUS_3M',
+        displayName: 'Truelove Plus (3 Months)',
+        displayPrice: '₹699',
+        priceAmount: 699,
+        currency: 'INR',
+        tier: SubscriptionTier.PLUS,
+        billingPeriod: 'QUARTERLY' as any,
+        isActive: true,
+        platform: Platform.OS === 'ios' ? ('IOS' as any) : ('ANDROID' as any),
+        description: 'Save 22% • ₹233/month billed quarterly',
+      }
+    );
+  }, [products]);
 
-  const boostPacks = useMemo(
-    () =>
-      products
-        .filter((p) => p.productKey.startsWith('BOOST_PACK_') || p.productKey === 'BOOST_SINGLE')
-        .sort((a, b) => a.priceAmount - b.priceAmount),
-    [products],
-  );
+  const goldMonthly: SafeSubscriptionProduct = useMemo(() => {
+    return (
+      products.find(
+        (p) => p.productKey === 'TRUELOVE_GOLD_1M' || p.productKey === 'SPARK_GOLD_1M',
+      ) || {
+        id: 'fallback-gold-1m',
+        storeProductId: 'com.truelove.gold.1m',
+        productKey: 'TRUELOVE_GOLD_1M',
+        displayName: 'Truelove Gold VIP',
+        displayPrice: '₹499',
+        priceAmount: 499,
+        currency: 'INR',
+        tier: SubscriptionTier.GOLD,
+        billingPeriod: 'MONTHLY' as any,
+        isActive: true,
+        platform: Platform.OS === 'ios' ? ('IOS' as any) : ('ANDROID' as any),
+        description: 'The ultimate VIP experience: see likes, passport mode & unlimited notes',
+      }
+    );
+  }, [products]);
 
-  const callPasses = useMemo(
-    () =>
-      products
-        .filter((p) => p.productKey.startsWith('CALL_PASS_'))
-        .sort((a, b) => a.priceAmount - b.priceAmount),
-    [products],
-  );
+  const goldQuarterly: SafeSubscriptionProduct = useMemo(() => {
+    return (
+      products.find(
+        (p) => p.productKey === 'TRUELOVE_GOLD_3M' || p.productKey === 'SPARK_GOLD_3M',
+      ) || {
+        id: 'fallback-gold-3m',
+        storeProductId: 'com.truelove.gold.3m',
+        productKey: 'TRUELOVE_GOLD_3M',
+        displayName: 'Truelove Gold VIP (3 Months)',
+        displayPrice: '₹1,199',
+        priceAmount: 1199,
+        currency: 'INR',
+        tier: SubscriptionTier.GOLD,
+        billingPeriod: 'QUARTERLY' as any,
+        isActive: true,
+        platform: Platform.OS === 'ios' ? ('IOS' as any) : ('ANDROID' as any),
+        description: 'Best deal • ₹399/month billed quarterly',
+      }
+    );
+  }, [products]);
 
   const coinPacks = useMemo(() => {
     const list = products
@@ -169,13 +224,21 @@ export const PaywallModal: React.FC = () => {
   const allProducts = useMemo(() => {
     const existingIds = new Set(products.map((p) => p.storeProductId));
     const merged = [...products];
-    for (const cp of coinPacks) {
-      if (!existingIds.has(cp.storeProductId)) {
-        merged.push(cp);
+    const guaranteed = [
+      plusMonthly,
+      plusQuarterly,
+      goldMonthly,
+      goldQuarterly,
+      ...coinPacks,
+    ];
+    for (const item of guaranteed) {
+      if (!existingIds.has(item.storeProductId)) {
+        merged.push(item);
+        existingIds.add(item.storeProductId);
       }
     }
     return merged;
-  }, [products, coinPacks]);
+  }, [products, plusMonthly, plusQuarterly, goldMonthly, goldQuarterly, coinPacks]);
 
   // Set default selected product intelligently based on context
   useEffect(() => {
@@ -190,13 +253,8 @@ export const PaywallModal: React.FC = () => {
         if (popCoin) setSelectedProductId(popCoin.storeProductId);
       } else if (paywallActiveTab === 'SUBSCRIPTIONS') {
         const target =
-          billingPeriod === 'QUARTERLY'
-            ? goldQuarterly || goldMonthly
-            : goldMonthly || goldQuarterly;
+          billingPeriod === 'QUARTERLY' ? goldQuarterly : goldMonthly;
         if (target) setSelectedProductId(target.storeProductId);
-      } else {
-        const firstPack = directNotePacks[0] || boostPacks[0] || coinPacks[0];
-        if (firstPack) setSelectedProductId(firstPack.storeProductId);
       }
     }
   }, [
@@ -207,14 +265,28 @@ export const PaywallModal: React.FC = () => {
     isDirectNoteTrigger,
     isBoostTrigger,
     isCallTrigger,
+    isPassportTrigger,
     paywallActiveTab,
     billingPeriod,
-    directNotePacks,
-    boostPacks,
-    callPasses,
     goldQuarterly,
     goldMonthly,
   ]);
+
+  const handleSelectPeriod = (period: 'MONTHLY' | 'QUARTERLY') => {
+    setBillingPeriod(period);
+    const isPlusSelected =
+      selectedProductId === plusMonthly.storeProductId ||
+      selectedProductId === plusQuarterly.storeProductId;
+    if (isPlusSelected) {
+      setSelectedProductId(
+        period === 'QUARTERLY' ? plusQuarterly.storeProductId : plusMonthly.storeProductId,
+      );
+    } else {
+      setSelectedProductId(
+        period === 'QUARTERLY' ? goldQuarterly.storeProductId : goldMonthly.storeProductId,
+      );
+    }
+  };
 
   if (!paywallVisible) return null;
 
@@ -317,34 +389,22 @@ export const PaywallModal: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           {/* User Credit Vault Indicator */}
-          {creditBalance && (
+          {creditBalance !== null && (
             <View style={styles.creditVaultCard}>
-              <View style={[styles.creditItem, styles.creditItemCoins]}>
-                <Text style={styles.creditIcon}>🪙</Text>
-                <Text style={styles.creditLabel}>
-                  <Text style={styles.creditBold}>{creditBalance.coins ?? 0}</Text> Coins
-                </Text>
+              <View style={styles.creditItemCoins}>
+                <Text style={styles.creditCoinEmoji}>🪙</Text>
+                <View>
+                  <Text style={styles.creditCoinsAmount}>
+                    {creditBalance?.coins ?? 0} <Text style={styles.creditCoinsUnit}>Coins</Text>
+                  </Text>
+                  <Text style={styles.creditCoinsSub}>Wallet Balance</Text>
+                </View>
               </View>
-              <View style={styles.creditDivider} />
-              <View style={styles.creditItem}>
-                <Text style={styles.creditIcon}>💌</Text>
-                <Text style={styles.creditLabel}>
-                  <Text style={styles.creditBold}>{creditBalance.directNotes}</Text> Notes
-                </Text>
-              </View>
-              <View style={styles.creditDivider} />
-              <View style={styles.creditItem}>
-                <Text style={styles.creditIcon}>⚡</Text>
-                <Text style={styles.creditLabel}>
-                  <Text style={styles.creditBold}>{creditBalance.profileBoosts}</Text> Boosts
-                </Text>
-              </View>
-              <View style={styles.creditDivider} />
-              <View style={styles.creditItem}>
-                <Text style={styles.creditIcon}>📞</Text>
-                <Text style={styles.creditLabel}>
-                  <Text style={styles.creditBold}>{creditBalance.callPassMinutes}</Text>m Calls
-                </Text>
+              <View style={styles.creditQuickRates}>
+                <Text style={styles.creditRateTag}>15c Note</Text>
+                <Text style={styles.creditRateTag}>30c Boost</Text>
+                <Text style={styles.creditRateTag}>20c Call</Text>
+                <Text style={styles.creditRateTag}>30c City</Text>
               </View>
             </View>
           )}
@@ -365,7 +425,9 @@ export const PaywallModal: React.FC = () => {
                           ? 'flash'
                           : isRewindTrigger
                             ? 'refresh-circle'
-                            : 'videocam'
+                            : isPassportTrigger
+                              ? 'airplane'
+                              : 'videocam'
                     }
                     size={32}
                     color={Colors.primary}
@@ -378,7 +440,9 @@ export const PaywallModal: React.FC = () => {
                       ? 'Get 10x More Matches'
                       : isRewindTrigger
                         ? 'Rewind Your Last Swipe'
-                        : 'Keep the Chemistry Going!'}
+                        : isPassportTrigger
+                          ? 'Date Singles in Any City'
+                          : 'Keep the Chemistry Going!'}
                 </Text>
                 <Text style={styles.focusedSubtitle}>
                   {isDirectNoteTrigger
@@ -387,7 +451,9 @@ export const PaywallModal: React.FC = () => {
                       ? 'Be the #1 profile in your city for 30 minutes during peak swipe hours.'
                       : isRewindTrigger
                         ? 'Changed your mind? Go back to that profile with just 5 Coins or Truelove Plus.'
-                        : 'Grab a Call Pass or unlock Unlimited VIP Calling with Truelove Gold.'}
+                        : isPassportTrigger
+                          ? 'Passport Mode lets you explore, match, and date in any city worldwide.'
+                          : 'Grab a Call Pass or unlock Unlimited VIP Calling with Truelove Gold.'}
                 </Text>
               </View>
 
@@ -402,10 +468,12 @@ export const PaywallModal: React.FC = () => {
                         ? 'Requires 30 Coins for 30-min Profile Boost'
                         : isRewindTrigger
                           ? 'Requires 5 Coins to Rewind a Pass'
-                          : 'Requires 20 Coins for 15-min Call Pass'}
+                          : isPassportTrigger
+                            ? 'Requires 30 Coins per City Trip'
+                            : 'Requires 20 Coins for 15-min Call Pass'}
                   </Text>
                   <Text style={styles.focusedCoinCostSubtitle}>
-                    Current Wallet: {creditBalance?.coins ?? 0} Coins • 1-Tap UPI Recharge
+                    Current Wallet: {creditBalance?.coins ?? 0} Coins • 1-Tap Instant UPI Recharge
                   </Text>
                 </View>
               </View>
@@ -504,15 +572,17 @@ export const PaywallModal: React.FC = () => {
                   <View style={styles.goldUpsellBody}>
                     <View style={styles.goldUpsellHeader}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.goldUpsellTitle}>Truelove Gold</Text>
+                        <Text style={styles.goldUpsellTitle}>Truelove Gold VIP</Text>
                         <Text style={styles.goldUpsellPerks}>
                           {isDirectNoteTrigger
-                            ? '• Unlimited Direct Notes (Never buy packs again)\n• See Who Liked You + Weekly Free Boosts'
+                            ? '• Unlimited Direct Notes (Never spend coins on notes)\n• See Who Liked You + Weekly Free Boosts'
                             : isBoostTrigger
-                              ? '• 1 Free Profile Boost every week\n• Unlimited Direct Notes + See Who Liked You'
+                              ? '• 1 Free Profile Boost every week (₹99 value)\n• Unlimited Direct Notes + See Who Liked You'
                               : isRewindTrigger
                                 ? '• Unlimited Rewinds on all passes\n• See Who Liked You + Unlimited Likes'
-                                : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
+                                : isPassportTrigger
+                                  ? '• Unlimited Target City Passport Included\n• See Who Liked You + Unlimited Direct Notes'
+                                  : '• Unlimited HD Video & Voice Calls\n• Unlimited Direct Notes + See Who Liked You'}
                         </Text>
                       </View>
                       <View style={styles.goldUpsellPriceBox}>
@@ -532,7 +602,7 @@ export const PaywallModal: React.FC = () => {
                 activeOpacity={0.7}
               >
                 <Text style={styles.switchModeLinkText}>
-                  View all memberships and instant packs &rarr;
+                  Explore VIP Plans & Coin Wallet &rarr;
                 </Text>
               </TouchableOpacity>
             </View>
@@ -552,7 +622,7 @@ export const PaywallModal: React.FC = () => {
                 </Text>
               </View>
 
-              {/* Segment Switcher (3 Tabs: Coins, VIP Plans, Bundles) */}
+              {/* Segment Switcher (2 Tabs: Coins & VIP Plans) */}
               <View style={styles.mainSegmentContainer}>
                 <TouchableOpacity
                   style={[
@@ -569,7 +639,7 @@ export const PaywallModal: React.FC = () => {
                       paywallActiveTab === 'COINS' && styles.mainSegmentTextActive,
                     ]}
                   >
-                    Recharge
+                    Coin Recharge
                   </Text>
                 </TouchableOpacity>
 
@@ -582,7 +652,7 @@ export const PaywallModal: React.FC = () => {
                   activeOpacity={0.8}
                 >
                   <Ionicons
-                    name="shield-checkmark"
+                    name="sparkles"
                     size={14}
                     color={
                       paywallActiveTab === 'SUBSCRIPTIONS'
@@ -598,34 +668,6 @@ export const PaywallModal: React.FC = () => {
                     ]}
                   >
                     VIP Plans
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.mainSegmentBtn,
-                    paywallActiveTab === 'PACKS' && styles.mainSegmentBtnActive,
-                  ]}
-                  onPress={() => setPaywallActiveTab('PACKS')}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons
-                    name="flash"
-                    size={14}
-                    color={
-                      paywallActiveTab === 'PACKS'
-                        ? Colors.white
-                        : Colors.textSecondary
-                    }
-                    style={{ marginRight: 5 }}
-                  />
-                  <Text
-                    style={[
-                      styles.mainSegmentText,
-                      paywallActiveTab === 'PACKS' && styles.mainSegmentTextActive,
-                    ]}
-                  >
-                    Bundles
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -644,7 +686,7 @@ export const PaywallModal: React.FC = () => {
                           {creditBalance?.coins ?? 0} Truelove Coins
                         </Text>
                         <Text style={styles.coinWalletBalanceSubtitle}>
-                          Prepaid wallet • Use on any feature • Never expires
+                          Prepaid wallet • Use on notes, boosts, calls & travel • Never expires
                         </Text>
                       </View>
                     </View>
@@ -660,13 +702,18 @@ export const PaywallModal: React.FC = () => {
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>⚡</Text>
-                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Profile Boost</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Boost</Text>
                       <Text style={styles.utilityChipCost}>30 🪙</Text>
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>📞</Text>
                       <Text style={styles.utilityChipTitle} numberOfLines={1}>15m Call</Text>
                       <Text style={styles.utilityChipCost}>20 🪙</Text>
+                    </View>
+                    <View style={styles.utilityChip}>
+                      <Text style={styles.utilityChipEmoji}>✈️</Text>
+                      <Text style={styles.utilityChipTitle} numberOfLines={1}>Passport</Text>
+                      <Text style={styles.utilityChipCost}>30 🪙</Text>
                     </View>
                     <View style={styles.utilityChip}>
                       <Text style={styles.utilityChipEmoji}>↩️</Text>
@@ -770,8 +817,9 @@ export const PaywallModal: React.FC = () => {
                     </View>
                   </View>
                 </View>
-              ) : paywallActiveTab === 'SUBSCRIPTIONS' ? (
-                <>
+              ) : (
+                /* TAB 2: VIP PLANS (SUBSCRIPTIONS) */
+                <View style={styles.vipPlansContainer}>
                   {/* Duration Toggle (1 Month vs 3 Months with Savings) */}
                   <View style={styles.durationToggleContainer}>
                     <TouchableOpacity
@@ -779,7 +827,7 @@ export const PaywallModal: React.FC = () => {
                         styles.durationBtn,
                         billingPeriod === 'MONTHLY' && styles.durationBtnActive,
                       ]}
-                      onPress={() => setBillingPeriod('MONTHLY')}
+                      onPress={() => handleSelectPeriod('MONTHLY')}
                       activeOpacity={0.8}
                     >
                       <Text
@@ -797,7 +845,7 @@ export const PaywallModal: React.FC = () => {
                         styles.durationBtn,
                         billingPeriod === 'QUARTERLY' && styles.durationBtnActive,
                       ]}
-                      onPress={() => setBillingPeriod('QUARTERLY')}
+                      onPress={() => handleSelectPeriod('QUARTERLY')}
                       activeOpacity={0.8}
                     >
                       <View style={styles.durationBtnInner}>
@@ -818,11 +866,10 @@ export const PaywallModal: React.FC = () => {
 
                   {/* Membership Cards (Side-by-Side Anchoring: Plus vs Gold) */}
                   <View style={styles.membershipsGrid}>
-                    {/* Truelove Gold (Anchor & Best Value) */}
+                    {/* Truelove Gold VIP (Anchor & Best Value) */}
                     {(() => {
                       const goldProd =
                         billingPeriod === 'QUARTERLY' ? goldQuarterly : goldMonthly;
-                      if (!goldProd) return null;
                       const isSelected = selectedProductId === goldProd.storeProductId;
                       const monthlyCost =
                         billingPeriod === 'QUARTERLY' ? '₹399' : '₹499';
@@ -841,15 +888,15 @@ export const PaywallModal: React.FC = () => {
                         >
                           <View style={styles.membershipTopRibbonGold}>
                             <Text style={styles.membershipTopRibbonTextGold}>
-                              MOST POPULAR • BEST DEAL
+                              👑 MOST POPULAR • BEST DEAL
                             </Text>
                           </View>
 
                           <View style={styles.membershipCardBody}>
                             <View style={styles.membershipCardTop}>
                               <View>
-                                <Text style={styles.membershipTitleGold}>Truelove Gold</Text>
-                                <Text style={styles.membershipSubtext}>The ultimate VIP experience</Text>
+                                <Text style={styles.membershipTitleGold}>Truelove Gold VIP</Text>
+                                <Text style={styles.membershipSubtext}>The ultimate all-inclusive experience</Text>
                               </View>
                               <View style={styles.membershipPriceBox}>
                                 <Text style={styles.membershipMonthlyPriceGold}>
@@ -867,24 +914,32 @@ export const PaywallModal: React.FC = () => {
 
                             <View style={styles.perksList}>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                                <Text style={styles.perkTextBold}>Unlimited Direct Notes</Text>
+                                <Ionicons name="airplane" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>Target City Passport (Date in Any City Worldwide)</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                                <Text style={styles.perkTextBold}>See Who Liked You (Unblur)</Text>
+                                <Ionicons name="eye" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>See Who Liked You (Instant Mutual Match)</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
-                                <Text style={styles.perkText}>1 Free Weekly Profile Boost</Text>
+                                <Ionicons name="mail" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>Unlimited Direct Notes (Skip the Line)</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Ionicons name="flash" size={16} color="#D97706" />
+                                <Text style={styles.perkTextBold}>1 Free Weekly Profile Boost (₹99 value)</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="videocam" size={16} color="#D97706" />
                                 <Text style={styles.perkText}>Unlimited HD Video & Audio Calls</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color="#D97706" />
+                                <Ionicons name="infinite" size={16} color="#D97706" />
                                 <Text style={styles.perkText}>Unlimited Swipes & Rewind Pass</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="shield-checkmark" size={16} color="#D97706" />
+                                <Text style={styles.perkText}>VIP Gold Profile Badge & 10x Priority Views</Text>
                               </View>
                             </View>
                           </View>
@@ -896,7 +951,6 @@ export const PaywallModal: React.FC = () => {
                     {(() => {
                       const plusProd =
                         billingPeriod === 'QUARTERLY' ? plusQuarterly : plusMonthly;
-                      if (!plusProd) return null;
                       const isSelected = selectedProductId === plusProd.storeProductId;
                       const monthlyCost =
                         billingPeriod === 'QUARTERLY' ? '₹233' : '₹299';
@@ -935,19 +989,23 @@ export const PaywallModal: React.FC = () => {
                             <View style={styles.perksList}>
                               <View style={styles.perkRow}>
                                 <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                                <Text style={styles.perkText}>Unlimited Swipes & Likes</Text>
+                                <Text style={styles.perkTextBold}>Unlimited Swipes & Likes (No 25 limit)</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                                <Text style={styles.perkText}>Rewind Pass (Undo left swipe)</Text>
+                                <Ionicons name="refresh-circle" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>Unlimited Rewind Pass (Undo passes)</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                                <Text style={styles.perkText}>5 Direct Notes daily</Text>
+                                <Ionicons name="mail" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>5 Direct Notes Daily Included</Text>
                               </View>
                               <View style={styles.perkRow}>
-                                <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                                <Text style={styles.perkText}>5 Super Likes daily</Text>
+                                <Ionicons name="star" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>5 Super Likes Daily Included</Text>
+                              </View>
+                              <View style={styles.perkRow}>
+                                <Ionicons name="shield" size={16} color={Colors.primary} />
+                                <Text style={styles.perkText}>Verified Ad-Free Experience</Text>
                               </View>
                             </View>
                           </View>
@@ -955,194 +1013,86 @@ export const PaywallModal: React.FC = () => {
                       );
                     })()}
                   </View>
-                </>
-              ) : (
-                /* TAB 2: INSTANT PACKS (CLEAN SECTIONED LIST) */
-                <View style={styles.allPacksContainer}>
-                  {/* Direct Notes Section */}
-                  <View style={styles.packSection}>
-                    <View style={styles.packSectionHeader}>
-                      <Text style={styles.packSectionTitle}>💌 Direct Note Packs</Text>
-                      <Text style={styles.packSectionSubtitle}>
-                        Skip the line with a personal note
-                      </Text>
-                    </View>
-                    {directNotePacks.map((prod) => {
-                      const isSelected = selectedProductId === prod.storeProductId;
-                      const unitInfo = getUnitInfo(prod);
-                      return (
-                        <TouchableOpacity
-                          key={prod.id}
-                          style={[
-                            styles.sectionPackCard,
-                            isSelected && styles.sectionPackCardSelected,
-                          ]}
-                          onPress={() => setSelectedProductId(prod.storeProductId)}
-                          activeOpacity={0.85}
-                        >
-                          {unitInfo.badge && (
-                            <View
-                              style={[
-                                styles.cardTopRibbon,
-                                unitInfo.badge.includes('BEST VALUE')
-                                  ? styles.cardTopRibbonBestValue
-                                  : styles.cardTopRibbonPopular,
-                              ]}
-                            >
-                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
-                            </View>
-                          )}
-                          <View style={styles.sectionPackRow}>
-                            <View
-                              style={[
-                                styles.radioCircle,
-                                isSelected && styles.radioCircleSelected,
-                              ]}
-                            >
-                              {isSelected && <View style={styles.radioInner} />}
-                            </View>
-                            <View style={styles.packContentColumn}>
-                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
-                            </View>
-                            <View style={styles.packPriceColumn}>
-                              <Text
-                                style={[
-                                  styles.sectionPackPrice,
-                                  isSelected && styles.sectionPackPriceSelected,
-                                ]}
-                              >
-                                {prod.displayPrice}
-                              </Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
 
-                  {/* Profile Boosts Section */}
-                  <View style={styles.packSection}>
-                    <View style={styles.packSectionHeader}>
-                      <Text style={styles.packSectionTitle}>⚡ Profile Boost Packs</Text>
-                      <Text style={styles.packSectionSubtitle}>
-                        Get 10x visibility for 30 minutes
-                      </Text>
+                  {/* Feature Comparison Matrix */}
+                  <View style={styles.comparisonTableCard}>
+                    <View style={styles.comparisonTableHeader}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonColHeaderTitle}>Features</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}>
+                        <Text style={styles.comparisonColHeaderTier}>Free</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}>
+                        <Text style={styles.comparisonColHeaderTier}>Plus</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}>
+                        <Text style={[styles.comparisonColHeaderTier, styles.comparisonColHeaderGold]}>Gold VIP</Text>
+                      </View>
                     </View>
-                    {boostPacks.map((prod) => {
-                      const isSelected = selectedProductId === prod.storeProductId;
-                      const unitInfo = getUnitInfo(prod);
-                      return (
-                        <TouchableOpacity
-                          key={prod.id}
-                          style={[
-                            styles.sectionPackCard,
-                            isSelected && styles.sectionPackCardSelected,
-                          ]}
-                          onPress={() => setSelectedProductId(prod.storeProductId)}
-                          activeOpacity={0.85}
-                        >
-                          {unitInfo.badge && (
-                            <View
-                              style={[
-                                styles.cardTopRibbon,
-                                unitInfo.badge.includes('BEST VALUE')
-                                  ? styles.cardTopRibbonBestValue
-                                  : styles.cardTopRibbonPopular,
-                              ]}
-                            >
-                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
-                            </View>
-                          )}
-                          <View style={styles.sectionPackRow}>
-                            <View
-                              style={[
-                                styles.radioCircle,
-                                isSelected && styles.radioCircleSelected,
-                              ]}
-                            >
-                              {isSelected && <View style={styles.radioInner} />}
-                            </View>
-                            <View style={styles.packContentColumn}>
-                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
-                            </View>
-                            <View style={styles.packPriceColumn}>
-                              <Text
-                                style={[
-                                  styles.sectionPackPrice,
-                                  isSelected && styles.sectionPackPriceSelected,
-                                ]}
-                              >
-                                {prod.displayPrice}
-                              </Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
 
-                  {/* Call Passes Section */}
-                  <View style={styles.packSection}>
-                    <View style={styles.packSectionHeader}>
-                      <Text style={styles.packSectionTitle}>📞 Call Passes</Text>
-                      <Text style={styles.packSectionSubtitle}>
-                        Extend video & audio calls with mutual matches
-                      </Text>
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>Daily Likes</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>25 / day</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>Unlimited</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Unlimited</Text></View>
                     </View>
-                    {callPasses.map((prod) => {
-                      const isSelected = selectedProductId === prod.storeProductId;
-                      const unitInfo = getUnitInfo(prod);
-                      return (
-                        <TouchableOpacity
-                          key={prod.id}
-                          style={[
-                            styles.sectionPackCard,
-                            isSelected && styles.sectionPackCardSelected,
-                          ]}
-                          onPress={() => setSelectedProductId(prod.storeProductId)}
-                          activeOpacity={0.85}
-                        >
-                          {unitInfo.badge && (
-                            <View
-                              style={[
-                                styles.cardTopRibbon,
-                                unitInfo.badge.includes('BEST VALUE')
-                                  ? styles.cardTopRibbonBestValue
-                                  : styles.cardTopRibbonPopular,
-                              ]}
-                            >
-                              <Text style={styles.cardTopRibbonText}>{unitInfo.badge}</Text>
-                            </View>
-                          )}
-                          <View style={styles.sectionPackRow}>
-                            <View
-                              style={[
-                                styles.radioCircle,
-                                isSelected && styles.radioCircleSelected,
-                              ]}
-                            >
-                              {isSelected && <View style={styles.radioInner} />}
-                            </View>
-                            <View style={styles.packContentColumn}>
-                              <Text style={styles.sectionPackName} numberOfLines={1}>{prod.displayName}</Text>
-                              <Text style={styles.sectionPackUnit} numberOfLines={1}>{unitInfo.label}</Text>
-                            </View>
-                            <View style={styles.packPriceColumn}>
-                              <Text
-                                style={[
-                                  styles.sectionPackPrice,
-                                  isSelected && styles.sectionPackPriceSelected,
-                                ]}
-                              >
-                                {prod.displayPrice}
-                              </Text>
-                            </View>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
+
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>Rewind Pass</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>5c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>Unlimited</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Unlimited</Text></View>
+                    </View>
+
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>Direct Notes</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>15c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>5 Daily</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Unlimited 💌</Text></View>
+                    </View>
+
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>See Who Liked</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>Blurred</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>Blurred</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Unblur 👀</Text></View>
+                    </View>
+
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>City Passport</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>30c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>30c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Included ✈️</Text></View>
+                    </View>
+
+                    <View style={styles.comparisonRow}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>Weekly Boost</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>30c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>30c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>1 Free/Wk ⚡</Text></View>
+                    </View>
+
+                    <View style={[styles.comparisonRow, { borderBottomWidth: 0 }]}>
+                      <View style={styles.comparisonColFeature}>
+                        <Text style={styles.comparisonRowFeatureText}>HD Calling</Text>
+                      </View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>1-min free</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={styles.comparisonRowTierText}>20c Coins</Text></View>
+                      <View style={styles.comparisonColTier}><Text style={[styles.comparisonRowTierText, styles.comparisonRowTierTextGold]}>Unlimited 📞</Text></View>
+                    </View>
                   </View>
                 </View>
               )}
@@ -1244,14 +1194,14 @@ const styles = StyleSheet.create({
   /* Credit Vault Bar */
   creditVaultCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFDF7',
     borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#FDE68A',
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1259,26 +1209,44 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
-  creditItem: {
+  creditItemCoins: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
-  creditIcon: {
+  creditCoinEmoji: {
+    fontSize: 22,
+  },
+  creditCoinsAmount: {
     fontSize: 15,
-    marginRight: 6,
+    fontWeight: '900',
+    color: '#92400E',
   },
-  creditLabel: {
+  creditCoinsUnit: {
     fontSize: 12,
-    color: Colors.textSecondary,
+    fontWeight: '700',
+    color: '#B45309',
   },
-  creditBold: {
-    fontWeight: '800',
-    color: Colors.textPrimary,
+  creditCoinsSub: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B45309',
   },
-  creditDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: Colors.border,
+  creditQuickRates: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  creditRateTag: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 6,
+    fontSize: 9.5,
+    fontWeight: '700',
+    color: '#92400E',
   },
 
   /* Focused Mode */
@@ -1543,6 +1511,11 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
+  /* VIP Plans Tab */
+  vipPlansContainer: {
+    marginBottom: 10,
+  },
+
   /* Duration Toggle */
   durationToggleContainer: {
     flexDirection: 'row',
@@ -1694,65 +1667,73 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /* All Packs Sectioned List */
-  allPacksContainer: {
-    gap: 16,
-  },
-  packSection: {
+  /* Feature Comparison Matrix */
+  comparisonTableCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 14,
     borderWidth: 1,
     borderColor: Colors.border,
-  },
-  packSectionHeader: {
+    padding: 14,
+    marginTop: 18,
     marginBottom: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  packSectionTitle: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-  },
-  packSectionSubtitle: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  sectionPackCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 14,
-    marginBottom: 8,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    overflow: 'hidden',
-  },
-  sectionPackCardSelected: {
-    borderColor: Colors.primary,
-    backgroundColor: 'rgba(253, 93, 101, 0.03)',
-  },
-  sectionPackRow: {
+  comparisonTableHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderBottomWidth: 1.5,
+    borderBottomColor: Colors.border,
+    paddingBottom: 10,
+    marginBottom: 4,
   },
-  sectionPackName: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+  comparisonColFeature: {
+    flex: 1.4,
   },
-  sectionPackUnit: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginTop: 1,
+  comparisonColTier: {
+    flex: 1,
+    alignItems: 'center',
   },
-  sectionPackPrice: {
-    fontSize: 15,
+  comparisonColHeaderTitle: {
+    fontSize: 12,
     fontWeight: '800',
     color: Colors.textPrimary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  sectionPackPriceSelected: {
-    color: Colors.primary,
+  comparisonColHeaderTier: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  comparisonColHeaderGold: {
+    color: '#D97706',
+    fontWeight: '800',
+  },
+  comparisonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 9,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  comparisonRowFeatureText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  comparisonRowTierText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  comparisonRowTierTextGold: {
+    fontWeight: '700',
+    color: '#B45309',
   },
 
   /* Sticky Bottom CTA Bar */
@@ -1812,12 +1793,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     marginTop: 8,
     paddingHorizontal: 12,
-  },
-  creditItemCoins: {
-    backgroundColor: 'rgba(245, 158, 11, 0.08)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
   },
   focusedCoinCostBanner: {
     flexDirection: 'row',
@@ -1892,31 +1867,32 @@ const styles = StyleSheet.create({
   utilityMatrix: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    gap: 4,
     marginBottom: 14,
   },
   utilityChip: {
-    width: '23%',
+    flex: 1,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 12,
     paddingVertical: 8,
-    paddingHorizontal: 2,
+    paddingHorizontal: 1,
     alignItems: 'center',
   },
   utilityChipEmoji: {
-    fontSize: 16,
+    fontSize: 15,
     marginBottom: 3,
   },
   utilityChipTitle: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontWeight: '600',
     color: Colors.textSecondary,
     textAlign: 'center',
     marginBottom: 2,
   },
   utilityChipCost: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
     color: Colors.primary,
   },

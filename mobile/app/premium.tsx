@@ -149,7 +149,7 @@ export default function PremiumScreen() {
               {!isSubscribed ? (
                 <TouchableOpacity
                   style={styles.upgradeBtn}
-                  onPress={() => openPaywall()}
+                  onPress={() => openPaywall('SUBSCRIPTIONS')}
                   activeOpacity={0.85}
                 >
                   <Ionicons name="sparkles" size={16} color={Colors.white} style={{ marginRight: 8 }} />
@@ -205,21 +205,48 @@ export default function PremiumScreen() {
                 </Text>
               </View>
 
-              {/* Consumable Balances Row */}
-              <View style={styles.consumablesGrid}>
-                <View style={styles.consumableItem}>
-                  <Text style={styles.consumableCount}>{creditBalance?.directNotes ?? 0}</Text>
-                  <Text style={styles.consumableLabel}>Direct Notes</Text>
+              {/* Coin Utilities Rate Row */}
+              <View style={styles.utilityChipsRow}>
+                <View style={styles.utilityChipPill}>
+                  <Text style={styles.utilityChipText}>💌 15c Note</Text>
                 </View>
-                <View style={styles.consumableItem}>
-                  <Text style={styles.consumableCount}>{creditBalance?.profileBoosts ?? 0}</Text>
-                  <Text style={styles.consumableLabel}>Profile Boosts</Text>
+                <View style={styles.utilityChipPill}>
+                  <Text style={styles.utilityChipText}>⚡ 30c Boost</Text>
                 </View>
-                <View style={styles.consumableItem}>
-                  <Text style={styles.consumableCount}>{creditBalance?.callPassMinutes ?? 0}m</Text>
-                  <Text style={styles.consumableLabel}>Call Minutes</Text>
+                <View style={styles.utilityChipPill}>
+                  <Text style={styles.utilityChipText}>📞 20c Call</Text>
+                </View>
+                <View style={styles.utilityChipPill}>
+                  <Text style={styles.utilityChipText}>✈️ 30c City</Text>
+                </View>
+                <View style={styles.utilityChipPill}>
+                  <Text style={styles.utilityChipText}>↩️ 5c Undo</Text>
                 </View>
               </View>
+
+              {/* Bonus Inventory (Only shown if user has granted/bonus legacy credits) */}
+              {((creditBalance?.directNotes ?? 0) > 0 ||
+                (creditBalance?.profileBoosts ?? 0) > 0 ||
+                (creditBalance?.callPassMinutes ?? 0) > 0) && (
+                <View style={styles.bonusInventoryRow}>
+                  <Text style={styles.bonusInventoryTitle}>🎁 Bonus Perks:</Text>
+                  {(creditBalance?.directNotes ?? 0) > 0 && (
+                    <Text style={styles.bonusInventoryItem}>
+                      {creditBalance?.directNotes} Notes
+                    </Text>
+                  )}
+                  {(creditBalance?.profileBoosts ?? 0) > 0 && (
+                    <Text style={styles.bonusInventoryItem}>
+                      {creditBalance?.profileBoosts} Boosts
+                    </Text>
+                  )}
+                  {(creditBalance?.callPassMinutes ?? 0) > 0 && (
+                    <Text style={styles.bonusInventoryItem}>
+                      {creditBalance?.callPassMinutes}m Calling
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
 
             {/* Active Capabilities / Entitlements */}
@@ -637,30 +664,45 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#92400E',
   },
-  consumablesGrid: {
+  utilityChipsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 8,
+    gap: 4,
     marginTop: 10,
   },
-  consumableItem: {
+  utilityChipPill: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 2,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  consumableCount: {
-    fontSize: 15,
-    fontWeight: '800',
+  utilityChipText: {
+    fontSize: 9.5,
+    fontWeight: '700',
     color: '#92400E',
   },
-  consumableLabel: {
+  bonusInventoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    marginTop: 8,
+    gap: 6,
+  },
+  bonusInventoryTitle: {
     fontSize: 10,
-    fontWeight: '600',
-    color: '#B45309',
-    marginTop: 2,
+    fontWeight: '800',
+    color: '#78350F',
+  },
+  bonusInventoryItem: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#92400E',
   },
 });
