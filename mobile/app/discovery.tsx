@@ -443,8 +443,18 @@ export default function DiscoveryScreen() {
           <View style={styles.onlineDot} />
         </TouchableOpacity>
 
-        {/* Right Header Actions (Favorites, Boost & Filter) */}
+        {/* Right Header Actions (Coins, Favorites, Boost & Filter) */}
         <View style={styles.headerRightActions}>
+          {/* Coin Balance Badge Button -> Navigates to /premium */}
+          <TouchableOpacity
+            style={styles.coinBadgeBtn}
+            onPress={() => router.push('/premium' as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="sparkles" size={14} color="#F59E0B" />
+            <Text style={styles.coinBadgeText}>{creditBalance?.coins ?? 0}</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.headerSquareBtn}
             onPress={() => router.push('/matches' as any)}
@@ -1130,11 +1140,33 @@ const styles = StyleSheet.create({
   },
   headerRightActions: {
     flexDirection: 'row',
-    gap: 10,
+    alignItems: 'center',
+    gap: 8,
+  },
+  coinBadgeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 20,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  coinBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
   },
   headerSquareBtn: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     borderRadius: 12,
     backgroundColor: Colors.white,
     borderWidth: 1,
