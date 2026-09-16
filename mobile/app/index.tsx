@@ -51,6 +51,7 @@ export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { status: authStatus, user } = useAuthStore();
+  const { profile, completion, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
   const { candidates, fetchDiscoveryFeed, recordAction } = useDiscoveryStore();
   const { unreadCount, fetchUnreadCount } = useNotificationsStore();
   const { fetchBillingStatus, openPaywall } = useBillingStore();
