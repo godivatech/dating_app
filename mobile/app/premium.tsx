@@ -163,64 +163,93 @@ export default function PremiumScreen() {
               )}
             </View>
 
-            {/* Truelove Prepaid Coin Wallet & Consumable Credits */}
+            {/* Truelove Prepaid Coin Wallet Card */}
             <View style={styles.coinVaultCard}>
-              <View style={styles.coinVaultHeader}>
-                <View style={styles.coinVaultIconBox}>
-                  <Text style={{ fontSize: 20 }}>🪙</Text>
+              {/* Top Header Row: Clean branding on left, History button on right */}
+              <View style={styles.coinVaultTopBar}>
+                <View style={styles.coinVaultBrandGroup}>
+                  <View style={styles.coinVaultIconBox}>
+                    <Text style={{ fontSize: 20 }}>🪙</Text>
+                  </View>
+                  <View style={styles.coinVaultTitleColumn}>
+                    <View style={styles.coinVaultTitleRow}>
+                      <Text style={styles.coinVaultTitle}>Truelove Coin Wallet</Text>
+                      <View style={styles.prepaidBadge}>
+                        <Text style={styles.prepaidBadgeText}>PREPAID</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.coinVaultSub}>
+                      1-Tap micro-recharges • Never expires
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.coinVaultTitle}>Truelove Coin Wallet</Text>
-                  <Text style={styles.coinVaultSub}>
-                    Prepaid wallet for 1-tap micro-recharges
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <TouchableOpacity
-                    style={styles.passbookPillBtn}
-                    onPress={() => setShowPassbookModal(true)}
-                    activeOpacity={0.8}
-                  >
-                    <Ionicons name="time-outline" size={12} color="#475569" style={{ marginRight: 3 }} />
-                    <Text style={styles.passbookPillText}>History</Text>
-                  </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.rechargePillBtn}
-                    onPress={() => openPaywall('COINS')}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="flash" size={12} color="#FFFFFF" style={{ marginRight: 3 }} />
-                    <Text style={styles.rechargePillText}>Recharge</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={styles.historyPillBtn}
+                  onPress={() => setShowPassbookModal(true)}
+                  activeOpacity={0.75}
+                >
+                  <Ionicons name="time-outline" size={13} color="#78350F" style={{ marginRight: 3 }} />
+                  <Text style={styles.historyPillText}>History</Text>
+                </TouchableOpacity>
               </View>
 
-              <View style={styles.coinVaultBalanceBox}>
-                <Text style={styles.coinVaultBalanceValue}>
-                  🪙 {creditBalance?.coins ?? 0}
-                </Text>
-                <Text style={styles.coinVaultBalanceLabel}>
-                  Coins Available • Instant UPI
-                </Text>
+              {/* Hero Balance & Recharge Action Box */}
+              <View style={styles.coinHeroBox}>
+                <View style={styles.coinHeroBalanceCol}>
+                  <Text style={styles.coinHeroBalanceLabel}>CURRENT WALLET BALANCE</Text>
+                  <View style={styles.coinHeroAmountRow}>
+                    <Text style={styles.coinHeroAmountNumber}>
+                      {creditBalance?.coins ?? 0}
+                    </Text>
+                    <Text style={styles.coinHeroAmountUnit}>Coins</Text>
+                  </View>
+                  <Text style={styles.coinHeroSubtext}>Use on notes, boosts, calls & travel</Text>
+                </View>
+
+                <TouchableOpacity
+                  style={styles.heroRechargeBtn}
+                  onPress={() => openPaywall('COINS')}
+                  activeOpacity={0.88}
+                >
+                  <Ionicons name="flash" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.heroRechargeBtnText}>Recharge</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Coin Utilities Rate Row */}
-              <View style={styles.utilityChipsRow}>
-                <View style={styles.utilityChipPill}>
-                  <Text style={styles.utilityChipText}>💌 15c Note</Text>
+              {/* Coin Utility Rates Matrix */}
+              <View style={styles.utilitySection}>
+                <View style={styles.utilitySectionHeader}>
+                  <Text style={styles.utilitySectionTitle}>Coin Utility Rates</Text>
+                  <Text style={styles.utilitySectionSub}>1-Tap micro-spend</Text>
                 </View>
-                <View style={styles.utilityChipPill}>
-                  <Text style={styles.utilityChipText}>⚡ 30c Boost</Text>
-                </View>
-                <View style={styles.utilityChipPill}>
-                  <Text style={styles.utilityChipText}>📞 20c Call</Text>
-                </View>
-                <View style={styles.utilityChipPill}>
-                  <Text style={styles.utilityChipText}>✈️ 30c City</Text>
-                </View>
-                <View style={styles.utilityChipPill}>
-                  <Text style={styles.utilityChipText}>↩️ 5c Undo</Text>
+
+                <View style={styles.utilityChipsRow}>
+                  <View style={styles.utilityChipCard}>
+                    <Text style={styles.utilityChipEmoji}>💌</Text>
+                    <Text style={styles.utilityChipCost}>15 🪙</Text>
+                    <Text style={styles.utilityChipName} numberOfLines={1}>Note</Text>
+                  </View>
+                  <View style={styles.utilityChipCard}>
+                    <Text style={styles.utilityChipEmoji}>⚡</Text>
+                    <Text style={styles.utilityChipCost}>30 🪙</Text>
+                    <Text style={styles.utilityChipName} numberOfLines={1}>Boost</Text>
+                  </View>
+                  <View style={styles.utilityChipCard}>
+                    <Text style={styles.utilityChipEmoji}>📞</Text>
+                    <Text style={styles.utilityChipCost}>20 🪙</Text>
+                    <Text style={styles.utilityChipName} numberOfLines={1}>15m Call</Text>
+                  </View>
+                  <View style={styles.utilityChipCard}>
+                    <Text style={styles.utilityChipEmoji}>✈️</Text>
+                    <Text style={styles.utilityChipCost}>30 🪙</Text>
+                    <Text style={styles.utilityChipName} numberOfLines={1}>Passport</Text>
+                  </View>
+                  <View style={styles.utilityChipCard}>
+                    <Text style={styles.utilityChipEmoji}>↩️</Text>
+                    <Text style={styles.utilityChipCost}>5 🪙</Text>
+                    <Text style={styles.utilityChipName} numberOfLines={1}>Rewind</Text>
+                  </View>
                 </View>
               </View>
 
@@ -586,14 +615,22 @@ const styles = StyleSheet.create({
     borderColor: '#FDE68A',
     marginBottom: 20,
     shadowColor: '#F59E0B',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 2,
   },
-  coinVaultHeader: {
+  coinVaultTopBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  coinVaultBrandGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
   coinVaultIconBox: {
     width: 38,
@@ -603,105 +640,194 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  coinVaultTitleColumn: {
+    flex: 1,
+  },
+  coinVaultTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   coinVaultTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: '#92400E',
+    letterSpacing: -0.2,
+  },
+  prepaidBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  prepaidBadgeText: {
+    color: '#D97706',
+    fontSize: 8.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
   },
   coinVaultSub: {
     fontSize: 11,
     color: '#B45309',
-    marginTop: 1,
+    marginTop: 2,
   },
-  passbookPillBtn: {
+  historyPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingHorizontal: 11,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  passbookPillText: {
+  historyPillText: {
     color: '#78350F',
     fontSize: 11.5,
     fontWeight: '700',
   },
-  rechargePillBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D97706',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  rechargePillText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  coinVaultBalanceBox: {
+
+  /* Hero Balance & Recharge Action */
+  coinHeroBox: {
     backgroundColor: '#FEF9C3',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginTop: 12,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#FDE047',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 14,
   },
-  coinVaultBalanceValue: {
-    fontSize: 20,
+  coinHeroBalanceCol: {
+    flex: 1,
+    marginRight: 12,
+  },
+  coinHeroBalanceLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#92400E',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  coinHeroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginTop: 2,
+    gap: 6,
+  },
+  coinHeroAmountNumber: {
+    fontSize: 28,
     fontWeight: '900',
     color: '#78350F',
+    letterSpacing: -0.5,
   },
-  coinVaultBalanceLabel: {
-    fontSize: 11,
-    fontWeight: '600',
+  coinHeroAmountUnit: {
+    fontSize: 14,
+    fontWeight: '700',
     color: '#92400E',
+  },
+  coinHeroSubtext: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: '#B45309',
+    marginTop: 2,
+  },
+  heroRechargeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D97706',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  heroRechargeBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+
+  /* Utility Section */
+  utilitySection: {
+    marginTop: 2,
+  },
+  utilitySectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    paddingHorizontal: 2,
+  },
+  utilitySectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  utilitySectionSub: {
+    fontSize: 10.5,
+    color: '#B45309',
+    fontWeight: '500',
   },
   utilityChipsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 4,
-    marginTop: 10,
+    gap: 5,
   },
-  utilityChipPill: {
+  utilityChipCard: {
     flex: 1,
     backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: 12,
+    paddingVertical: 8,
     paddingHorizontal: 2,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  utilityChipText: {
-    fontSize: 9.5,
-    fontWeight: '700',
-    color: '#92400E',
+  utilityChipEmoji: {
+    fontSize: 15,
+    marginBottom: 2,
+  },
+  utilityChipCost: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: Colors.primary,
+    marginBottom: 1,
+  },
+  utilityChipName: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#78350F',
+    textAlign: 'center',
   },
   bonusInventoryRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    marginTop: 8,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginTop: 10,
     gap: 6,
   },
   bonusInventoryTitle: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#78350F',
   },
   bonusInventoryItem: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#92400E',
   },

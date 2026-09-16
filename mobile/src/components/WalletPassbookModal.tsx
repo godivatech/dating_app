@@ -166,31 +166,36 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
       onRequestClose={onClose}
     >
       <StatusBar style="dark" />
-      <View style={[styles.safeArea, { paddingTop: topInset + 6 }]}>
-        {/* Header Bar */}
-        <View style={styles.headerBar}>
-          <View style={styles.headerTitleGroup}>
-            <Text style={styles.headerTitle}>Coin Wallet & History</Text>
-            <Text style={styles.headerSubtitle}>Balance & Transaction History</Text>
+      <View style={[styles.safeArea, { paddingTop: topInset + 10 }]}>
+        {/* Top Navigation Bar */}
+        <View style={styles.navBar}>
+          <TouchableOpacity
+            onPress={onClose}
+            style={styles.closeButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={20} color={Colors.textPrimary} />
+          </TouchableOpacity>
+
+          <View style={styles.navTitleCenter}>
+            <Text style={styles.navTitle}>Coin History</Text>
           </View>
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={handleRefresh}
-              style={styles.refreshButton}
-              activeOpacity={0.7}
-              disabled={isRefreshing}
-            >
-              <Ionicons
-                name="refresh"
-                size={18}
-                color={Colors.textSecondary}
-                style={isRefreshing ? styles.spinIcon : undefined}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton} activeOpacity={0.7}>
-              <Ionicons name="close" size={22} color={Colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
+
+          <TouchableOpacity
+            onPress={handleRefresh}
+            style={styles.refreshButton}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+            disabled={isRefreshing}
+          >
+            <Ionicons
+              name="refresh"
+              size={18}
+              color={Colors.textSecondary}
+              style={isRefreshing ? styles.spinIcon : undefined}
+            />
+          </TouchableOpacity>
         </View>
 
         {/* Live Wallet Balance Banner */}
@@ -273,50 +278,41 @@ export function WalletPassbookModal({ visible, onClose }: WalletPassbookModalPro
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
     backgroundColor: '#FFFFFF',
   },
-  headerTitleGroup: {
-    flex: 1,
+  navBar: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
+  navTitleCenter: {
+    alignItems: 'center',
+  },
+  navTitle: {
+    fontSize: 17,
     fontWeight: '800',
     color: '#0F172A',
     letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 1,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  refreshButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
