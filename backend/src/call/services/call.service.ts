@@ -27,6 +27,17 @@ import { CreditService } from '../../billing/services/credit.service';
 
 export const CALL_TIMEOUT_SECONDS = 35;
 
+/**
+ * Standard calling economics as mandated by institutional review:
+ * Audio: 15 coins for 15 minutes (900s)
+ * Video: 50 coins for 15 minutes (900s)
+ */
+export const CALL_CONFIG = {
+  AUDIO: { coins: 15, durationSeconds: 900 },
+  VIDEO: { coins: 50, durationSeconds: 900 },
+  VIBE_CHECK: { coins: 0, durationSeconds: 60 },
+};
+
 @Injectable()
 export class CallService {
   private readonly logger = new Logger(CallService.name);
@@ -42,57 +53,85 @@ export class CallService {
   ) {}
 
   /**
-   * Evaluates if caller or receiver has VIP calling status (Truelove Gold or 15+ min call pass).
-   * Asymmetric rule: If EITHER party is Gold or has an active Call Pass, the room is upgraded to full duration.
+   * Evaluates calling tier with strict caller authorization and anti-abuse vibe check quota.
+   * Eliminates passive deduction of receiver's coins.
    */
   async evaluateCallingTier(
     callerUserId: string,
     receiverUserId: string,
     callType: CallType = CallType.VIDEO,
-  ): Promise<{ isVibeCheck: boolean; maxDurationSeconds: number; payerUserId?: string }> {
+    agreedCoins?: number,
+    isVibeCheckRequested?: boolean,
+  ): Promise<{
+    isVibeCheck: boolean;
+    maxDurationSeconds: number;
+    payerUserId?: string;
+    requiredCoins: number;
+  }> {
     const requiredEntitlement =
       callType === CallType.AUDIO
         ? EntitlementKey.AUDIO_CALL
         : EntitlementKey.VIDEO_CALL;
     const now = new Date();
 
-    // Check Truelove Gold active entitlements (either party unlocks full room)
-    const activeEntitlements = await this.prisma.userEntitlement.findMany({
+    // 1. Check if caller has Gold VIP (caller's own subscription pays)
+    const callerEntitlement = await this.prisma.userEntitlement.findFirst({
       where: {
-        userId: { in: [callerUserId, receiverUserId] },
+        userId: callerUserId,
         entitlementKey: { in: [requiredEntitlement, EntitlementKey.VIDEO_CALL] },
         isActive: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
     });
 
-    if (activeEntitlements.length > 0) {
-      return { isVibeCheck: false, maxDurationSeconds: 3600 };
-    }
-
-    // Check Call Pass consumable balances (>= 15 minutes) or Coin Wallet (>= 20 coins)
-    const balances = await this.prisma.userCreditBalance.findMany({
-      where: {
-        userId: { in: [callerUserId, receiverUserId] },
-        OR: [
-          { callPassMinutes: { gte: 15 } },
-          { coins: { gte: 20 } },
-        ],
-      },
-      orderBy: { callPassMinutes: 'desc' },
-    });
-
-    if (balances.length > 0) {
+    if (callerEntitlement) {
+      // Authorized 15-minute VIP call segment under monthly pool
       return {
         isVibeCheck: false,
-        maxDurationSeconds: 3600,
-        payerUserId: balances[0].userId,
+        maxDurationSeconds: 900,
+        payerUserId: callerUserId,
+        requiredCoins: 0,
       };
     }
 
-    // Free 1-Minute Vibe Check
-    return { isVibeCheck: true, maxDurationSeconds: 60 };
+    const config = callType === CallType.AUDIO ? CALL_CONFIG.AUDIO : CALL_CONFIG.VIDEO;
+
+    // 2. If caller agreed to paid call or requested extended call
+    if (agreedCoins !== undefined && agreedCoins >= config.coins) {
+      const balance = await this.creditService.getOrCreateBalance(callerUserId);
+      if (balance.coins < config.coins) {
+        throw new BadRequestException(
+          `Insufficient coins. This ${callType.toLowerCase()} call requires ${config.coins} coins. You have ${balance.coins} coins.`,
+        );
+      }
+
+      return {
+        isVibeCheck: false,
+        maxDurationSeconds: config.durationSeconds,
+        payerUserId: callerUserId,
+        requiredCoins: config.coins,
+      };
+    }
+
+    // 3. Free Vibe Check Check: Enforce strictly 1 free vibe check per matched pair per 24 hours
+    const pairKey = [callerUserId, receiverUserId].sort().join(':');
+    const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    const dailyVibeKey = `call:vibe_check:${pairKey}:${istDate}`;
+
+    const alreadyUsed = await this.redisService.get(dailyVibeKey);
+    if (alreadyUsed) {
+      throw new BadRequestException(
+        `You have already used your free 1-minute vibe check with this match today. Unlock an extended 15-minute call for ${config.coins} coins or upgrade to Gold VIP.`,
+      );
+    }
+
+    return {
+      isVibeCheck: true,
+      maxDurationSeconds: CALL_CONFIG.VIBE_CHECK.durationSeconds,
+      requiredCoins: 0,
+    };
   }
+
 
   /**
    * Initiates an outgoing audio or video call.
@@ -254,7 +293,30 @@ export class CallService {
     const cleanMatch = dto.matchId.replace(/-/g, '').slice(0, 12);
     const channelName = `spark_call_${cleanMatch}_${Date.now()}`;
     const callType = dto.callType || CallType.VIDEO;
-    const callingTier = await this.evaluateCallingTier(callerUserId, dto.receiverUserId, callType);
+    const callingTier = await this.evaluateCallingTier(
+      callerUserId,
+      dto.receiverUserId,
+      callType,
+      dto.agreedCoins,
+      dto.isVibeCheck,
+    );
+
+    // Atomically reserve escrow coins if caller initiated a paid call
+    let isEscrowHeld = false;
+    if (callingTier.requiredCoins > 0) {
+      const reserved = await this.creditService.reserveCoins(
+        callerUserId,
+        callingTier.requiredCoins,
+        dto.matchId,
+        `Escrow hold for ${callType.toLowerCase()} call`,
+      );
+      if (!reserved) {
+        throw new BadRequestException(
+          `Failed to reserve ${callingTier.requiredCoins} coins for this call. Please recharge your wallet.`,
+        );
+      }
+      isEscrowHeld = true;
+    }
 
     const callLog = await this.prisma.callLog.create({
       data: {
@@ -264,6 +326,9 @@ export class CallService {
         callType,
         status: CallStatus.RINGING,
         channelName,
+        agreedCoins: callingTier.requiredCoins > 0 ? callingTier.requiredCoins : null,
+        payerUserId: callingTier.payerUserId || null,
+        isEscrowHeld,
       },
       include: {
         callerUser: {
@@ -277,6 +342,7 @@ export class CallService {
         },
       },
     });
+
 
     // 7. Store call state in Redis (with 5 minute safety TTL)
     await this.redisService.set(`user:call_state:${callerUserId}`, callLog.id, 300);
@@ -351,12 +417,30 @@ export class CallService {
       throw new BadRequestException(`Call is no longer active (status: ${callLog.status}).`);
     }
 
+    // Determine authorized duration:
+    // If escrow was held, duration is 900s (15 mins). If free vibe check, 60s.
+    const maxDurationSeconds = callLog.isEscrowHeld || callLog.agreedCoins
+      ? 900
+      : 60;
+
     // Deterministic UIDs: caller = 1001, receiver = 2002
     const callerUid = 1001;
     const receiverUid = 2002;
 
-    const callerToken = this.agoraTokenService.generateRtcToken(callLog.channelName, callerUid);
-    const receiverToken = this.agoraTokenService.generateRtcToken(callLog.channelName, receiverUid);
+    // Lock Agora edge token expiration strictly to the authorized call window + 30s buffer
+    const tokenTtl = maxDurationSeconds + 30;
+    const callerToken = this.agoraTokenService.generateRtcToken(
+      callLog.channelName,
+      callerUid,
+      undefined,
+      tokenTtl,
+    );
+    const receiverToken = this.agoraTokenService.generateRtcToken(
+      callLog.channelName,
+      receiverUid,
+      undefined,
+      tokenTtl,
+    );
 
     const connectedAt = new Date();
 
@@ -368,15 +452,9 @@ export class CallService {
       },
     });
 
-    // Refresh Redis state TTL for 2 hours active call
-    await this.redisService.set(`user:call_state:${callLog.callerUserId}`, callLog.id, 7200);
-    await this.redisService.set(`user:call_state:${callLog.receiverUserId}`, callLog.id, 7200);
-
-    const callingTier = await this.evaluateCallingTier(
-      callLog.callerUserId,
-      callLog.receiverUserId,
-      callLog.callType,
-    );
+    // Refresh Redis state TTL for active call
+    await this.redisService.set(`user:call_state:${callLog.callerUserId}`, callLog.id, maxDurationSeconds + 60);
+    await this.redisService.set(`user:call_state:${callLog.receiverUserId}`, callLog.id, maxDurationSeconds + 60);
 
     return {
       callId: updated.id,
@@ -385,8 +463,9 @@ export class CallService {
       callType: updated.callType,
       status: CallStatus.ACCEPTED,
       connectedAt: connectedAt.toISOString(),
-      isVibeCheck: callingTier.isVibeCheck,
-      maxDurationSeconds: callingTier.maxDurationSeconds,
+      isVibeCheck: maxDurationSeconds <= 60,
+      maxDurationSeconds,
+
       caller: {
         userId: callLog.callerUserId,
         rtcUid: callerUid,
@@ -405,7 +484,7 @@ export class CallService {
   }
 
   /**
-   * Rejects an incoming call.
+   * Rejects an incoming call and immediately releases any escrowed coins.
    */
   async rejectCall(userId: string, dto: RejectCallDto) {
     const callLog = await this.prisma.callLog.findUnique({
@@ -430,6 +509,20 @@ export class CallService {
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
     await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
 
+    // If caller had coins held in escrow, release them immediately
+    if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
+      await this.creditService.releaseCoins(
+        callLog.payerUserId,
+        callLog.agreedCoins,
+        callLog.id,
+        'Refund: Call was rejected by receiver',
+      );
+      await this.prisma.callLog.update({
+        where: { id: callLog.id },
+        data: { isEscrowHeld: false },
+      });
+    }
+
     return {
       callId: updated.id,
       callerUserId: callLog.callerUserId,
@@ -440,7 +533,49 @@ export class CallService {
   }
 
   /**
-   * Ends an active or ongoing call.
+   * Handles ringing timeout (call unanswered). Releases escrowed coins.
+   */
+  async handleTimeout(callId: string) {
+    const callLog = await this.prisma.callLog.findUnique({
+      where: { id: callId },
+    });
+
+    if (!callLog || callLog.status !== CallStatus.RINGING) {
+      return null;
+    }
+
+    const updated = await this.prisma.callLog.update({
+      where: { id: callLog.id },
+      data: {
+        status: CallStatus.MISSED,
+        endedAt: new Date(),
+        endReason: CallEndReason.MISSED_TIMEOUT,
+      },
+    });
+
+    await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
+    await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
+    await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
+
+    // Release escrow
+    if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
+      await this.creditService.releaseCoins(
+        callLog.payerUserId,
+        callLog.agreedCoins,
+        callLog.id,
+        'Refund: Call timed out without answer',
+      );
+      await this.prisma.callLog.update({
+        where: { id: callLog.id },
+        data: { isEscrowHeld: false },
+      });
+    }
+
+    return updated;
+  }
+
+  /**
+   * Ends an active or ongoing call and settles escrow.
    */
   async endCall(userId: string, dto: EndCallDto) {
     const callLog = await this.prisma.callLog.findUnique({
@@ -449,6 +584,17 @@ export class CallService {
 
     if (!callLog) {
       throw new NotFoundException('Call session not found.');
+    }
+
+    // Idempotency: If already ended, return existing status
+    if (callLog.status === CallStatus.ENDED) {
+      return {
+        callId: callLog.id,
+        callerUserId: callLog.callerUserId,
+        receiverUserId: callLog.receiverUserId,
+        status: CallStatus.ENDED,
+        durationSeconds: callLog.durationSeconds,
+      };
     }
 
     const now = new Date();
@@ -482,57 +628,51 @@ export class CallService {
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
     await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
 
-    // If call duration exceeded 60 seconds (extended call), deduct call pass minutes if applicable
-    if (durationSeconds > 60) {
-      const minutesUsed = Math.ceil(durationSeconds / 60);
-      const goldUser = await this.prisma.userEntitlement.findFirst({
-        where: {
-          userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
-          entitlementKey: { in: [EntitlementKey.VIDEO_CALL, EntitlementKey.AUDIO_CALL] },
-          isActive: true,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
-        },
-      });
-
-      if (!goldUser) {
-        const passUser = await this.prisma.userCreditBalance.findFirst({
-          where: {
-            userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
-            callPassMinutes: { gte: 1 },
-          },
-          orderBy: { callPassMinutes: 'desc' },
-        });
-
-        if (passUser) {
-          const deductAmount = Math.min(minutesUsed, passUser.callPassMinutes);
-          await this.creditService.deductCallMinutes(passUser.userId, deductAmount);
-          this.logger.log(
-            `[CALL_PASS_DEDUCTED] User ${passUser.userId} charged ${deductAmount} call pass minutes for call ${callLog.id}`,
-          );
-        } else {
-          const coinUser = await this.prisma.userCreditBalance.findFirst({
-            where: {
-              userId: { in: [callLog.callerUserId, callLog.receiverUserId] },
-              coins: { gte: 20 },
-            },
-            orderBy: { coins: 'desc' },
-          });
-
-          if (coinUser) {
-            await this.creditService.deductCoins(
-              coinUser.userId,
-              20,
-              CoinTransactionType.SPEND_CALL_MINUTES,
-              `Video/Audio call pass (${minutesUsed} mins)`,
-              callLog.id,
-            );
-            this.logger.log(
-              `[CALL_COINS_DEDUCTED] User ${coinUser.userId} charged 20 coins for call ${callLog.id}`,
-            );
-          }
-        }
+    // 2-Phase Escrow Settlement:
+    if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
+      if (durationSeconds > 60) {
+        // Connected beyond free trial threshold -> permanently capture agreed coins
+        await this.creditService.captureCoins(
+          callLog.payerUserId,
+          callLog.agreedCoins,
+          callLog.id,
+          `Captured ${callLog.agreedCoins} coins for ${callLog.callType.toLowerCase()} call (${Math.ceil(durationSeconds / 60)} mins)`,
+        );
+      } else {
+        // Did not reach connected threshold (hung up before 60s or failed to connect) -> release back to user
+        await this.creditService.releaseCoins(
+          callLog.payerUserId,
+          callLog.agreedCoins,
+          callLog.id,
+          'Refund: Call ended within free threshold',
+        );
       }
+
+      await this.prisma.callLog.update({
+        where: { id: callLog.id },
+        data: { isEscrowHeld: false },
+      });
+    } else if (!callLog.connectedAt && callLog.isEscrowHeld && callLog.payerUserId && callLog.agreedCoins) {
+      await this.creditService.releaseCoins(
+        callLog.payerUserId,
+        callLog.agreedCoins,
+        callLog.id,
+        'Refund: Unconnected call ended',
+      );
+      await this.prisma.callLog.update({
+        where: { id: callLog.id },
+        data: { isEscrowHeld: false },
+      });
     }
+
+    // If it was a free vibe check, record into Redis to prevent repeated free calls in 24h
+    if (!callLog.agreedCoins && durationSeconds >= 30) {
+      const pairKey = [callLog.callerUserId, callLog.receiverUserId].sort().join(':');
+      const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+      const dailyVibeKey = `call:vibe_check:${pairKey}:${istDate}`;
+      await this.redisService.set(dailyVibeKey, '1', 86400);
+    }
+
 
     // If call was never connected and caller hung up, record missed call for receiver
     if (!callLog.connectedAt && isCaller) {
@@ -592,42 +732,9 @@ export class CallService {
   }
 
   /**
-   * Handles call timeout when ringing without answer for > 35s.
-   */
-  async handleTimeout(callId: string) {
-    const callLog = await this.prisma.callLog.findUnique({
-      where: { id: callId },
-    });
-
-    if (!callLog || callLog.status !== CallStatus.RINGING) {
-      return null;
-    }
-
-    const updated = await this.prisma.callLog.update({
-      where: { id: callLog.id },
-      data: {
-        status: CallStatus.MISSED,
-        endedAt: new Date(),
-        endReason: CallEndReason.MISSED_TIMEOUT,
-      },
-    });
-
-    await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
-    await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
-
-    // Record persistent missed call for receiver
-    await this.dispatchMissedCallNotification(callLog);
-
-    return {
-      callId: updated.id,
-      status: CallStatus.MISSED,
-      endReason: CallEndReason.MISSED_TIMEOUT,
-    };
-  }
-
-  /**
    * Retrieves active call ID for user if stored in Redis.
    */
+
   async getActiveCallIdForUser(userId: string): Promise<string | null> {
     return this.redisService.get(`user:call_state:${userId}`);
   }

@@ -864,10 +864,6 @@ export const PaywallModal: React.FC = () => {
 
                             <View style={styles.perksList}>
                               <View style={styles.perkRow}>
-                                <Ionicons name="airplane" size={16} color="#D97706" />
-                                <Text style={styles.perkTextBold}>Target City Passport (Date in Any City Worldwide)</Text>
-                              </View>
-                              <View style={styles.perkRow}>
                                 <Ionicons name="eye" size={16} color="#D97706" />
                                 <Text style={styles.perkTextBold}>See Who Liked You (Instant Mutual Match)</Text>
                               </View>
@@ -877,11 +873,11 @@ export const PaywallModal: React.FC = () => {
                               </View>
                               <View style={styles.perkRow}>
                                 <Ionicons name="flash" size={16} color="#D97706" />
-                                <Text style={styles.perkTextBold}>1 Free Weekly Profile Boost (₹99 value)</Text>
+                                <Text style={styles.perkTextBold}>1 Free Weekly Profile Boost (30 mins)</Text>
                               </View>
                               <View style={styles.perkRow}>
                                 <Ionicons name="videocam" size={16} color="#D97706" />
-                                <Text style={styles.perkText}>Unlimited HD Video & Audio Calls</Text>
+                                <Text style={styles.perkTextBold}>VIP Calling Allowance (60 HD / 240 Audio mins/mo)</Text>
                               </View>
                               <View style={styles.perkRow}>
                                 <Ionicons name="infinite" size={16} color="#D97706" />
@@ -892,6 +888,7 @@ export const PaywallModal: React.FC = () => {
                                 <Text style={styles.perkText}>VIP Gold Profile Badge & 10x Priority Views</Text>
                               </View>
                             </View>
+
                           </View>
                         </TouchableOpacity>
                       );

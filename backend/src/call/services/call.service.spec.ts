@@ -15,12 +15,21 @@ describe('CallService', () => {
   let mockRedis: any;
   let mockAgora: any;
   let mockNotifications: any;
+  let mockCreditService: any;
 
   const callerId = 'user-caller-111';
   const receiverId = 'user-receiver-222';
   const matchId = 'match-uuid-333';
 
   beforeEach(async () => {
+    mockCreditService = {
+      deductCallMinutes: jest.fn().mockResolvedValue(true),
+      getOrCreateBalance: jest.fn().mockResolvedValue({ coins: 100, coinsReserved: 0 }),
+      reserveCoins: jest.fn().mockResolvedValue(true),
+      releaseCoins: jest.fn().mockResolvedValue(true),
+      captureCoins: jest.fn().mockResolvedValue(true),
+    };
+
     mockPrisma = {
       user: {
         findUnique: jest.fn().mockResolvedValue({
@@ -77,13 +86,14 @@ describe('CallService', () => {
         },
         {
           provide: CreditService,
-          useValue: { deductCallMinutes: jest.fn().mockResolvedValue(true) },
+          useValue: mockCreditService,
         },
       ],
     }).compile();
 
     service = module.get<CallService>(CallService);
   });
+
 
   it('should be defined', () => {
     expect(service).toBeDefined();
@@ -315,5 +325,107 @@ describe('CallService', () => {
     expect(result.durationSeconds).toBeGreaterThanOrEqual(44);
     expect(result.endReason).toBe(CallEndReason.CALLER_HANGUP);
     expect(mockRedis.del).toHaveBeenCalled();
+  });
+
+  it('should reserve coins in escrow when caller initiates paid call', async () => {
+    mockPrisma.match.findUnique.mockResolvedValue({
+      id: matchId,
+      status: MatchStatus.ACTIVE,
+      user1Id: callerId,
+      user2Id: receiverId,
+      user1: { profile: { displayName: 'Caller' } },
+      user2: { profile: { displayName: 'Receiver' } },
+    });
+    mockPrisma.block.findFirst.mockResolvedValue(null);
+    mockPrisma.callLog.create.mockResolvedValue({
+      id: 'paid-call-id',
+      status: CallStatus.RINGING,
+      channelName: 'spark_call_paid',
+      callType: CallType.VIDEO,
+      startedAt: new Date(),
+      callerUser: { profile: { displayName: 'Caller' } },
+      agreedCoins: 50,
+      payerUserId: callerId,
+      isEscrowHeld: true,
+    });
+
+    const result = await service.initiateCall(callerId, {
+      matchId,
+      receiverUserId: receiverId,
+      callType: CallType.VIDEO,
+      agreedCoins: 50,
+    });
+
+    expect(mockCreditService.reserveCoins).toHaveBeenCalledWith(
+      callerId,
+      50,
+      matchId,
+      expect.stringContaining('Escrow hold'),
+    );
+    expect(result.callId).toBe('paid-call-id');
+  });
+
+  it('should release escrowed coins when call is rejected', async () => {
+    mockPrisma.callLog.findUnique.mockResolvedValue({
+      id: 'paid-call-id',
+      callerUserId: callerId,
+      receiverUserId: receiverId,
+      isEscrowHeld: true,
+      agreedCoins: 50,
+      payerUserId: callerId,
+    });
+    mockPrisma.callLog.update.mockResolvedValue({
+      id: 'paid-call-id',
+      status: CallStatus.REJECTED,
+    });
+
+    await service.rejectCall(receiverId, { callId: 'paid-call-id' });
+
+    expect(mockCreditService.releaseCoins).toHaveBeenCalledWith(
+      callerId,
+      50,
+      'paid-call-id',
+      expect.stringContaining('Refund: Call was rejected'),
+    );
+  });
+
+  it('should capture escrowed coins when connected call exceeds 60 seconds', async () => {
+    const connectedAt = new Date(Date.now() - 120000); // 120s ago
+    mockPrisma.callLog.findUnique.mockResolvedValue({
+      id: 'paid-call-id',
+      callerUserId: callerId,
+      receiverUserId: receiverId,
+      connectedAt,
+      isEscrowHeld: true,
+      agreedCoins: 50,
+      payerUserId: callerId,
+      callType: CallType.VIDEO,
+    });
+    mockPrisma.callLog.update.mockImplementation(({ data }: any) => ({
+      id: 'paid-call-id',
+      durationSeconds: data.durationSeconds || 120,
+      status: CallStatus.ENDED,
+    }));
+
+    await service.endCall(callerId, { callId: 'paid-call-id' });
+
+    expect(mockCreditService.captureCoins).toHaveBeenCalledWith(
+      callerId,
+      50,
+      'paid-call-id',
+      expect.stringContaining('Captured 50 coins'),
+    );
+  });
+
+
+  it('should block repeated free vibe checks within 24 hours between same pair', async () => {
+    mockRedis.get.mockImplementation(async (key: string) => {
+      if (key.includes('call:vibe_check:')) return '1';
+      return null;
+    });
+
+    await expect(
+      service.evaluateCallingTier(callerId, receiverId, CallType.VIDEO),
+    ).rejects.toThrow(BadRequestException);
   });
 });

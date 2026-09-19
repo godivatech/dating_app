@@ -233,6 +233,162 @@ export class CreditService {
   }
 
   /**
+   * Phase 1 Escrow: Atomically reserves coins for a pending service (e.g. call).
+   * Moves amount from `coins` to `coinsReserved` using row-level conditional check.
+   */
+  async reserveCoins(
+    userId: string,
+    amount: number,
+    referenceId?: string,
+    description?: string,
+    tx?: any,
+  ): Promise<boolean> {
+    if (amount <= 0) return true;
+    const client = tx || this.prisma;
+    await this.getOrCreateBalance(userId);
+
+    const result = await client.userCreditBalance.updateMany({
+      where: {
+        userId,
+        coins: { gte: amount },
+      },
+      data: {
+        coins: { decrement: amount },
+        coinsReserved: { increment: amount },
+      },
+    });
+
+    if (result.count === 0) {
+      return false; // Insufficient available balance
+    }
+
+    const balance = await client.userCreditBalance.findUnique({
+      where: { userId },
+      select: { coins: true, coinsReserved: true },
+    });
+
+    await client.coinTransaction.create({
+      data: {
+        userId,
+        amount: -amount,
+        balanceAfter: balance?.coins ?? 0,
+        type: CoinTransactionType.ESCROW_RESERVE,
+        description: description || `Escrow hold: ${amount} coins`,
+        referenceId,
+      },
+    });
+
+    this.logger.log(
+      `[ESCROW_RESERVED] User ${userId} held ${amount} coins. Available: ${balance?.coins}, Reserved: ${balance?.coinsReserved}`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Phase 2 Escrow Release: Releases reserved coins back to available balance
+   * (e.g. call was rejected, missed, or timed out without connecting).
+   */
+  async releaseCoins(
+    userId: string,
+    amount: number,
+    referenceId?: string,
+    description?: string,
+    tx?: any,
+  ): Promise<boolean> {
+    if (amount <= 0) return true;
+    const client = tx || this.prisma;
+
+    const result = await client.userCreditBalance.updateMany({
+      where: {
+        userId,
+        coinsReserved: { gte: amount },
+      },
+      data: {
+        coins: { increment: amount },
+        coinsReserved: { decrement: amount },
+      },
+    });
+
+    if (result.count === 0) {
+      return false;
+    }
+
+    const balance = await client.userCreditBalance.findUnique({
+      where: { userId },
+      select: { coins: true, coinsReserved: true },
+    });
+
+    await client.coinTransaction.create({
+      data: {
+        userId,
+        amount: amount,
+        balanceAfter: balance?.coins ?? 0,
+        type: CoinTransactionType.ESCROW_RELEASE,
+        description: description || `Escrow release: ${amount} coins refunded`,
+        referenceId,
+      },
+    });
+
+    this.logger.log(
+      `[ESCROW_RELEASED] User ${userId} unheld ${amount} coins. Available: ${balance?.coins}, Reserved: ${balance?.coinsReserved}`,
+    );
+
+    return true;
+  }
+
+  /**
+   * Phase 2 Escrow Capture: Permanently captures held coins upon successful delivery
+   * (e.g. call connected past free threshold).
+   */
+  async captureCoins(
+    userId: string,
+    amount: number,
+    referenceId?: string,
+    description?: string,
+    tx?: any,
+  ): Promise<boolean> {
+    if (amount <= 0) return true;
+    const client = tx || this.prisma;
+
+    const result = await client.userCreditBalance.updateMany({
+      where: {
+        userId,
+        coinsReserved: { gte: amount },
+      },
+      data: {
+        coinsReserved: { decrement: amount },
+      },
+    });
+
+    if (result.count === 0) {
+      return false;
+    }
+
+    const balance = await client.userCreditBalance.findUnique({
+      where: { userId },
+      select: { coins: true, coinsReserved: true },
+    });
+
+    await client.coinTransaction.create({
+      data: {
+        userId,
+        amount: -amount,
+        balanceAfter: balance?.coins ?? 0,
+        type: CoinTransactionType.ESCROW_CAPTURE,
+        description: description || `Captured ${amount} coins for call`,
+        referenceId,
+      },
+    });
+
+    this.logger.log(
+      `[ESCROW_CAPTURED] User ${userId} captured ${amount} coins. Remaining reserved: ${balance?.coinsReserved}`,
+    );
+
+    return true;
+  }
+
+  /**
    * Retrieves user's coin transaction ledger history.
    */
   async getCoinHistory(userId: string, limit = 20) {

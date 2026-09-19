@@ -126,10 +126,17 @@ export class AgoraRtcService implements IRtcEngine {
     try {
       if (isVideo) {
         this.engine.enableVideo();
+        // Pin video encoder strictly to 720p HD @ 30fps as mandated by revenue and QoS specifications
+        this.engine.setVideoEncoderConfiguration({
+          dimensions: { width: 1280, height: 720 },
+          frameRate: 30,
+          bitrate: 1710,
+        });
         this.engine.startPreview();
       } else {
         this.engine.disableVideo();
       }
+
 
       // Ensure local audio capture is active and volumes are nominal
       this.engine.enableLocalAudio(true);

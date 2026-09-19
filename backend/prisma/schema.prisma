@@ -711,6 +711,7 @@ model UserCreditBalance {
   userId          String   @unique
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   coins           Int      @default(0)
+  coinsReserved   Int      @default(0)
   directNotes     Int      @default(0)
   profileBoosts   Int      @default(0)
   callPassMinutes Int      @default(0)
@@ -727,6 +728,9 @@ enum CoinTransactionType {
   SPEND_CALL_MINUTES
   SPEND_REWIND
   SPEND_UNBLUR
+  ESCROW_RESERVE
+  ESCROW_RELEASE
+  ESCROW_CAPTURE
   ADMIN_GRANT
   REFUND
 }
@@ -774,6 +778,7 @@ enum CallEndReason {
   NETWORK_FAILURE
   SAFETY_TERMINATED
   VIBE_CHECK_COMPLETE
+  DURATION_LIMIT_REACHED
 }
 
 model CallLog {
@@ -788,6 +793,9 @@ model CallLog {
   status          CallStatus     @default(INITIATED)
   channelName     String
   durationSeconds Int            @default(0)
+  agreedCoins     Int?           // Price agreed prior to call initiation
+  payerUserId     String?        // Explicit confirmed payer
+  isEscrowHeld    Boolean        @default(false)
   startedAt       DateTime       @default(now())
   connectedAt     DateTime?
   endedAt         DateTime?
@@ -800,3 +808,4 @@ model CallLog {
   @@index([receiverUserId, createdAt])
   @@index([status])
 }
+

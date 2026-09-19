@@ -19,6 +19,13 @@ export class MockPurchaseProvider implements PurchaseProvider {
       `[MOCK_IAP_VERIFY] Verifying receipt for ${storeProductId} on ${platform}`,
     );
 
+    // Production Security Guard: Mock purchase verification must NEVER be permitted in production.
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        '[SECURITY_VIOLATION] MockPurchaseProvider invoked in production environment. Live store billing must be configured.',
+      );
+    }
+
     if (receiptToken === 'invalid_token' || receiptToken === 'error_token') {
       return {
         isValid: false,

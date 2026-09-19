@@ -13,7 +13,14 @@ export class InitiateCallDto {
   @IsEnum(CallType)
   @IsOptional()
   callType?: CallType = CallType.VIDEO;
+
+  @IsOptional()
+  agreedCoins?: number;
+
+  @IsOptional()
+  isVibeCheck?: boolean;
 }
+
 
 export class AcceptCallDto {
   @IsUUID()
