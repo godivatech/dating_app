@@ -374,6 +374,18 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     if (!granted) return;
 
     set({ statusMessage: 'Connecting...' });
+
+    // Ensure the socket is live before emitting call:accept.
+    // This is critical on cold start (app was killed) where the socket
+    // has not yet had time to connect after the push notification tap.
+    const isConnected = await callSocket.ensureConnected(6000);
+    if (!isConnected) {
+      console.warn('[CALL_STORE] Socket not connected after 6s; cannot accept call.');
+      set({ statusMessage: 'Connection failed. Please try again.' });
+      setTimeout(() => get().resetCall(), 2000);
+      return;
+    }
+
     callSocket.acceptCall(activeCall.callId);
   },
 

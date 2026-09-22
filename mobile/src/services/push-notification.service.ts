@@ -225,9 +225,30 @@ function handleNotificationNavigation(
   data: any,
   onNavigate?: (screenPath: string) => void,
 ): void {
-  if (!onNavigate || !data) return;
+  if (!data) return;
 
-  // 1. New Message or Unreplied Chat reminder -> Direct Chat Room
+  // ⚡ PRIORITY 1: Incoming Call - MUST be checked FIRST before any matchId/conversationId checks
+  // because INCOMING_CALL payload always contains matchId, which would otherwise
+  // cause it to fall into the NEW_MATCH branch and navigate to /matches incorrectly.
+  if (data.type === 'INCOMING_CALL') {
+    console.log('[PUSH_NAV] 📞 Triggering incoming call modal for callId:', data.callId);
+    useCallStore.getState().handleIncomingCallPayload({
+      callId: data.callId,
+      matchId: data.matchId,
+      callerUserId: data.callerUserId,
+      callerName: data.callerName || 'Match',
+      callerAvatarUrl: data.callerAvatarUrl || null,
+      callType: (data.callType as any) || 'VIDEO',
+      channelName: data.channelName || data.callId,
+      isVibeCheck: data.isVibeCheck === true || data.isVibeCheck === 'true',
+      maxDurationSeconds: Number(data.maxDurationSeconds) || 60,
+    });
+    return;
+  }
+
+  if (!onNavigate) return;
+
+  // 2. New Message or Unreplied Chat reminder -> Direct Chat Room
   if (data.type === 'NEW_MESSAGE' || data.conversationId) {
     const conversationId = data.conversationId || data.referenceId;
     if (conversationId) {
@@ -237,48 +258,31 @@ function handleNotificationNavigation(
     }
   }
 
-  // 2. New Match or Direct Note -> Matches Tab
+  // 3. New Match or Direct Note -> Matches Tab
   if (data.type === 'NEW_MATCH' || data.type === 'DIRECT_NOTE' || data.matchId) {
     console.log('[PUSH_NAV] Navigating to matches screen');
     onNavigate('/matches');
     return;
   }
 
-  // 3. Like Received or Pending Likes Campaign -> Matches Tab
+  // 4. Like Received or Pending Likes Campaign -> Matches Tab
   if (data.type === 'LIKE_RECEIVED' || data.campaign === 'PENDING_LIKES') {
     console.log('[PUSH_NAV] Navigating to likes/matches');
     onNavigate('/matches');
     return;
   }
 
-  // 4. Fresh Feed / Discovery Campaign -> Discovery Swipe Deck
+  // 5. Fresh Feed / Discovery Campaign -> Discovery Swipe Deck
   if (data.campaign === 'FRESH_FEED' || data.screen === '/discovery') {
     console.log('[PUSH_NAV] Navigating to discovery feed');
     onNavigate('/discovery');
     return;
   }
 
-  // 5. Incomplete Profile Nudge -> Profile Editor
+  // 6. Incomplete Profile Nudge -> Profile Editor
   if (data.campaign === 'INCOMPLETE_PROFILE' || data.screen === '/profile') {
     console.log('[PUSH_NAV] Navigating to profile');
     onNavigate('/profile');
-    return;
-  }
-
-  // 6. Incoming Call -> Immediately trigger and show IncomingCallModal with caller info
-  if (data.type === 'INCOMING_CALL' || data.callId) {
-    console.log('[PUSH_NAV] Triggering incoming call modal for callId:', data.callId);
-    useCallStore.getState().handleIncomingCallPayload({
-      callId: data.callId,
-      matchId: data.matchId,
-      callerUserId: data.callerUserId,
-      callerName: data.callerName || 'Match',
-      callerAvatarUrl: data.callerAvatarUrl || null,
-      callType: data.callType || 'VIDEO',
-      channelName: data.channelName || data.callId,
-      isVibeCheck: data.isVibeCheck === true || data.isVibeCheck === 'true',
-      maxDurationSeconds: Number(data.maxDurationSeconds) || 60,
-    });
     return;
   }
 
@@ -331,18 +335,27 @@ export function setupPushNotificationListeners(
       },
     );
 
-    // 3. Cold Start Notification Tap Listener (When app was completely closed/killed)
+    // 3. Cold Start Notification Tap Listener (When app was completely killed/closed)
+    // Uses getLastNotificationResponseAsync which survives full app process kills.
     if (Notifications.getLastNotificationResponseAsync) {
       Notifications.getLastNotificationResponseAsync()
         .then((response: any) => {
           if (response) {
             const data = response.notification?.request?.content?.data;
             console.log('[PUSH_INTERACTION_COLD_START]', data);
-            if (data && onNavigate) {
-              // Give root router a brief moment to finish mounting before pushing the route
-              setTimeout(() => {
+            if (data) {
+              // INCOMING_CALL: set state immediately so UI is ready, then connect socket.
+              // For other notifications: wait for router to finish mounting (1500ms is safer).
+              if (data.type === 'INCOMING_CALL') {
+                // Set the call state immediately so IncomingCallModal renders as soon as
+                // _layout.tsx mounts. Socket connection happens inside handleIncomingCallPayload.
                 handleNotificationNavigation(data, onNavigate);
-              }, 400);
+              } else {
+                // For non-call deep links, wait for Expo Router to fully mount.
+                setTimeout(() => {
+                  handleNotificationNavigation(data, onNavigate);
+                }, 1500);
+              }
             }
           }
         })
