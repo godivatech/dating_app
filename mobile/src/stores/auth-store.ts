@@ -89,10 +89,18 @@ export const useAuthStore = create<AuthState>((set, get) => {
             isLoading: false,
           });
         } else {
-          // If network timed out or server is cold-starting, PRESERVE the session!
-          console.warn('[AUTH_CHECK] Network or timeout during session check. Preserving session:', error.message);
+          // If offline / network error / timeout, KEEP the user logged in!
+          console.warn('[AUTH_CHECK] Network or offline during session check. Preserving session:', error.message);
           set({
             status: 'AUTHENTICATED',
+            user: get().user || {
+              id: 'cached_user',
+              phoneNumber: '',
+              phoneVerifiedAt: null,
+              status: 'ACTIVE',
+              createdAt: new Date().toISOString(),
+              lastLoginAt: new Date().toISOString(),
+            },
             isLoading: false,
             error: null,
           });
