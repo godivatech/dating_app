@@ -451,7 +451,7 @@ export default function DiscoveryScreen() {
             onPress={() => router.push('/premium' as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="sparkles" size={14} color="#F59E0B" />
+            <Ionicons name="cash" size={14} color="#F59E0B" />
             <Text style={styles.coinBadgeText}>{creditBalance?.coins ?? 0}</Text>
           </TouchableOpacity>
 
@@ -485,32 +485,6 @@ export default function DiscoveryScreen() {
             )}
           </TouchableOpacity>
 
-          {/* Target City Passport / Worldwide Exploration Button */}
-          <TouchableOpacity
-            style={[
-              styles.headerSquareBtn,
-              isTargetCityActive
-                ? styles.passportBtnActive
-                : isGlobalMode
-                ? styles.globalBtnActive
-                : null,
-            ]}
-            onPress={() => setPassportModalVisible(true)}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name={isTargetCityActive ? 'airplane' : isGlobalMode ? 'earth' : 'earth-outline'}
-              size={18}
-              color={
-                isTargetCityActive
-                  ? '#8B5CF6'
-                  : isGlobalMode
-                  ? Colors.primary
-                  : Colors.textPrimary
-              }
-            />
-          </TouchableOpacity>
-
           <TouchableOpacity
             style={styles.headerSquareBtn}
             onPress={() => router.push('/(onboarding)/preferences' as any)}
@@ -518,6 +492,7 @@ export default function DiscoveryScreen() {
           >
             <Ionicons name="options-outline" size={18} color={Colors.textPrimary} />
           </TouchableOpacity>
+
         </View>
       </View>
 
