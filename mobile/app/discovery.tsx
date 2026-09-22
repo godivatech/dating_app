@@ -994,24 +994,6 @@ export default function DiscoveryScreen() {
             >
               <Ionicons name="mail-outline" size={22} color={Colors.primary} />
             </TouchableOpacity>
-
-            {/* Super Like / Star (★) */}
-            <TouchableOpacity
-              style={styles.secondaryActionBtn}
-              onPress={() => {
-                const availableNotes = creditBalance?.directNotes ?? 0;
-                const availableCoins = creditBalance?.coins ?? 0;
-                if (availableNotes > 0 || availableCoins >= 15) {
-                  setNoteModalVisible(true);
-                } else {
-                  openPaywall('SUPER_LIKE' as any);
-                }
-              }}
-              disabled={isActionLoading}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="star-outline" size={20} color={Colors.textMuted} />
-            </TouchableOpacity>
           </View>
         </View>
       )}
