@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Ionicons, Feather } from '@expo/vector-icons';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
@@ -451,7 +451,7 @@ export default function DiscoveryScreen() {
             onPress={() => router.push('/premium' as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="cash" size={14} color="#F59E0B" />
+            <MaterialCommunityIcons name="circle-multiple" size={15} color="#F59E0B" />
             <Text style={styles.coinBadgeText}>{creditBalance?.coins ?? 0}</Text>
           </TouchableOpacity>
 
