@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
 import Constants from 'expo-constants';
 import { SecureStorage } from './secure-storage';
+import { useNetworkStore } from '../stores/network-store';
 
 declare const process: { env: Record<string, string | undefined> };
 
@@ -91,8 +92,22 @@ apiClient.interceptors.request.use(
 
 // 2. Response Interceptor: Mutex-Guarded Single-Flight 401 Refresh Queue
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If request succeeded, ensure network store knows we are connected
+    useNetworkStore.getState().setConnected(true);
+    return response;
+  },
   async (error: AxiosError) => {
+    // Detect network / offline errors
+    if (
+      !error.response &&
+      (error.code === 'ERR_NETWORK' ||
+        error.code === 'ECONNABORTED' ||
+        error.message?.includes('Network Error'))
+    ) {
+      useNetworkStore.getState().setConnected(false);
+    }
+
     const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
     // Do not attempt refresh on auth endpoints (login, verify, refresh itself)

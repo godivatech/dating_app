@@ -26,6 +26,7 @@ import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 import { PaywallModal } from '../src/components/PaywallModal';
 import { ScreenshotBlockedModal } from '../src/components/ScreenshotBlockedModal';
+import { OfflineNotice } from '../src/components/OfflineNotice';
 import { useSafetyStore } from '../src/stores/safety-store';
 import { useBillingStore } from '../src/stores/billing-store';
 
@@ -299,6 +300,7 @@ export default function RootLayout() {
           visible={isScreenshotModalVisible}
           onClose={hideScreenshotModal}
         />
+        <OfflineNotice />
         <StatusBar style="dark" />
       </QueryClientProvider>
     </SafeAreaProvider>
