@@ -367,6 +367,7 @@ export class CallService {
           matchId: dto.matchId,
           callerUserId,
           callerName,
+          callerAvatarUrl,
           callType,
           channelName,
           isVibeCheck: callingTier.isVibeCheck,

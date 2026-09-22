@@ -44,6 +44,7 @@ interface CallStoreState {
   isInitialized: boolean;
 
   initCallSocket: () => void;
+  handleIncomingCallPayload: (payload: IncomingCallPayload) => void;
   startCall: (
     matchId: string,
     receiverUserId: string,
@@ -85,28 +86,33 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   statusMessage: '',
   isInitialized: false,
 
+  handleIncomingCallPayload: (data: IncomingCallPayload) => {
+    clearPendingResetTimeout();
+    get().initCallSocket();
+    set({
+      callState: 'INCOMING_RINGING',
+      activeCall: {
+        callId: data.callId,
+        matchId: data.matchId,
+        partnerUserId: data.callerUserId,
+        partnerName: data.callerName,
+        partnerAvatarUrl: data.callerAvatarUrl || null,
+        callType: data.callType,
+        channelName: data.channelName,
+        isVibeCheck: data.isVibeCheck,
+        maxDurationSeconds: data.maxDurationSeconds,
+      },
+      durationSeconds: 0,
+      statusMessage: `Incoming ${data.callType === CallType.VIDEO ? 'Video' : 'Audio'} Call...`,
+    });
+  },
+
   initCallSocket: () => {
     if (get().isInitialized) return;
     callSocket.connect();
 
     callSocket.onIncomingCall((data: IncomingCallPayload) => {
-      clearPendingResetTimeout();
-      set({
-        callState: 'INCOMING_RINGING',
-        activeCall: {
-          callId: data.callId,
-          matchId: data.matchId,
-          partnerUserId: data.callerUserId,
-          partnerName: data.callerName,
-          partnerAvatarUrl: data.callerAvatarUrl,
-          callType: data.callType,
-          channelName: data.channelName,
-          isVibeCheck: data.isVibeCheck,
-          maxDurationSeconds: data.maxDurationSeconds,
-        },
-        durationSeconds: 0,
-        statusMessage: `Incoming ${data.callType === CallType.VIDEO ? 'Video' : 'Audio'} Call...`,
-      });
+      get().handleIncomingCallPayload(data);
     });
 
     callSocket.onOutgoingCall((data: any) => {

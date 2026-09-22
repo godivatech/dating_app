@@ -3,6 +3,7 @@ import Constants from 'expo-constants';
 import { DevicePlatform } from '../../../shared/src/types';
 import { useNotificationsStore } from '../stores/notifications-store';
 import { useChatStore } from '../stores/chat-store';
+import { useCallStore } from '../stores/call-store';
 
 /**
  * Enterprise Push Notification Registration Service
@@ -264,9 +265,20 @@ function handleNotificationNavigation(
     return;
   }
 
-  // 6. Incoming Call -> Matches screen
-  if (data.type === 'INCOMING_CALL') {
-    onNavigate('/matches');
+  // 6. Incoming Call -> Immediately trigger and show IncomingCallModal with caller info
+  if (data.type === 'INCOMING_CALL' || data.callId) {
+    console.log('[PUSH_NAV] Triggering incoming call modal for callId:', data.callId);
+    useCallStore.getState().handleIncomingCallPayload({
+      callId: data.callId,
+      matchId: data.matchId,
+      callerUserId: data.callerUserId,
+      callerName: data.callerName || 'Match',
+      callerAvatarUrl: data.callerAvatarUrl || null,
+      callType: data.callType || 'VIDEO',
+      channelName: data.channelName || data.callId,
+      isVibeCheck: data.isVibeCheck === true || data.isVibeCheck === 'true',
+      maxDurationSeconds: Number(data.maxDurationSeconds) || 60,
+    });
     return;
   }
 
