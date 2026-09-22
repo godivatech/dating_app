@@ -216,8 +216,21 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallError((data: { message: string }) => {
       clearPendingResetTimeout();
+      let userFriendlyMessage = 'Call failed. Please try again.';
+      if (data?.message) {
+        if (
+          data.message.includes('Prisma') ||
+          data.message.includes('database') ||
+          data.message.includes('column') ||
+          data.message.includes('invocation')
+        ) {
+          userFriendlyMessage = 'Unable to start call. Please try again in a moment.';
+        } else {
+          userFriendlyMessage = data.message;
+        }
+      }
       set({
-        statusMessage: data.message || 'Call failed. Please try again.',
+        statusMessage: userFriendlyMessage,
       });
       resetTimeout = setTimeout(() => {
         get().resetCall();
