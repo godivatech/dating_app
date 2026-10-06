@@ -16,12 +16,13 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { BillingModule } from './billing/billing.module';
 import { CallModule } from './call/call.module';
 import { AdminModule } from './admin/admin.module';
+import { GiftsModule } from './gifts/gifts.module';
 
 /**
  * Root application module — Phase 12.
  *
  * Configured with ConfigModule, ScheduleModule, PrismaModule, RedisModule,
- * SmsModule, AuthModule, ProfileModule, MediaModule, DiscoveryModule, MatchingModule, ChatModule, SafetyModule, NotificationsModule, BillingModule, CallModule, and AdminModule.
+ * SmsModule, AuthModule, ProfileModule, MediaModule, DiscoveryModule, MatchingModule, ChatModule, SafetyModule, NotificationsModule, BillingModule, CallModule, AdminModule, and GiftsModule.
  */
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminModule } from './admin/admin.module';
     BillingModule,
     CallModule,
     AdminModule,
+    GiftsModule,
   ],
   controllers: [HealthController],
   providers: [],

@@ -1158,3 +1158,82 @@ export interface AdminRevenueOverviewDto {
     totalCoinsSpent: number;
   };
 }
+
+// --------------------------------------------------------------------------
+// Phase 12: Virtual Gifting & Creator Rewards
+// --------------------------------------------------------------------------
+
+export enum GiftType {
+  ROSE = 'ROSE',
+  CHOCOLATE = 'CHOCOLATE',
+  TEDDY_BEAR = 'TEDDY_BEAR',
+  DIAMOND_RING = 'DIAMOND_RING',
+  ROYAL_CROWN = 'ROYAL_CROWN',
+}
+
+export enum PayoutStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  PAID = 'PAID',
+  REJECTED = 'REJECTED',
+}
+
+export interface GiftCatalogItem {
+  id: GiftType;
+  displayName: string;
+  coinsCost: number;
+  iconName: string;
+  iconFamily: 'Ionicons' | 'MaterialCommunityIcons' | 'Feather';
+  description: string;
+  creatorEarningsPaise: number;
+  displayEarningsInr: string;
+}
+
+export interface SendGiftDto {
+  receiverUserId: string;
+  giftType: GiftType;
+  conversationId?: string;
+  callId?: string;
+}
+
+export interface SendGiftResponseDto {
+  success: boolean;
+  giftTransactionId: string;
+  giftType: GiftType;
+  coinsSpent: number;
+  remainingCoins: number;
+  receiverDisplayName: string;
+}
+
+export interface CreatorWalletDto {
+  balancePaise: number;
+  balanceInr: number;
+  totalEarnedPaise: number;
+  totalEarnedInr: number;
+  totalWithdrawnPaise: number;
+  totalWithdrawnInr: number;
+  giftsReceivedCount: number;
+  upiId: string | null;
+  accountHolderName: string | null;
+  isKycVerified: boolean;
+  minWithdrawalPaise: number;
+}
+
+export interface RequestCreatorPayoutDto {
+  amountPaise: number;
+  upiId: string;
+  accountHolderName: string;
+}
+
+export interface CreatorPayoutRequestDto {
+  id: string;
+  amountPaise: number;
+  amountInr: number;
+  upiId: string;
+  accountHolderName: string;
+  status: PayoutStatus;
+  adminNote?: string | null;
+  createdAt: string;
+  processedAt?: string | null;
+  referenceNumber?: string | null;
+}

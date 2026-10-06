@@ -20,6 +20,7 @@ export class ChatSocketService {
   private matchFormedListeners: Set<(data: { match: any; matchedUser: { displayName: string; profileId: string; photoUrl: string | null } }) => void> = new Set();
   private presenceListeners: Set<(data: { userId: string; isOnline: boolean; lastSeen?: string }) => void> = new Set();
   private presenceResultListeners: Set<(data: { userId: string; isOnline: boolean; lastSeen?: string }) => void> = new Set();
+  private giftReceivedListeners: Set<(data: { giftId: string; giftType: string; displayName: string; icon: string; senderDisplayName: string; creatorEarningInr: number; senderUserId: string; conversationId?: string; callId?: string }) => void> = new Set();
 
   private constructor() {}
 
@@ -121,6 +122,10 @@ export class ChatSocketService {
 
     this.socket.on('presence.result', (data: { userId: string; isOnline: boolean; lastSeen?: string }) => {
       this.presenceResultListeners.forEach((listener) => listener(data));
+    });
+
+    this.socket.on('gift:received', (data: any) => {
+      this.giftReceivedListeners.forEach((listener) => listener(data));
     });
   }
 
@@ -300,6 +305,11 @@ export class ChatSocketService {
   onPresenceResult(fn: (data: { userId: string; isOnline: boolean; lastSeen?: string }) => void): () => void {
     this.presenceResultListeners.add(fn);
     return () => this.presenceResultListeners.delete(fn);
+  }
+
+  onGiftReceived(fn: (data: { giftId: string; giftType: string; displayName: string; icon: string; senderDisplayName: string; creatorEarningInr: number; senderUserId: string; conversationId?: string; callId?: string }) => void): () => void {
+    this.giftReceivedListeners.add(fn);
+    return () => this.giftReceivedListeners.delete(fn);
   }
 
   queryPresence(targetUserId: string): void {

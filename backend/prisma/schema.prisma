@@ -53,6 +53,10 @@ model User {
   coinTransactions   CoinTransaction[]
   callsInitiated     CallLog[]                      @relation("CallsInitiated")
   callsReceived      CallLog[]                      @relation("CallsReceived")
+  giftsSent          VirtualGiftTransaction[]       @relation("GiftsSent")
+  giftsReceived      VirtualGiftTransaction[]       @relation("GiftsReceived")
+  creatorWallet      CreatorWallet?
+  payoutRequests     CreatorPayoutRequest[]
   messagingRestrictedUntil DateTime?
   shadowBannedUntil        DateTime?
   safetyStrikes            UserSafetyStrike[]
@@ -732,6 +736,7 @@ enum CoinTransactionType {
   ESCROW_RELEASE
   ESCROW_CAPTURE
   ADMIN_GRANT
+  SPEND_VIRTUAL_GIFT
   REFUND
 }
 
@@ -807,5 +812,81 @@ model CallLog {
   @@index([callerUserId, createdAt])
   @@index([receiverUserId, createdAt])
   @@index([status])
+}
+
+// --------------------------------------------------------------------------
+// Phase 12: Virtual Gifting & Creator Rewards Models
+// --------------------------------------------------------------------------
+
+enum GiftType {
+  ROSE
+  CHOCOLATE
+  TEDDY_BEAR
+  DIAMOND_RING
+  ROYAL_CROWN
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+model VirtualGiftTransaction {
+  id                  String      @id @default(uuid())
+  senderUserId        String
+  senderUser          User        @relation("GiftsSent", fields: [senderUserId], references: [id], onDelete: Cascade)
+  receiverUserId      String
+  receiverUser        User        @relation("GiftsReceived", fields: [receiverUserId], references: [id], onDelete: Cascade)
+  giftType            GiftType
+  coinsSpent          Int         // Total coins paid by sender (e.g. 10, 30, 70, 150, 300)
+  platformFeeCoins    Int         // 50% retained by platform
+  creatorEarningPaise Int         // 50% in Paise (1 coin = 100 paise; e.g. 500, 1500, 3500, 7500, 15000 paise)
+  conversationId      String?
+  callId              String?
+  createdAt           DateTime    @default(now())
+
+  @@index([senderUserId, createdAt])
+  @@index([receiverUserId, createdAt])
+}
+
+model CreatorWallet {
+  id                  String                @id @default(uuid())
+  userId              String                @unique
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balancePaise        Int                   @default(0) // Available withdrawable balance in Paise (100 paise = ₹1)
+  totalEarnedPaise    Int                   @default(0) // Lifetime earnings in Paise
+  totalWithdrawnPaise Int                   @default(0) // Lifetime withdrawn in Paise
+  giftsReceivedCount  Int                   @default(0)
+  upiId               String?               // e.g. priya@okhdfcbank
+  accountHolderName   String?
+  isKycVerified       Boolean               @default(false)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  payoutRequests      CreatorPayoutRequest[]
+
+  @@index([userId])
+}
+
+model CreatorPayoutRequest {
+  id                String        @id @default(uuid())
+  walletId          String
+  wallet            CreatorWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amountPaise       Int           // In Paise (e.g. 50000 paise = ₹500)
+  upiId             String
+  accountHolderName String
+  status            PayoutStatus  @default(PENDING)
+  adminNote         String?
+  processedAt       DateTime?
+  referenceNumber   String?       // UPI UTR / Bank reference
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@index([userId, status])
+  @@index([status, createdAt])
 }
 

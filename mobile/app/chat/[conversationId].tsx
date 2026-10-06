@@ -25,6 +25,7 @@ import { chatSocket } from '../../src/services/chat-socket.service';
 import { useScreenCapturePrevention } from '../../src/hooks/useScreenCapturePrevention';
 import { SafeMessage, ReportTargetType, CallType, MessageDeliveryStatus } from '../../../shared/src/types';
 import { ReportModal } from '../../src/components/ReportModal';
+import { useCreatorStore } from '../../src/stores/creator-store';
 import { Colors } from '../../src/theme/colors';
 
 export default function ChatScreen() {

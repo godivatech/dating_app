@@ -25,10 +25,13 @@ import { MatchCelebrationModal, MatchedUserInfo } from '../src/components/MatchC
 import { IncomingCallModal } from '../src/components/calling/IncomingCallModal';
 import { ActiveCallModal } from '../src/components/calling/ActiveCallModal';
 import { PaywallModal } from '../src/components/PaywallModal';
+import { GiftPickerModal } from '../src/components/gifts/GiftPickerModal';
+import { GiftAnimationOverlay } from '../src/components/gifts/GiftAnimationOverlay';
 import { ScreenshotBlockedModal } from '../src/components/ScreenshotBlockedModal';
 import { OfflineNotice } from '../src/components/OfflineNotice';
 import { useSafetyStore } from '../src/stores/safety-store';
 import { useBillingStore } from '../src/stores/billing-store';
+import { useCreatorStore } from '../src/stores/creator-store';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
 import {
@@ -203,6 +206,25 @@ export default function RootLayout() {
         });
       });
 
+      // Hydrate creator wallet
+      useCreatorStore.getState().fetchWallet();
+
+      // Listen for real-time incoming gifts
+      const unsubGift = chatSocket.onGiftReceived((data) => {
+        try {
+          Vibration.vibrate([0, 100, 50, 100]);
+        } catch {}
+        useCreatorStore.getState().triggerIncomingGiftAnimation({
+          giftType: data.giftType,
+          displayName: data.displayName,
+          icon: data.icon,
+          senderDisplayName: data.senderDisplayName,
+          creatorEarningInr: data.creatorEarningInr,
+        });
+        useCreatorStore.getState().fetchWallet();
+        useBillingStore.getState().fetchCreditBalance();
+      });
+
       // Listen for app coming to foreground (resuming from background / screen lock)
       const handleAppStateChange = (nextAppState: AppStateStatus) => {
         if (nextAppState === 'active') {
@@ -211,6 +233,7 @@ export default function RootLayout() {
           chatSocket.ensureConnected();
           useBillingStore.getState().fetchBillingStatus();
           useBillingStore.getState().fetchCreditBalance();
+          useCreatorStore.getState().fetchWallet();
         }
       };
       const appStateSub = AppState.addEventListener('change', handleAppStateChange);
@@ -219,6 +242,7 @@ export default function RootLayout() {
         unsubLike();
         unsubMessage();
         unsubMatch();
+        unsubGift();
         appStateSub.remove();
       };
     } else if (status === 'UNAUTHENTICATED') {
@@ -296,6 +320,8 @@ export default function RootLayout() {
         <IncomingCallModal />
         <ActiveCallModal />
         <PaywallModal />
+        <GiftPickerModal />
+        <GiftAnimationOverlay />
         <ScreenshotBlockedModal
           visible={isScreenshotModalVisible}
           onClose={hideScreenshotModal}
