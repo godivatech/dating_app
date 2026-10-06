@@ -139,6 +139,15 @@ export const GiftPickerModal: React.FC = () => {
 
     if (result.success) {
       closeGiftModal();
+
+      // Trigger celebratory full-screen 3D overlay animation for sender
+      useCreatorStore.getState().triggerGiftAnimation({
+        giftType: selectedGift.type,
+        displayName: selectedGift.name,
+        icon: '',
+        senderDisplayName: 'You',
+      });
+
       // Drop celebratory message into chat conversation if in chat
       if (giftModalConfig.conversationId) {
         try {
@@ -146,14 +155,10 @@ export const GiftPickerModal: React.FC = () => {
             .getState()
             .sendMessage(
               giftModalConfig.conversationId,
-              `Sent a ${selectedGift.name}`,
+              `🎁 Sent a ${selectedGift.name}`,
             );
         } catch {}
       }
-      Alert.alert(
-        'Gift Sent',
-        `You sent a ${selectedGift.name} to ${giftModalConfig.receiverName}!`,
-      );
     } else {
       Alert.alert('Could Not Send Gift', result.error || 'Please try again later.');
     }

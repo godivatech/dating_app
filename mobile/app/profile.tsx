@@ -19,8 +19,10 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import { useAuthStore } from '../src/stores/auth-store';
 import { useProfileStore } from '../src/stores/profile-store';
 import { useBillingStore } from '../src/stores/billing-store';
+import { useCreatorStore } from '../src/stores/creator-store';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
+import { CreatorWalletModal } from '../src/components/gifts/CreatorWalletModal';
 import { Colors } from '../src/theme/colors';
 import { ProfileVisibility } from '../../shared/src/types';
 import { registerForPushNotificationsAsync } from '../src/services/push-notification.service';
@@ -34,17 +36,20 @@ export default function ProfileScreen() {
   const { user, logout } = useAuthStore();
   const { profile, toggleVisibility, fetchProfile, uploadPhoto } = useProfileStore();
   const { billingStatus, creditBalance, fetchCreditBalance, openPaywall } = useBillingStore();
+  const { wallet, fetchWallet } = useCreatorStore();
 
   useFocusEffect(
     useCallback(() => {
       fetchCreditBalance();
-    }, [fetchCreditBalance]),
+      fetchWallet();
+    }, [fetchCreditBalance, fetchWallet]),
   );
 
   const [locale, setLocalLocale] = useState<Locale>(getLocale());
   const [showSafetyModal, setShowSafetyModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showPassbookModal, setShowPassbookModal] = useState<boolean>(false);
+  const [showCreatorWalletModal, setShowCreatorWalletModal] = useState<boolean>(false);
   const [showLegalModal, setShowLegalModal] = useState<'TERMS' | 'PRIVACY' | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false);
   const [isTogglingVisibility, setIsTogglingVisibility] = useState<boolean>(false);
@@ -442,6 +447,72 @@ export default function ProfileScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Creator Earnings & Virtual Gifts Card */}
+          <View style={styles.coinWalletCard}>
+            <View style={styles.coinWalletHeader}>
+              <View style={[styles.coinBadgeIcon, { backgroundColor: '#FFF0F1' }]}>
+                <Ionicons name="gift" size={20} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.coinWalletTitle}>Creator Earnings & Gifts</Text>
+                  <View style={[styles.prepaidPill, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                    <Text style={[styles.prepaidPillText, { color: '#059669' }]}>REAL CASH</Text>
+                  </View>
+                </View>
+                <Text style={styles.coinWalletSubtitle}>
+                  Cash earnings credited when matches send you gifts
+                </Text>
+              </View>
+            </View>
+
+            {/* Cash Balance & Withdraw Row */}
+            <View style={styles.coinBalanceRow}>
+              <View>
+                <Text style={styles.coinBalanceValue}>
+                  ₹{(wallet?.balanceInr ?? 0).toFixed(2)}
+                </Text>
+                <Text style={styles.coinBalanceLabel}>Withdrawable to UPI</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={styles.passbookCoinsBtn}
+                  onPress={() => setShowCreatorWalletModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="gift-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
+                  <Text style={styles.passbookCoinsBtnText}>
+                    {wallet?.giftsReceivedCount ?? 0} Gifts
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.rechargeCoinsBtn, { backgroundColor: '#10B981' }]}
+                  onPress={() => setShowCreatorWalletModal(true)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="cash-outline" size={14} color={Colors.white} style={{ marginRight: 4 }} />
+                  <Text style={styles.rechargeCoinsBtnText}>Withdraw</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.bannerDivider} />
+
+            {/* Full Wallet & Payout History Link */}
+            <TouchableOpacity
+              style={styles.upgradeLinkBtn}
+              onPress={() => setShowCreatorWalletModal(true)}
+              activeOpacity={0.8}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="wallet-outline" size={15} color={Colors.primary} />
+                <Text style={styles.upgradeLinkText}>View Payout History & UPI Settings</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+
           {/* Log Out */}
           <TouchableOpacity
             style={styles.logoutBtn}
@@ -755,6 +826,12 @@ export default function ProfileScreen() {
       <WalletPassbookModal
         visible={showPassbookModal}
         onClose={() => setShowPassbookModal(false)}
+      />
+
+      {/* Creator Earnings & Virtual Gifts Modal */}
+      <CreatorWalletModal
+        visible={showCreatorWalletModal}
+        onClose={() => setShowCreatorWalletModal(false)}
       />
     </SafeAreaView>
   );

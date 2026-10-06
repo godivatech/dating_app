@@ -30,6 +30,7 @@ import { GiftAnimationOverlay } from '../../src/components/gifts/GiftAnimationOv
 import { useCreatorStore } from '../../src/stores/creator-store';
 import { useBillingStore } from '../../src/stores/billing-store';
 import { Colors } from '../../src/theme/colors';
+import { getGiftAsset, parseGiftMessage, COIN_ASSET } from '../../src/constants/gift-assets';
 
 export default function ChatScreen() {
   const {
@@ -296,6 +297,95 @@ export default function ChatScreen() {
       hour: '2-digit',
       minute: '2-digit',
     });
+
+    const giftData = parseGiftMessage(item.body);
+
+    // Dedicated 3D Virtual Gift Card Bubble
+    if (giftData) {
+      return (
+        <View
+          style={[
+            styles.messageRow,
+            isMe ? styles.messageRowRight : styles.messageRowLeft,
+          ]}
+        >
+          {/* Incoming partner avatar on the left */}
+          {!isMe && (
+            partnerPhoto ? (
+              <Image source={{ uri: partnerPhoto }} style={styles.bubbleAvatar} />
+            ) : (
+              <View style={styles.bubbleAvatarPlaceholder}>
+                <Text style={styles.bubbleAvatarInitial}>
+                  {partnerName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )
+          )}
+
+          <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={() => {
+              triggerGiftAnimation({
+                giftType: giftData.giftType,
+                displayName: giftData.giftName,
+                icon: '',
+                senderDisplayName: isMe ? 'You' : partnerName,
+              });
+            }}
+            style={[
+              styles.giftCardBubble,
+              isMe ? styles.giftCardOutgoing : styles.giftCardIncoming,
+            ]}
+          >
+            {/* Header Tag / Badge */}
+            <View style={styles.giftCardBadgeRow}>
+              <View style={styles.giftBadgePill}>
+                <Ionicons name="sparkles" size={11} color={Colors.primary} style={{ marginRight: 4 }} />
+                <Text style={styles.giftBadgeText}>
+                  {isMe ? 'VIRTUAL GIFT SENT' : 'VIRTUAL GIFT RECEIVED'}
+                </Text>
+              </View>
+            </View>
+
+            {/* 3D Asset on Glowing Pedestal */}
+            <View style={styles.giftPedestal}>
+              <Image
+                source={getGiftAsset(giftData.giftType)}
+                style={styles.giftAssetImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Title & Tag */}
+            <Text style={styles.giftTitleText}>{giftData.giftName}</Text>
+            <Text style={styles.giftTagText}>{giftData.tag}</Text>
+
+            {/* Bottom Meta & Ticks */}
+            <View style={styles.giftCardFooter}>
+              <View style={styles.giftCoinTag}>
+                <Image source={COIN_ASSET} style={styles.giftCoinSmallIcon} resizeMode="contain" />
+                <Text style={styles.giftCoinNumber}>{giftData.coins} Coins</Text>
+              </View>
+
+              <View style={styles.giftTimeRow}>
+                <Text style={styles.giftTimeString}>{timeString}</Text>
+                {isMe && (
+                  <View style={styles.tickBox}>
+                    {item.deliveryStatus === MessageDeliveryStatus.READ ? (
+                      <Ionicons name="checkmark-done" size={14} color="#64D2FF" />
+                    ) : item.deliveryStatus === MessageDeliveryStatus.DELIVERED ? (
+                      <Ionicons name="checkmark-done" size={14} color="#94A3B8" />
+                    ) : (
+                      <Ionicons name="checkmark" size={13} color="#94A3B8" />
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
+      );
+    }
 
     return (
       <View
@@ -977,4 +1067,115 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
   },
+  giftCardBubble: {
+    width: 240,
+    backgroundColor: Colors.white,
+    borderRadius: 22,
+    padding: 14,
+    alignItems: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 4,
+    marginVertical: 4,
+  },
+  giftCardOutgoing: {
+    borderWidth: 1.5,
+    borderColor: '#FFE4E6',
+    borderBottomRightRadius: 6,
+  },
+  giftCardIncoming: {
+    borderWidth: 1.5,
+    borderColor: '#F1F5F9',
+    borderBottomLeftRadius: 6,
+  },
+  giftCardBadgeRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  giftBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF0F1',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  giftBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: Colors.primary,
+    letterSpacing: 0.6,
+  },
+  giftPedestal: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: '#FFF5F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFE4E8',
+  },
+  giftAssetImage: {
+    width: 74,
+    height: 74,
+  },
+  giftTitleText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    marginTop: 8,
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  giftTagText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: Colors.textSecondary,
+    marginTop: 2,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  giftCardFooter: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  giftCoinTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  giftCoinSmallIcon: {
+    width: 14,
+    height: 14,
+  },
+  giftCoinNumber: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.primary,
+  },
+  giftTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  giftTimeString: {
+    fontSize: 10,
+    color: '#94A3B8',
+  },
 });
+
