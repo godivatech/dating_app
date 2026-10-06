@@ -10,6 +10,7 @@ import {
   Alert,
   Dimensions,
   Image,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
@@ -151,7 +152,7 @@ export const GiftPickerModal: React.FC = () => {
       }
       Alert.alert(
         'Gift Sent',
-        `You sent a ${selectedGift.name} to ${giftModalConfig.receiverName}! They earned ₹${selectedGift.creatorInr.toFixed(2)} directly.`,
+        `You sent a ${selectedGift.name} to ${giftModalConfig.receiverName}!`,
       );
     } else {
       Alert.alert('Could Not Send Gift', result.error || 'Please try again later.');
@@ -167,12 +168,15 @@ export const GiftPickerModal: React.FC = () => {
     >
       <View style={styles.backdrop}>
         <View style={styles.sheetContainer}>
+          {/* Top Drag Handle */}
+          <View style={styles.sheetHandle} />
+
           {/* Header */}
           <View style={styles.header}>
             <View>
               <Text style={styles.headerTitle}>Send a Virtual Gift</Text>
               <Text style={styles.headerSubtitle}>
-                To {giftModalConfig.receiverName} • Support & Impress
+                To {giftModalConfig.receiverName} • Express Your Affection
               </Text>
             </View>
             <TouchableOpacity
@@ -180,7 +184,7 @@ export const GiftPickerModal: React.FC = () => {
               onPress={closeGiftModal}
               activeOpacity={0.7}
             >
-              <Ionicons name="close" size={22} color={Colors.textSecondary} />
+              <Ionicons name="close" size={20} color={Colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
@@ -215,7 +219,6 @@ export const GiftPickerModal: React.FC = () => {
             <View style={styles.grid}>
               {giftItems.map((gift) => {
                 const isSelected = selectedGift.type === gift.type;
-                const canAfford = currentCoins >= gift.coins;
 
                 return (
                   <TouchableOpacity
@@ -240,11 +243,6 @@ export const GiftPickerModal: React.FC = () => {
                     <View style={styles.priceRow}>
                       <Image source={COIN_ASSET} style={styles.miniCoinIcon} resizeMode="contain" />
                       <Text style={styles.giftPriceCoin}>{gift.coins}</Text>
-                    </View>
-                    <View style={styles.earningBadge}>
-                      <Text style={styles.earningBadgeText}>
-                        Creator gets ₹{gift.creatorInr}
-                      </Text>
                     </View>
                     {isSelected && (
                       <View style={styles.selectedTick}>
@@ -301,24 +299,35 @@ export const GiftPickerModal: React.FC = () => {
   );
 };
 
-const cardWidth = (width - 48 - 18) / 3;
+const cardWidth = (width - 40 - 20) / 3;
 
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
     justifyContent: 'flex-end',
   },
   sheetContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: Colors.white,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    paddingTop: 20,
+    paddingTop: 12,
     paddingHorizontal: 20,
-    paddingBottom: 28,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
     maxHeight: '85%',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  sheetHandle: {
+    width: 38,
+    height: 4,
+    backgroundColor: Colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 14,
   },
   header: {
     flexDirection: 'row',
@@ -327,20 +336,21 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#F8FAFC',
+    fontSize: 19,
+    fontWeight: '800',
+    color: Colors.textPrimary,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: Colors.textSecondary,
     marginTop: 2,
   },
   closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: Colors.backgroundSecondary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -348,23 +358,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(30, 41, 59, 0.85)',
+    backgroundColor: Colors.backgroundSecondary,
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: Colors.borderLight,
   },
   balanceInfo: {
     flexDirection: 'column',
   },
   balanceLabel: {
     fontSize: 11,
-    color: '#94A3B8',
+    color: Colors.textMuted,
     textTransform: 'uppercase',
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '700',
+    letterSpacing: 0.6,
   },
   balanceValueRow: {
     flexDirection: 'row',
@@ -373,29 +383,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   coinBadgeIcon: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
   },
   coinCount: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#FBBF24',
+    color: Colors.textPrimary,
   },
   coinUnit: {
-    fontSize: 12,
-    color: '#CBD5E1',
-    fontWeight: '500',
+    fontSize: 13,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   rechargeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F43F5E',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 10,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   rechargeBtnText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -405,30 +420,35 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 9,
+    gap: 10,
   },
   giftCard: {
     width: cardWidth,
-    backgroundColor: 'rgba(30, 41, 59, 0.65)',
-    borderRadius: 16,
+    backgroundColor: Colors.backgroundSecondary,
+    borderRadius: 18,
     padding: 10,
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: 'transparent',
+    borderColor: Colors.borderLight,
     position: 'relative',
   },
   giftCardSelected: {
-    borderColor: '#F43F5E',
-    backgroundColor: 'rgba(244, 63, 94, 0.12)',
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
   },
   giftIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   giftAssetImage: {
     width: 50,
@@ -437,7 +457,7 @@ const styles = StyleSheet.create({
   giftName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: Colors.textPrimary,
     textAlign: 'center',
   },
   priceRow: {
@@ -451,21 +471,9 @@ const styles = StyleSheet.create({
     height: 14,
   },
   giftPriceCoin: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
-    color: '#FBBF24',
-  },
-  earningBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginTop: 6,
-  },
-  earningBadgeText: {
-    fontSize: 9,
-    fontWeight: '600',
-    color: '#34D399',
+    color: Colors.textPrimary,
   },
   selectedTick: {
     position: 'absolute',
@@ -474,18 +482,18 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#F43F5E',
+    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   footer: {
     marginTop: 10,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopColor: Colors.borderLight,
     paddingTop: 12,
   },
   footerSummary: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   footerTitleRow: {
     flexDirection: 'row',
@@ -497,29 +505,30 @@ const styles = StyleSheet.create({
     height: 24,
   },
   summaryTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: Colors.textPrimary,
   },
   summaryDesc: {
-    fontSize: 11,
-    color: '#94A3B8',
+    fontSize: 12,
+    color: Colors.textSecondary,
     marginTop: 2,
+    lineHeight: 16,
   },
   sendBtn: {
-    backgroundColor: '#F43F5E',
+    backgroundColor: Colors.primary,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#F43F5E',
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   sendBtnDisabled: {
-    backgroundColor: '#64748B',
+    backgroundColor: '#FDA4AF',
     shadowOpacity: 0,
     elevation: 0,
   },
@@ -533,7 +542,7 @@ const styles = StyleSheet.create({
     height: 18,
   },
   sendBtnText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 15,
     fontWeight: '800',
   },

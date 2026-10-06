@@ -9,6 +9,7 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../theme/colors';
 import { useCreatorStore } from '../../stores/creator-store';
 import { getGiftAsset } from '../../constants/gift-assets';
 
@@ -114,15 +115,15 @@ export const GiftAnimationOverlay: React.FC = () => {
 
           {/* Banner Pill */}
           <View style={styles.bannerPill}>
-            <Text style={styles.congratsText}>SPECIAL GIFT RECEIVED</Text>
+            <Text style={styles.congratsText}>Special Gift Received</Text>
             <Text style={styles.senderText}>
-              <Text style={{ fontWeight: '800', color: '#F43F5E' }}>
+              <Text style={{ fontWeight: '800', color: Colors.primary }}>
                 {activeGiftAnimation.senderDisplayName}
               </Text>{' '}
               sent you a {activeGiftAnimation.displayName}!
             </Text>
             <View style={styles.earningsPill}>
-              <Ionicons name="sparkles" size={13} color="#10B981" style={{ marginRight: 5 }} />
+              <Ionicons name="sparkles" size={13} color={Colors.primary} style={{ marginRight: 5 }} />
               <Text style={styles.earningsPillText}>
                 Creator Wallet Credited
               </Text>
@@ -144,6 +145,7 @@ const styles = StyleSheet.create({
     zIndex: 9999,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
   },
   contentContainer: {
     flex: 1,
@@ -156,35 +158,35 @@ const styles = StyleSheet.create({
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(244, 63, 94, 0.25)',
-    shadowColor: '#F43F5E',
+    backgroundColor: Colors.primaryGlow,
+    shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: 60,
+    shadowRadius: 50,
   },
   giftAssetImage: {
-    width: 140,
-    height: 140,
+    width: 150,
+    height: 150,
     marginBottom: 20,
   },
   bannerPill: {
-    backgroundColor: '#0F172AEB',
+    backgroundColor: Colors.white,
     borderRadius: 24,
-    paddingHorizontal: 22,
-    paddingVertical: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: 'rgba(244, 63, 94, 0.4)',
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: Colors.borderLight,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
     elevation: 10,
   },
   congratsText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#FBBF24',
+    color: Colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 4,
@@ -192,23 +194,23 @@ const styles = StyleSheet.create({
   senderText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#F8FAFC',
+    color: Colors.textPrimary,
     textAlign: 'center',
     marginBottom: 8,
   },
   earningsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#10B981',
+    borderColor: Colors.primary,
   },
   earningsPillText: {
-    color: '#34D399',
-    fontSize: 11,
+    color: Colors.primaryDark,
+    fontSize: 12,
     fontWeight: '700',
   },
 });
