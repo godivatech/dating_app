@@ -6,11 +6,11 @@ import {
   Animated,
   TouchableOpacity,
   Vibration,
-  Dimensions,
+  Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useCreatorStore } from '../../stores/creator-store';
-
-const { width, height } = Dimensions.get('window');
+import { getGiftAsset } from '../../constants/gift-assets';
 
 export const GiftAnimationOverlay: React.FC = () => {
   const activeGiftAnimation = useCreatorStore((state) => state.activeGiftAnimation);
@@ -105,12 +105,16 @@ export const GiftAnimationOverlay: React.FC = () => {
           {/* Glowing Aura */}
           <View style={styles.glowCircle} />
 
-          {/* Big Floating Gift Icon */}
-          <Text style={styles.giftEmoji}>{activeGiftAnimation.icon}</Text>
+          {/* Big Floating 3D Gift Asset */}
+          <Image
+            source={getGiftAsset(activeGiftAnimation.giftType)}
+            style={styles.giftAssetImage}
+            resizeMode="contain"
+          />
 
           {/* Banner Pill */}
           <View style={styles.bannerPill}>
-            <Text style={styles.congratsText}>✨ Special Gift Received! ✨</Text>
+            <Text style={styles.congratsText}>SPECIAL GIFT RECEIVED</Text>
             <Text style={styles.senderText}>
               <Text style={{ fontWeight: '800', color: '#F43F5E' }}>
                 {activeGiftAnimation.senderDisplayName}
@@ -118,8 +122,9 @@ export const GiftAnimationOverlay: React.FC = () => {
               sent you a {activeGiftAnimation.displayName}!
             </Text>
             <View style={styles.earningsPill}>
+              <Ionicons name="sparkles" size={13} color="#10B981" style={{ marginRight: 5 }} />
               <Text style={styles.earningsPillText}>
-                💰 Creator Wallet Credited
+                Creator Wallet Credited
               </Text>
             </View>
           </View>
@@ -131,7 +136,11 @@ export const GiftAnimationOverlay: React.FC = () => {
 
 const styles = StyleSheet.create({
   fullscreenBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     zIndex: 9999,
     justifyContent: 'center',
     alignItems: 'center',
@@ -144,21 +153,19 @@ const styles = StyleSheet.create({
   },
   glowCircle: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(244, 63, 94, 0.22)',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: 'rgba(244, 63, 94, 0.25)',
     shadowColor: '#F43F5E',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: 50,
+    shadowRadius: 60,
   },
-  giftEmoji: {
-    fontSize: 90,
-    textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 10,
-    marginBottom: 16,
+  giftAssetImage: {
+    width: 140,
+    height: 140,
+    marginBottom: 20,
   },
   bannerPill: {
     backgroundColor: '#0F172AEB',
@@ -179,7 +186,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FBBF24',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
     marginBottom: 4,
   },
   senderText: {
@@ -190,6 +197,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   earningsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 4,

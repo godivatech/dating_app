@@ -124,9 +124,35 @@ export class ChatSocketService {
       this.presenceResultListeners.forEach((listener) => listener(data));
     });
 
-    this.socket.on('gift:received', (data: any) => {
-      this.giftReceivedListeners.forEach((listener) => listener(data));
-    });
+    const handleGiftReceived = (data: any) => {
+      const iconMap: Record<string, string> = {
+        ROSE: '🌹',
+        CHOCOLATE: '🍫',
+        TEDDY_BEAR: '🧸',
+        DIAMOND_RING: '💍',
+        ROYAL_CROWN: '👑',
+      };
+      const giftType = data.giftType || 'ROSE';
+      const normalized = {
+        giftId: data.giftId || data.giftTransactionId || '',
+        giftType,
+        displayName: data.displayName || 'Gift',
+        icon: data.icon || iconMap[giftType] || '🎁',
+        senderDisplayName: data.senderDisplayName || 'Someone',
+        creatorEarningInr:
+          data.creatorEarningInr ??
+          (typeof data.creatorEarningsPaise === 'number'
+            ? data.creatorEarningsPaise / 100
+            : 0),
+        senderUserId: data.senderUserId,
+        conversationId: data.conversationId,
+        callId: data.callId,
+      };
+      this.giftReceivedListeners.forEach((listener) => listener(normalized));
+    };
+
+    this.socket.on('gift.received', handleGiftReceived);
+    this.socket.on('gift:received', handleGiftReceived);
   }
 
   disconnect(): void {

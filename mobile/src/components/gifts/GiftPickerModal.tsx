@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,21 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useCreatorStore } from '../../stores/creator-store';
 import { useBillingStore } from '../../stores/billing-store';
+import { useChatStore } from '../../stores/chat-store';
 import { GiftType } from '../../../../shared/src/types';
+import { getGiftAsset, COIN_ASSET } from '../../constants/gift-assets';
 
 const { width } = Dimensions.get('window');
 
 interface DefaultGift {
   type: GiftType;
   name: string;
-  icon: string;
   coins: number;
   creatorInr: number;
   description: string;
@@ -31,70 +33,42 @@ const FALLBACK_GIFTS: DefaultGift[] = [
   {
     type: GiftType.ROSE,
     name: 'Red Rose',
-    icon: '🌹',
     coins: 10,
-    creatorInr: 7,
-    description: 'A sweet romantic gesture',
+    creatorInr: 5,
+    description: 'A classic symbol of romantic admiration and interest.',
   },
   {
-    type: GiftType.HEART,
-    name: 'Heart',
-    icon: '💖',
-    coins: 25,
-    creatorInr: 17.5,
-    description: 'Show your true affection',
+    type: GiftType.CHOCOLATE,
+    name: 'Artisan Chocolates',
+    coins: 30,
+    creatorInr: 15,
+    description: 'Sweet gourmet treats to sweeten the conversation.',
   },
   {
-    type: GiftType.CROWN,
-    name: 'Crown',
-    icon: '👑',
+    type: GiftType.TEDDY_BEAR,
+    name: 'Teddy Bear',
     coins: 50,
-    creatorInr: 35,
-    description: 'Treat them like royalty',
+    creatorInr: 25,
+    description: 'An adorable fluffy companion to make them smile.',
   },
   {
-    type: GiftType.DIAMOND,
-    name: 'Diamond',
-    icon: '💎',
+    type: GiftType.DIAMOND_RING,
+    name: 'Diamond Ring',
     coins: 100,
-    creatorInr: 70,
-    description: 'Dazzling and precious',
+    creatorInr: 50,
+    description: 'A sparkling pledge of sincere connection.',
   },
   {
-    type: GiftType.CHAMPAGNE,
-    name: 'Champagne',
-    icon: '🍾',
+    type: GiftType.ROYAL_CROWN,
+    name: 'Royal Crown',
     coins: 250,
-    creatorInr: 175,
-    description: 'Celebrate the special vibe',
-  },
-  {
-    type: GiftType.SPORTS_CAR,
-    name: 'Sports Car',
-    icon: '🏎️',
-    coins: 500,
-    creatorInr: 350,
-    description: 'Speed straight to their heart',
-  },
-  {
-    type: GiftType.PRIVATE_JET,
-    name: 'Private Jet',
-    icon: '✈️',
-    coins: 1000,
-    creatorInr: 700,
-    description: 'First-class romantic luxury',
-  },
-  {
-    type: GiftType.ROMANTIC_CASTLE,
-    name: 'Castle',
-    icon: '🏰',
-    coins: 2500,
-    creatorInr: 1750,
-    description: 'Fairytale romance forever',
+    creatorInr: 125,
+    description: 'Treat your match like true royalty.',
   },
 ];
 
 export const GiftPickerModal: React.FC = () => {
+  const catalog = useCreatorStore((state) => state.catalog);
   const giftModalConfig = useCreatorStore((state) => state.giftModalConfig);
   const closeGiftModal = useCreatorStore((state) => state.closeGiftModal);
   const sendGift = useCreatorStore((state) => state.sendGift);
@@ -104,7 +78,26 @@ export const GiftPickerModal: React.FC = () => {
   const openPaywall = useBillingStore((state) => state.openPaywall);
   const fetchCreditBalance = useBillingStore((state) => state.fetchCreditBalance);
 
-  const [selectedGift, setSelectedGift] = useState<DefaultGift>(FALLBACK_GIFTS[0]);
+  const giftItems: DefaultGift[] = useMemo(() => {
+    if (catalog && catalog.length > 0) {
+      return catalog.map((item) => ({
+        type: item.id,
+        name: item.displayName,
+        coins: item.coinsCost,
+        creatorInr: item.creatorEarningsPaise / 100,
+        description: item.description,
+      }));
+    }
+    return FALLBACK_GIFTS;
+  }, [catalog]);
+
+  const [selectedGift, setSelectedGift] = useState<DefaultGift>(giftItems[0] || FALLBACK_GIFTS[0]);
+
+  useEffect(() => {
+    if (giftItems.length > 0 && !giftItems.some((g) => g.type === selectedGift.type)) {
+      setSelectedGift(giftItems[0]);
+    }
+  }, [giftItems]);
 
   useEffect(() => {
     if (giftModalConfig?.visible) {
@@ -120,7 +113,7 @@ export const GiftPickerModal: React.FC = () => {
   const handleSend = async () => {
     if (!hasEnoughCoins) {
       Alert.alert(
-        'Insufficient Coins 🪙',
+        'Insufficient Coins',
         `You need ${selectedGift.coins} coins to send this gift, but currently have ${currentCoins} coins. Would you like to recharge?`,
         [
           { text: 'Cancel', style: 'cancel' },
@@ -145,9 +138,20 @@ export const GiftPickerModal: React.FC = () => {
 
     if (result.success) {
       closeGiftModal();
+      // Drop celebratory message into chat conversation if in chat
+      if (giftModalConfig.conversationId) {
+        try {
+          await useChatStore
+            .getState()
+            .sendMessage(
+              giftModalConfig.conversationId,
+              `Sent a ${selectedGift.name}`,
+            );
+        } catch {}
+      }
       Alert.alert(
-        'Gift Sent! 🎁',
-        `You sent a ${selectedGift.name} to ${giftModalConfig.receiverName}! They earned ₹${selectedGift.creatorInr} directly.`,
+        'Gift Sent',
+        `You sent a ${selectedGift.name} to ${giftModalConfig.receiverName}! They earned ₹${selectedGift.creatorInr.toFixed(2)} directly.`,
       );
     } else {
       Alert.alert('Could Not Send Gift', result.error || 'Please try again later.');
@@ -166,7 +170,7 @@ export const GiftPickerModal: React.FC = () => {
           {/* Header */}
           <View style={styles.header}>
             <View>
-              <Text style={styles.headerTitle}>Send a Virtual Gift 🎁</Text>
+              <Text style={styles.headerTitle}>Send a Virtual Gift</Text>
               <Text style={styles.headerSubtitle}>
                 To {giftModalConfig.receiverName} • Support & Impress
               </Text>
@@ -185,7 +189,7 @@ export const GiftPickerModal: React.FC = () => {
             <View style={styles.balanceInfo}>
               <Text style={styles.balanceLabel}>Your Balance</Text>
               <View style={styles.balanceValueRow}>
-                <Text style={styles.coinIcon}>🪙</Text>
+                <Image source={COIN_ASSET} style={styles.coinBadgeIcon} resizeMode="contain" />
                 <Text style={styles.coinCount}>{currentCoins}</Text>
                 <Text style={styles.coinUnit}>Coins</Text>
               </View>
@@ -209,7 +213,7 @@ export const GiftPickerModal: React.FC = () => {
             contentContainerStyle={styles.gridContent}
           >
             <View style={styles.grid}>
-              {FALLBACK_GIFTS.map((gift) => {
+              {giftItems.map((gift) => {
                 const isSelected = selectedGift.type === gift.type;
                 const canAfford = currentCoins >= gift.coins;
 
@@ -224,13 +228,18 @@ export const GiftPickerModal: React.FC = () => {
                     activeOpacity={0.8}
                   >
                     <View style={styles.giftIconWrap}>
-                      <Text style={styles.giftIconText}>{gift.icon}</Text>
+                      <Image
+                        source={getGiftAsset(gift.type)}
+                        style={styles.giftAssetImage}
+                        resizeMode="contain"
+                      />
                     </View>
                     <Text style={styles.giftName} numberOfLines={1}>
                       {gift.name}
                     </Text>
                     <View style={styles.priceRow}>
-                      <Text style={styles.giftPriceCoin}>🪙 {gift.coins}</Text>
+                      <Image source={COIN_ASSET} style={styles.miniCoinIcon} resizeMode="contain" />
+                      <Text style={styles.giftPriceCoin}>{gift.coins}</Text>
                     </View>
                     <View style={styles.earningBadge}>
                       <Text style={styles.earningBadgeText}>
@@ -251,9 +260,14 @@ export const GiftPickerModal: React.FC = () => {
           {/* Action Footer */}
           <View style={styles.footer}>
             <View style={styles.footerSummary}>
-              <Text style={styles.summaryTitle}>
-                {selectedGift.icon} {selectedGift.name}
-              </Text>
+              <View style={styles.footerTitleRow}>
+                <Image
+                  source={getGiftAsset(selectedGift.type)}
+                  style={styles.footerGiftThumbnail}
+                  resizeMode="contain"
+                />
+                <Text style={styles.summaryTitle}>{selectedGift.name}</Text>
+              </View>
               <Text style={styles.summaryDesc}>{selectedGift.description}</Text>
             </View>
 
@@ -271,9 +285,10 @@ export const GiftPickerModal: React.FC = () => {
                 <ActivityIndicator size="small" color={Colors.white} />
               ) : (
                 <View style={styles.sendBtnContent}>
+                  <Image source={COIN_ASSET} style={styles.sendBtnCoinIcon} resizeMode="contain" />
                   <Text style={styles.sendBtnText}>
                     {hasEnoughCoins
-                      ? `Send for ${selectedGift.coins} Coins 🪙`
+                      ? `Send for ${selectedGift.coins} Coins`
                       : `Get More Coins (+${selectedGift.coins - currentCoins} needed)`}
                   </Text>
                 </View>
@@ -354,11 +369,12 @@ const styles = StyleSheet.create({
   balanceValueRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
     marginTop: 2,
   },
-  coinIcon: {
-    fontSize: 16,
+  coinBadgeIcon: {
+    width: 22,
+    height: 22,
   },
   coinCount: {
     fontSize: 18,
@@ -406,16 +422,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(244, 63, 94, 0.12)',
   },
   giftIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
   },
-  giftIconText: {
-    fontSize: 28,
+  giftAssetImage: {
+    width: 50,
+    height: 50,
   },
   giftName: {
     fontSize: 12,
@@ -426,7 +443,12 @@ const styles = StyleSheet.create({
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
     marginTop: 4,
+  },
+  miniCoinIcon: {
+    width: 14,
+    height: 14,
   },
   giftPriceCoin: {
     fontSize: 12,
@@ -465,6 +487,15 @@ const styles = StyleSheet.create({
   footerSummary: {
     marginBottom: 10,
   },
+  footerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerGiftThumbnail: {
+    width: 24,
+    height: 24,
+  },
   summaryTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -495,7 +526,11 @@ const styles = StyleSheet.create({
   sendBtnContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+  },
+  sendBtnCoinIcon: {
+    width: 18,
+    height: 18,
   },
   sendBtnText: {
     color: '#FFFFFF',

@@ -215,7 +215,7 @@ export default function RootLayout() {
           Vibration.vibrate([0, 100, 50, 100]);
         } catch {}
         useCreatorStore.getState().triggerIncomingGiftAnimation({
-          giftType: data.giftType,
+          giftType: data.giftType as any,
           displayName: data.displayName,
           icon: data.icon,
           senderDisplayName: data.senderDisplayName,

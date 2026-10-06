@@ -25,7 +25,10 @@ import { chatSocket } from '../../src/services/chat-socket.service';
 import { useScreenCapturePrevention } from '../../src/hooks/useScreenCapturePrevention';
 import { SafeMessage, ReportTargetType, CallType, MessageDeliveryStatus } from '../../../shared/src/types';
 import { ReportModal } from '../../src/components/ReportModal';
+import { GiftPickerModal } from '../../src/components/gifts/GiftPickerModal';
+import { GiftAnimationOverlay } from '../../src/components/gifts/GiftAnimationOverlay';
 import { useCreatorStore } from '../../src/stores/creator-store';
+import { useBillingStore } from '../../src/stores/billing-store';
 import { Colors } from '../../src/theme/colors';
 
 export default function ChatScreen() {
@@ -63,6 +66,8 @@ export default function ChatScreen() {
   const { blockUser } = useSafetyStore();
   const { startCall } = useCallStore();
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const openGiftModal = useCreatorStore((s) => s.openGiftModal);
+  const triggerGiftAnimation = useCreatorStore((s) => s.triggerGiftAnimation);
 
   const [inputText, setInputText] = useState('');
   const [reportModalVisible, setReportModalVisible] = useState(false);
@@ -184,11 +189,48 @@ export default function ChatScreen() {
     };
   }, [targetPartnerUserId]);
 
+  // Real-time incoming gift animations in this conversation
+  useEffect(() => {
+    const unsubGift = chatSocket.onGiftReceived((data) => {
+      if (!data.conversationId || data.conversationId === conversationId) {
+        triggerGiftAnimation({
+          giftType: data.giftType as any,
+          displayName: data.displayName,
+          icon: data.icon,
+          senderDisplayName: data.senderDisplayName,
+        });
+        useCreatorStore.getState().fetchWallet();
+        useBillingStore.getState().fetchCreditBalance();
+      }
+    });
+
+    return () => {
+      unsubGift();
+    };
+  }, [conversationId, triggerGiftAnimation]);
+
   const handleMicPress = () => {
     Alert.alert(
       'Voice Notes 🎙️',
       'Voice notes are being configured for our next build. In the meantime, you can make crystal-clear live Audio & Video Calls using the call buttons in the header!',
       [{ text: 'OK', style: 'default' }],
+    );
+  };
+
+  const handleGiftPress = () => {
+    if (!targetPartnerUserId) {
+      Alert.alert(
+        'Send Gift',
+        'Partner information is loading. Please wait a moment.',
+        [{ text: 'OK' }],
+      );
+      return;
+    }
+    openGiftModal(
+      targetPartnerUserId,
+      partnerName,
+      conversationId,
+      activeConversation?.matchId,
     );
   };
 
@@ -453,9 +495,18 @@ export default function ChatScreen() {
                 multiline={false}
               />
               <TouchableOpacity
+                style={styles.giftBtn}
+                onPress={handleGiftPress}
+                activeOpacity={0.7}
+                accessibilityLabel="Send Gift"
+              >
+                <Ionicons name="gift-outline" size={20} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.attachmentBtn}
                 onPress={handleMicPress}
                 activeOpacity={0.7}
+                accessibilityLabel="Record Voice Note"
               >
                 <Feather name="mic" size={18} color={Colors.primary} />
               </TouchableOpacity>
@@ -498,6 +549,12 @@ export default function ChatScreen() {
           onClose={() => setReportModalVisible(false)}
         />
       )}
+
+      {/* Virtual Gifting Modal */}
+      <GiftPickerModal />
+
+      {/* Real-time Gift Animation Overlay */}
+      <GiftAnimationOverlay />
 
       {/* Branded Truelove Message Blocked Safety Modal */}
       <Modal
@@ -796,8 +853,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.textPrimary,
   },
-  attachmentBtn: {
+  giftBtn: {
     marginLeft: 8,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  attachmentBtn: {
+    marginLeft: 6,
+    padding: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   sendButton: {
     width: 48,

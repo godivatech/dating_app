@@ -60,6 +60,7 @@ interface CreatorState {
   ) => void;
   closeGiftModal: () => void;
   triggerGiftAnimation: (data: GiftAnimationData) => void;
+  triggerIncomingGiftAnimation: (data: GiftAnimationData & { creatorEarningInr?: number }) => void;
   dismissGiftAnimation: () => void;
 }
 
@@ -173,6 +174,10 @@ export const useCreatorStore = create<CreatorState>((set, get) => ({
   },
 
   triggerGiftAnimation: (data) => {
+    set({ activeGiftAnimation: data });
+  },
+
+  triggerIncomingGiftAnimation: (data) => {
     set({ activeGiftAnimation: data });
   },
 

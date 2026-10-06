@@ -92,7 +92,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
       setWithdrawAmount('');
       setUpiId('');
       Alert.alert(
-        'Payout Request Submitted! 🚀',
+        'Payout Request Submitted',
         `Your withdrawal request for ₹${amount.toFixed(2)} to ${trimmedUpi} has been queued. Funds are typically processed within 24-48 hours.`,
       );
     } else {
@@ -102,8 +102,8 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
 
   const getStatusBadge = (status: PayoutStatus) => {
     switch (status) {
-      case PayoutStatus.COMPLETED:
-        return { label: 'COMPLETED', bg: 'rgba(16, 185, 129, 0.15)', text: '#10B981' };
+      case PayoutStatus.PAID:
+        return { label: 'PAID', bg: 'rgba(16, 185, 129, 0.15)', text: '#10B981' };
       case PayoutStatus.PROCESSING:
         return { label: 'PROCESSING', bg: 'rgba(59, 130, 246, 0.15)', text: '#3B82F6' };
       case PayoutStatus.REJECTED:
@@ -143,7 +143,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
                 <Text style={styles.statLabel}>Lifetime Earned</Text>
-                <Text style={styles.statValue}>₹{(wallet?.totalEarningsInr ?? 0).toFixed(2)}</Text>
+                <Text style={styles.statValue}>₹{(wallet?.totalEarnedInr ?? 0).toFixed(2)}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
@@ -152,8 +152,8 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
-                <Text style={styles.statLabel}>In Processing</Text>
-                <Text style={styles.statValue}>₹{(wallet?.pendingPayoutInr ?? 0).toFixed(2)}</Text>
+                <Text style={styles.statLabel}>Gifts Received</Text>
+                <Text style={styles.statValue}>{wallet?.giftsReceivedCount ?? 0}</Text>
               </View>
             </View>
 
