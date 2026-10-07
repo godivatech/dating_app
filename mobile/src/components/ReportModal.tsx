@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { useSafetyStore } from '../stores/safety-store';
+import { toast } from '../stores/toast-store';
 import { ReportTargetType, ReportReason } from '../../../shared/src/types';
 
 interface ReportModalProps {
@@ -66,7 +67,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
   const handleSubmit = async () => {
     if (!selectedReason) {
-      Alert.alert('Reason Required', 'Please select a reason for your report.');
+      toast.error('Please select a reason for your report.', 'Reason Required');
       return;
     }
 
@@ -82,24 +83,14 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     setIsSubmitting(false);
 
     if (success) {
-      Alert.alert(
-        'Report Submitted',
-        'Thank you for helping keep our community safe. Our moderation team will review this promptly.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              handleClose();
-              if (onSuccess) onSuccess();
-            },
-          },
-        ],
+      handleClose();
+      if (onSuccess) onSuccess();
+      toast.success(
+        'Thank you for helping keep our community safe. Moderation will review promptly.',
+        'Report Submitted 🛡️',
       );
     } else {
-      Alert.alert(
-        'Submission Failed',
-        'Unable to submit your report at this time. Please try again.',
-      );
+      toast.error('Unable to submit your report at this time. Please try again.', 'Submission Failed');
     }
   };
 

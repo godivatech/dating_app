@@ -23,6 +23,7 @@ import { useCreatorStore } from '../src/stores/creator-store';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
 import { CreatorWalletModal } from '../src/components/gifts/CreatorWalletModal';
+import { toast } from '../src/stores/toast-store';
 import { Colors } from '../src/theme/colors';
 import { ProfileVisibility } from '../../shared/src/types';
 import { registerForPushNotificationsAsync } from '../src/services/push-notification.service';
@@ -81,7 +82,7 @@ export default function ProfileScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Camera roll permission is required to upload photos.');
+        toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
         return;
       }
 
@@ -104,14 +105,14 @@ export default function ProfileScreen() {
         setIsUploadingAvatar(false);
         if (success) {
           await fetchProfile();
-          Alert.alert('Success', 'Profile photo updated successfully.');
+          toast.success('Profile photo updated successfully!');
         } else {
-          Alert.alert('Upload Failed', 'Could not upload photo. Please try again.');
+          toast.error('Could not upload photo. Please try again.', 'Upload Failed');
         }
       }
     } catch (err: any) {
       setIsUploadingAvatar(false);
-      Alert.alert('Error', err.message || 'Failed to select photo.');
+      toast.error(err.message || 'Failed to select photo.');
     }
   };
 

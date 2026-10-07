@@ -28,6 +28,7 @@ import {
 } from '../../shared/src/types';
 import { ReportModal } from '../src/components/ReportModal';
 import { useBillingStore } from '../src/stores/billing-store';
+import { toast } from '../src/stores/toast-store';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../src/theme/colors';
 import { apiClient } from '../src/services/api-client';
@@ -111,11 +112,11 @@ export default function MatchesScreen() {
           ],
         );
       } else {
-        Alert.alert('Connected! ✨', `You matched with ${noteItem.senderProfile.displayName}!`);
+        toast.success(`You matched with ${noteItem.senderProfile.displayName}!`, 'Connected! ✨', '/matches');
       }
     } catch (err: any) {
       setIsRespondingToNote(null);
-      Alert.alert('Error', err.message || 'Failed to accept note.');
+      toast.error(err.message || 'Failed to accept note.');
     }
   };
 

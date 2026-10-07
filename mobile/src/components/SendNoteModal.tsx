@@ -17,6 +17,7 @@ import { Colors } from '../theme/colors';
 import { DiscoveryCandidate, ActionType } from '../../../shared/src/types';
 import { useDiscoveryStore } from '../stores/discovery-store';
 import { useBillingStore } from '../stores/billing-store';
+import { toast } from '../stores/toast-store';
 
 interface SendNoteModalProps {
   visible: boolean;
@@ -49,7 +50,7 @@ export function SendNoteModal({
     if (!trimmed || isSending) return;
 
     if (trimmed.length > MAX_NOTE_LENGTH) {
-      Alert.alert('Note Too Long', `Notes cannot exceed ${MAX_NOTE_LENGTH} characters.`);
+      toast.error(`Notes cannot exceed ${MAX_NOTE_LENGTH} characters.`, 'Note Too Long');
       return;
     }
 
@@ -86,12 +87,13 @@ export function SendNoteModal({
         if (onSent) onSent(res.matched);
 
         if (res.matched) {
-          Alert.alert(
-            "It's a Match! 🎉",
+          toast.success(
             `You and ${candidate.displayName} liked each other! Head to Matches to chat.`,
+            "It's a Match! 🎉",
+            '/matches',
           );
         } else {
-          Alert.alert('Note Sent 💌', `Your personal note was delivered to ${candidate.displayName}.`);
+          toast.success(`Your personal note was delivered to ${candidate.displayName}.`, 'Note Sent 💌');
         }
       } else {
         // Check if quota or coin balance was hit from store error
@@ -106,7 +108,7 @@ export function SendNoteModal({
           onClose();
           openPaywall('DIRECT_NOTES');
         } else if (storeError) {
-          Alert.alert('Safety Notice 🛡️', storeError);
+          toast.info(storeError, 'Safety Notice 🛡️');
         }
       }
     } catch (err: any) {
@@ -122,7 +124,7 @@ export function SendNoteModal({
         onClose();
         openPaywall('DIRECT_NOTES');
       } else {
-        Alert.alert('Safety Notice 🛡️', msg);
+        toast.info(msg, 'Safety Notice 🛡️');
       }
     }
   };

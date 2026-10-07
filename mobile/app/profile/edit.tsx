@@ -20,6 +20,7 @@ import {
   PreferredGenderMode,
 } from '../../../shared/src/types';
 import { Colors } from '../../src/theme/colors';
+import { toast } from '../../src/stores/toast-store';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -136,9 +137,8 @@ export default function EditProfileScreen() {
         preferredGenders: selectedGenders,
       });
 
-      Alert.alert('Success', 'Profile updated successfully!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      toast.success('Profile updated successfully!');
+      router.back();
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Failed to save profile.';
       setError(Array.isArray(msg) ? msg[0] : msg);

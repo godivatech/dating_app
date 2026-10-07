@@ -32,6 +32,8 @@ import { OfflineNotice } from '../src/components/OfflineNotice';
 import { useSafetyStore } from '../src/stores/safety-store';
 import { useBillingStore } from '../src/stores/billing-store';
 import { useCreatorStore } from '../src/stores/creator-store';
+import { ToastBanner } from '../src/components/ToastBanner';
+import { toast } from '../src/stores/toast-store';
 
 import { setupAutoUpdateListener } from '../src/services/update.service';
 import {
@@ -159,7 +161,7 @@ export default function RootLayout() {
         const subtitle = data.note
           ? `"${data.note.slice(0, 50)}${data.note.length > 50 ? '...' : ''}"`
           : `${data.actorDisplayName} liked your profile!`;
-        showNotificationToast('like', title, subtitle, '/matches');
+        toast.like(title, subtitle, '/matches');
       });
 
       // Listen for real-time incoming messages
@@ -187,8 +189,7 @@ export default function RootLayout() {
         useNotificationsStore.getState().fetchUnreadCount();
         const title = 'New Message';
         const subtitle = data.message.body?.slice(0, 60) || 'Sent you a message';
-        showNotificationToast(
-          'message',
+        toast.message(
           title,
           subtitle,
           `/chat/${data.conversationId}`,
@@ -261,52 +262,8 @@ export default function RootLayout() {
           }}
         />
 
-        {/* Global In-App Notification Toast */}
-        {inAppToast.visible && (
-          <Animated.View
-            style={[
-              styles.toastBanner,
-              { transform: [{ translateY: toastTranslateY }] },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.toastInner}
-              activeOpacity={0.9}
-              onPress={() => {
-                const targetRoute = inAppToast.route || '/matches';
-                setInAppToast({ visible: false, type: 'like', title: '', subtitle: '' });
-                router.push(targetRoute as any);
-              }}
-            >
-              <View
-                style={[
-                  styles.toastIconBox,
-                  inAppToast.type === 'message' && { backgroundColor: '#E6F4FE' },
-                ]}
-              >
-                <Ionicons
-                  name={inAppToast.type === 'message' ? 'chatbubble-ellipses' : 'heart'}
-                  size={18}
-                  color={inAppToast.type === 'message' ? '#007AFF' : Colors.primary}
-                />
-              </View>
-              <View style={styles.toastTextBox}>
-                <Text style={styles.toastTitle}>{inAppToast.title}</Text>
-                <Text style={styles.toastSubtitle} numberOfLines={1}>
-                  {inAppToast.subtitle}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.toastActionText,
-                  inAppToast.type === 'message' && { color: '#007AFF' },
-                ]}
-              >
-                {inAppToast.type === 'message' ? 'Reply' : 'View'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+        {/* Global Branded Toast Banner */}
+        <ToastBanner />
 
         {/* Celebratory Match Modal */}
         <MatchCelebrationModal

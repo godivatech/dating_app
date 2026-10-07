@@ -18,6 +18,7 @@ import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
 import { t } from '../src/i18n/strings';
 import { SubscriptionTier } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
+import { toast } from '../src/stores/toast-store';
 
 export default function PremiumScreen() {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function PremiumScreen() {
           onPress: async () => {
             const success = await cancelSubscription();
             if (success) {
-              Alert.alert('Success', 'Auto-renewal has been canceled. Your benefits remain active until expiration.');
+              toast.success('Auto-renewal canceled. Benefits active until expiration.', 'Subscription Updated');
             }
           },
         },

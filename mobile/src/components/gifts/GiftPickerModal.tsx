@@ -17,6 +17,7 @@ import { Colors } from '../../theme/colors';
 import { useCreatorStore } from '../../stores/creator-store';
 import { useBillingStore } from '../../stores/billing-store';
 import { useChatStore } from '../../stores/chat-store';
+import { toast } from '../../stores/toast-store';
 import { GiftType } from '../../../../shared/src/types';
 import { getGiftAsset, COIN_ASSET } from '../../constants/gift-assets';
 
@@ -160,7 +161,7 @@ export const GiftPickerModal: React.FC = () => {
         } catch {}
       }
     } else {
-      Alert.alert('Could Not Send Gift', result.error || 'Please try again later.');
+      toast.error(result.error || 'Please try again later.', 'Could Not Send Gift');
     }
   };
 

@@ -31,6 +31,7 @@ import { useCreatorStore } from '../../src/stores/creator-store';
 import { useBillingStore } from '../../src/stores/billing-store';
 import { Colors } from '../../src/theme/colors';
 import { getGiftAsset, parseGiftMessage, COIN_ASSET } from '../../src/constants/gift-assets';
+import { toast } from '../../src/stores/toast-store';
 
 export default function ChatScreen() {
   const {
@@ -211,20 +212,15 @@ export default function ChatScreen() {
   }, [conversationId, triggerGiftAnimation]);
 
   const handleMicPress = () => {
-    Alert.alert(
+    toast.info(
+      'Voice notes are coming in our next build. In the meantime, you can make crystal-clear live Audio & Video Calls!',
       'Voice Notes 🎙️',
-      'Voice notes are being configured for our next build. In the meantime, you can make crystal-clear live Audio & Video Calls using the call buttons in the header!',
-      [{ text: 'OK', style: 'default' }],
     );
   };
 
   const handleGiftPress = () => {
     if (!targetPartnerUserId) {
-      Alert.alert(
-        'Send Gift',
-        'Partner information is loading. Please wait a moment.',
-        [{ text: 'OK' }],
-      );
+      toast.info('Partner information is loading. Please wait a moment.');
       return;
     }
     openGiftModal(

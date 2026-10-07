@@ -27,6 +27,7 @@ import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ActionType } from '../../shared/src/types';
 import { Colors } from '../src/theme/colors';
 import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevention';
+import { toast } from '../src/stores/toast-store';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -74,10 +75,9 @@ export default function DiscoveryScreen() {
 
   const handleBoostPress = () => {
     if (isBoostActive) {
-      Alert.alert(
-        '⚡ Profile Boost Active!',
-        `Your profile is currently boosted to the top of discovery in your area for another ${boostRemainingMinutes} minute(s). Enjoy 10x more reach and views!`,
-        [{ text: 'Awesome!', style: 'default' }],
+      toast.info(
+        `Your profile is boosted for another ${boostRemainingMinutes} minute(s). Enjoy 10x more reach!`,
+        '⚡ Boost Active',
       );
       return;
     }
@@ -102,7 +102,7 @@ export default function DiscoveryScreen() {
                   fetchCreditBalance();
                 }
               } catch (err: any) {
-                Alert.alert('Boost Failed', err.message || 'Could not activate boost.');
+                toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
               }
             },
           },
@@ -125,7 +125,7 @@ export default function DiscoveryScreen() {
                   fetchCreditBalance();
                 }
               } catch (err: any) {
-                Alert.alert('Boost Failed', err.message || 'Could not activate boost.');
+                toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
               }
             },
           },

@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useCreatorStore } from '../../stores/creator-store';
+import { toast } from '../../stores/toast-store';
 import { PayoutStatus } from '../../../../shared/src/types';
 
 interface CreatorWalletModalProps {
@@ -53,9 +54,9 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
 
   const handleOpenWithdraw = () => {
     if (availableBalance < 100) {
-      Alert.alert(
+      toast.info(
+        `The minimum withdrawal threshold is ₹100. Your current available balance is ₹${availableBalance.toFixed(2)}.`,
         'Minimum Balance Required',
-        `The minimum withdrawal threshold is ₹100. Your current available balance is ₹${availableBalance.toFixed(2)}. Receive more virtual gifts from matches to unlock payouts!`,
       );
       return;
     }
@@ -66,22 +67,22 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
   const handleConfirmWithdraw = async () => {
     const amount = parseFloat(withdrawAmount);
     if (isNaN(amount) || amount < 100) {
-      Alert.alert('Invalid Amount', 'Minimum withdrawal amount is ₹100.');
+      toast.error('Minimum withdrawal amount is ₹100.', 'Invalid Amount');
       return;
     }
     if (amount > availableBalance) {
-      Alert.alert(
-        'Insufficient Balance',
+      toast.error(
         `You cannot withdraw more than your available balance of ₹${availableBalance.toFixed(2)}.`,
+        'Insufficient Balance',
       );
       return;
     }
 
     const trimmedUpi = upiId.trim();
     if (!trimmedUpi || !trimmedUpi.includes('@') || trimmedUpi.length < 5) {
-      Alert.alert(
-        'Invalid UPI ID',
+      toast.error(
         'Please enter a valid UPI VPA (e.g., yourname@oksbi, mobile@paytm).',
+        'Invalid UPI ID',
       );
       return;
     }
@@ -91,12 +92,12 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
       setShowWithdrawDialog(false);
       setWithdrawAmount('');
       setUpiId('');
-      Alert.alert(
-        'Payout Request Submitted',
-        `Your withdrawal request for ₹${amount.toFixed(2)} to ${trimmedUpi} has been queued. Funds are typically processed within 24-48 hours.`,
+      toast.success(
+        `Your withdrawal request for ₹${amount.toFixed(2)} to ${trimmedUpi} has been queued.`,
+        'Payout Submitted',
       );
     } else {
-      Alert.alert('Payout Failed', res.error || 'Please try again.');
+      toast.error(res.error || 'Please try again.', 'Payout Failed');
     }
   };
 
