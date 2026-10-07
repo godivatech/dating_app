@@ -70,6 +70,13 @@ export const GiftAnimationOverlay: React.FC = () => {
 
   if (!activeGiftAnimation) return null;
 
+  const isSender =
+    activeGiftAnimation.isSender ??
+    activeGiftAnimation.senderDisplayName.toLowerCase() === 'you';
+
+  const recipientName =
+    activeGiftAnimation.receiverDisplayName || 'them';
+
   const handleDismiss = () => {
     Animated.parallel([
       Animated.timing(opacityAnim, {
@@ -115,19 +122,40 @@ export const GiftAnimationOverlay: React.FC = () => {
 
           {/* Banner Pill */}
           <View style={styles.bannerPill}>
-            <Text style={styles.congratsText}>Special Gift Received</Text>
-            <Text style={styles.senderText}>
-              <Text style={{ fontWeight: '800', color: Colors.primary }}>
-                {activeGiftAnimation.senderDisplayName}
-              </Text>{' '}
-              sent you a {activeGiftAnimation.displayName}!
-            </Text>
-            <View style={styles.earningsPill}>
-              <Ionicons name="sparkles" size={13} color={Colors.primary} style={{ marginRight: 5 }} />
-              <Text style={styles.earningsPillText}>
-                Creator Wallet Credited
-              </Text>
-            </View>
+            {isSender ? (
+              <>
+                <Text style={styles.congratsText}>Gift Sent ✨</Text>
+                <Text style={styles.senderText}>
+                  You sent a{' '}
+                  <Text style={{ fontWeight: '800', color: Colors.primary }}>
+                    {activeGiftAnimation.displayName}
+                  </Text>{' '}
+                  to {recipientName}!
+                </Text>
+                <View style={styles.earningsPill}>
+                  <Ionicons name="heart" size={13} color={Colors.primary} style={{ marginRight: 5 }} />
+                  <Text style={styles.earningsPillText}>
+                    Special Affection Delivered
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.congratsText}>Special Gift Received 💝</Text>
+                <Text style={styles.senderText}>
+                  <Text style={{ fontWeight: '800', color: Colors.primary }}>
+                    {activeGiftAnimation.senderDisplayName}
+                  </Text>{' '}
+                  sent you a {activeGiftAnimation.displayName}!
+                </Text>
+                <View style={styles.earningsPill}>
+                  <Ionicons name="sparkles" size={13} color={Colors.primary} style={{ marginRight: 5 }} />
+                  <Text style={styles.earningsPillText}>
+                    Creator Wallet Credited
+                  </Text>
+                </View>
+              </>
+            )}
           </View>
         </Animated.View>
       </TouchableOpacity>

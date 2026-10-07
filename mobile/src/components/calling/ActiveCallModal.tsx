@@ -17,6 +17,7 @@ import { ReportModal } from '../ReportModal';
 import { useScreenCapturePrevention } from '../../hooks/useScreenCapturePrevention';
 import { VideoSurfaceView } from './VideoSurfaceView';
 import { toast } from '../../stores/toast-store';
+import { Colors } from '../../theme/colors';
 
 export const ActiveCallModal: React.FC = () => {
   const {
@@ -25,6 +26,7 @@ export const ActiveCallModal: React.FC = () => {
     durationSeconds,
     isMicMuted,
     isVideoMuted,
+
     isSpeakerOn,
     isCameraFlipped,
     partnerVideoMuted,
@@ -577,11 +579,11 @@ const styles = StyleSheet.create({
   },
   safetySheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
   safetySheetContent: {
-    backgroundColor: '#1E293B',
+    backgroundColor: Colors.white,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
@@ -592,14 +594,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#475569',
+    backgroundColor: Colors.border,
     alignSelf: 'center',
     marginBottom: 16,
   },
   safetySheetTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
     marginBottom: 16,
   },
   safetySheetItem: {
@@ -607,7 +609,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomColor: Colors.borderLight,
   },
   safetySheetIconBox: {
     width: 40,
@@ -623,24 +625,24 @@ const styles = StyleSheet.create({
   safetySheetLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textPrimary,
   },
   safetySheetSubtext: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: Colors.textMuted,
     marginTop: 2,
   },
   safetySheetCancelBtn: {
     marginTop: 16,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   safetySheetCancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: Colors.textSecondary,
   },
 });

@@ -328,6 +328,8 @@ export default function ChatScreen() {
                 displayName: giftData.giftName,
                 icon: '',
                 senderDisplayName: isMe ? 'You' : partnerName,
+                receiverDisplayName: isMe ? partnerName : 'You',
+                isSender: isMe,
               });
             }}
             style={[

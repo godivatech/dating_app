@@ -21,6 +21,8 @@ export interface GiftAnimationData {
   displayName: string;
   icon: string;
   senderDisplayName: string;
+  receiverDisplayName?: string;
+  isSender?: boolean;
 }
 
 interface CreatorState {

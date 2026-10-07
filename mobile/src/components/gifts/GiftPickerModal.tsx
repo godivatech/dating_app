@@ -138,6 +138,8 @@ export const GiftPickerModal: React.FC = () => {
         displayName: selectedGift.name,
         icon: '',
         senderDisplayName: 'You',
+        receiverDisplayName: giftModalConfig.receiverName,
+        isSender: true,
       });
 
       // Drop celebratory message into chat conversation if in chat
