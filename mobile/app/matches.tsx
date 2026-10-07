@@ -112,27 +112,19 @@ export default function MatchesScreen() {
     }
   };
 
-  const handleDeclineNote = (noteItem: IncomingNoteItem) => {
-    Alert.alert(
-      'Decline Note',
-      `Decline this note from ${noteItem.senderProfile.displayName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Decline',
-          style: 'destructive',
-          onPress: async () => {
-            setIsRespondingToNote(noteItem.actionId);
-            await respondToNote(noteItem.actionId, noteItem.senderProfile.profileId, false);
-            setIsRespondingToNote(null);
-            if (selectedNotePreview?.actionId === noteItem.actionId) {
-              setSelectedNotePreview(null);
-            }
-            toast.info('Note declined.');
-          },
-        },
-      ],
-    );
+  const handleDeclineNote = async (noteItem: IncomingNoteItem) => {
+    try {
+      setIsRespondingToNote(noteItem.actionId);
+      await respondToNote(noteItem.actionId, noteItem.senderProfile.profileId, false);
+      setIsRespondingToNote(null);
+      if (selectedNotePreview?.actionId === noteItem.actionId) {
+        setSelectedNotePreview(null);
+      }
+      toast.info(`Declined note from ${noteItem.senderProfile.displayName}.`);
+    } catch (err: any) {
+      setIsRespondingToNote(null);
+      toast.error(err.message || 'Failed to decline note.');
+    }
   };
 
   const handleStartChat = async (matchId: string) => {

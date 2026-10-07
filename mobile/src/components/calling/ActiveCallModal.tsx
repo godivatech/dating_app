@@ -8,7 +8,6 @@ import {
   Image,
   SafeAreaView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallStore } from '../../stores/call-store';
@@ -39,6 +38,7 @@ export const ActiveCallModal: React.FC = () => {
 
   const { blockUser } = useSafetyStore();
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [showSafetySheet, setShowSafetySheet] = useState(false);
 
   const isVisible =
     (callState === 'OUTGOING_RINGING' ||
@@ -63,30 +63,7 @@ export const ActiveCallModal: React.FC = () => {
   };
 
   const handleSafetyAction = () => {
-    Alert.alert(
-      'Safety Options',
-      'Need to report or block this user during the call?',
-      [
-        {
-          text: 'Report User & End Call',
-          style: 'destructive',
-          onPress: () => {
-            hangupCall();
-            setReportModalVisible(true);
-          },
-        },
-        {
-          text: 'Block & Hang Up',
-          style: 'destructive',
-          onPress: async () => {
-            hangupCall();
-            await blockUser(activeCall.partnerUserId, 'Terminated call and blocked');
-            toast.success(`${activeCall.partnerName} has been blocked.`, 'User Blocked');
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ],
-    );
+    setShowSafetySheet(true);
   };
 
   return (
@@ -106,6 +83,69 @@ export const ActiveCallModal: React.FC = () => {
           );
         }}
       />
+      {/* Sleek In-Call Safety Action Sheet */}
+      <Modal
+        visible={showSafetySheet}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowSafetySheet(false)}
+      >
+        <TouchableOpacity
+          style={styles.safetySheetOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSafetySheet(false)}
+        >
+          <View style={styles.safetySheetContent}>
+            <View style={styles.safetySheetHandle} />
+            <Text style={styles.safetySheetTitle}>In-Call Safety Actions</Text>
+
+            <TouchableOpacity
+              style={styles.safetySheetItem}
+              onPress={() => {
+                setShowSafetySheet(false);
+                hangupCall();
+                setReportModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.safetySheetIconBox, { backgroundColor: '#FFF0F1' }]}>
+                <Ionicons name="flag-outline" size={20} color="#FD5D65" />
+              </View>
+              <View style={styles.safetySheetTextBox}>
+                <Text style={styles.safetySheetLabel}>Report User & End Call</Text>
+                <Text style={styles.safetySheetSubtext}>End call immediately and submit a safety report</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.safetySheetItem}
+              onPress={async () => {
+                setShowSafetySheet(false);
+                hangupCall();
+                await blockUser(activeCall.partnerUserId, 'Terminated call and blocked');
+                toast.success(`${activeCall.partnerName} has been blocked.`, 'User Blocked');
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.safetySheetIconBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="ban-outline" size={20} color="#EF4444" />
+              </View>
+              <View style={styles.safetySheetTextBox}>
+                <Text style={[styles.safetySheetLabel, { color: '#EF4444' }]}>Block & Hang Up</Text>
+                <Text style={styles.safetySheetSubtext}>End call, disconnect, and block profile</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.safetySheetCancelBtn}
+              onPress={() => setShowSafetySheet(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.safetySheetCancelText}>Cancel / Return to Call</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       <Modal
         visible={isVisible}
@@ -534,5 +574,73 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 8,
     elevation: 8,
+  },
+  safetySheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    justifyContent: 'flex-end',
+  },
+  safetySheetContent: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 36,
+  },
+  safetySheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#475569',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  safetySheetTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  safetySheetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  safetySheetIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  safetySheetTextBox: {
+    flex: 1,
+  },
+  safetySheetLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  safetySheetSubtext: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  safetySheetCancelBtn: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  safetySheetCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
 });

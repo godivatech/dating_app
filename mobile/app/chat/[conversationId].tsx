@@ -76,6 +76,7 @@ export default function ChatScreen() {
   const [isBlockedLocally, setIsBlockedLocally] = useState(false);
   const [isPartnerOnline, setIsPartnerOnline] = useState(false);
   const [blockedMessageModal, setBlockedMessageModal] = useState<string | null>(null);
+  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -515,13 +516,7 @@ export default function ChatScreen() {
 
           <TouchableOpacity
             style={styles.menuBtn}
-            onPress={() => {
-              Alert.alert('Options', '', [
-                { text: 'Report User', onPress: () => setReportModalVisible(true) },
-                { text: 'Block User', style: 'destructive', onPress: handleBlock },
-                { text: 'Cancel', style: 'cancel' },
-              ]);
-            }}
+            onPress={() => setShowOptionsMenu(true)}
             activeOpacity={0.7}
           >
             <Ionicons name="ellipsis-vertical" size={20} color={Colors.textPrimary} />
@@ -624,6 +619,67 @@ export default function ChatScreen() {
           </View>
         )}
       </KeyboardAvoidingView>
+
+      {/* Sleek Chat Options Action Sheet */}
+      <Modal
+        visible={showOptionsMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowOptionsMenu(false)}
+      >
+        <TouchableOpacity
+          style={styles.optionsModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowOptionsMenu(false)}
+        >
+          <View style={styles.optionsModalContent}>
+            <View style={styles.optionsModalHandle} />
+            <Text style={styles.optionsModalTitle}>Chat Safety & Options</Text>
+
+            <TouchableOpacity
+              style={styles.optionsItem}
+              onPress={() => {
+                setShowOptionsMenu(false);
+                setReportModalVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.optionsIconBox, { backgroundColor: '#FFF0F1' }]}>
+                <Ionicons name="flag-outline" size={20} color={Colors.primary} />
+              </View>
+              <View style={styles.optionsTextBox}>
+                <Text style={styles.optionsLabel}>Report {partnerName}</Text>
+                <Text style={styles.optionsSubtext}>Report inappropriate behavior or policy violations</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionsItem}
+              onPress={() => {
+                setShowOptionsMenu(false);
+                handleBlock();
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.optionsIconBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="ban-outline" size={20} color={Colors.error} />
+              </View>
+              <View style={styles.optionsTextBox}>
+                <Text style={[styles.optionsLabel, { color: Colors.error }]}>Block {partnerName}</Text>
+                <Text style={styles.optionsSubtext}>Stop all communication and hide each other's profiles</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionsCancelBtn}
+              onPress={() => setShowOptionsMenu(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.optionsCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Safety Report Modal */}
       {matchedProfile && (
@@ -1173,6 +1229,74 @@ const styles = StyleSheet.create({
   giftTimeString: {
     fontSize: 10,
     color: '#94A3B8',
+  },
+  optionsModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    justifyContent: 'flex-end',
+  },
+  optionsModalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 36,
+  },
+  optionsModalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  optionsModalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textPrimary,
+    marginBottom: 16,
+  },
+  optionsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.borderLight,
+  },
+  optionsIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  optionsTextBox: {
+    flex: 1,
+  },
+  optionsLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textPrimary,
+  },
+  optionsSubtext: {
+    fontSize: 12,
+    color: Colors.textMuted,
+    marginTop: 2,
+  },
+  optionsCancelBtn: {
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionsCancelText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
 });
 
