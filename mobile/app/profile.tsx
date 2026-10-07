@@ -65,17 +65,7 @@ export default function ProfileScreen() {
   const isProfileVisible = profile?.visibility !== ProfileVisibility.HIDDEN;
 
   const handleAvatarPress = () => {
-    Alert.alert('Profile Photo', 'Update your profile picture', [
-      {
-        text: 'Upload New Photo',
-        onPress: handlePickAndUploadAvatar,
-      },
-      {
-        text: 'Manage All Photos',
-        onPress: () => router.push('/(onboarding)/photos?fromProfile=true' as any),
-      },
-      { text: 'Cancel', style: 'cancel' },
-    ]);
+    handlePickAndUploadAvatar();
   };
 
   const handlePickAndUploadAvatar = async () => {
@@ -122,9 +112,9 @@ export default function ProfileScreen() {
     const success = await toggleVisibility(targetVisibility);
     setIsTogglingVisibility(false);
     if (!success) {
-      Alert.alert(
-        'Cannot Enable Discovery',
+      toast.error(
         'Please ensure your profile has a name, birthday, city, and at least 1 photo before enabling discovery.',
+        'Cannot Enable Discovery',
       );
     }
   };
@@ -140,9 +130,9 @@ export default function ProfileScreen() {
     const nextLocale = locale === 'en' ? 'ta' : 'en';
     setLocale(nextLocale);
     setLocalLocale(nextLocale);
-    Alert.alert(
-      'Language Updated',
+    toast.success(
       nextLocale === 'ta' ? 'Switched to Tamil (தமிழ்)' : 'Switched to English',
+      'Language Updated',
     );
   };
 

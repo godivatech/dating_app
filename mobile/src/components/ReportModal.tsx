@@ -8,7 +8,6 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useSafetyStore } from '../stores/safety-store';
 import { toast } from '../stores/toast-store';

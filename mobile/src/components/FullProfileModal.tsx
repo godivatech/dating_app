@@ -15,6 +15,7 @@ import { apiClient } from '../services/api-client';
 import { ViewableProfileDto, ActionType, ReportTargetType } from '../../../shared/src/types';
 import { ReportModal } from './ReportModal';
 import { useSafetyStore } from '../stores/safety-store';
+import { toast } from '../stores/toast-store';
 import { t } from '../i18n/strings';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -81,6 +82,7 @@ export const FullProfileModal: React.FC<FullProfileModalProps> = ({
           style: 'destructive',
           onPress: async () => {
             await blockUser(profile.userId, 'Blocked from full profile view');
+            toast.success(`${profile.displayName} has been blocked.`, 'User Blocked');
             onClose();
           },
         },

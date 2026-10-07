@@ -9,7 +9,6 @@ import {
   Image,
   Dimensions,
   Vibration,
-  Alert,
   Animated,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,6 +19,7 @@ import { useProfileStore } from '../src/stores/profile-store';
 import { useDiscoveryStore } from '../src/stores/discovery-store';
 import { useNotificationsStore } from '../src/stores/notifications-store';
 import { useBillingStore } from '../src/stores/billing-store';
+import { toast } from '../src/stores/toast-store';
 import { ButterflyLogo } from '../src/components/ButterflyLogo';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
@@ -88,17 +88,10 @@ export default function IndexScreen() {
       showPill(`❤️ Liked ${personName}!`);
       const result = await recordAction(profileId, ActionType.LIKE);
       if (result?.matched) {
-        Alert.alert(
+        toast.match(
           "🎉 It's a Match!",
           `You and ${personName} liked each other! Start chatting now.`,
-          [
-            { text: 'Keep Browsing', style: 'cancel' },
-            {
-              text: 'Say Hello',
-              style: 'default',
-              onPress: () => router.push('/conversations' as any),
-            },
-          ],
+          '/conversations',
         );
       } else if (!result) {
         const storeError = useDiscoveryStore.getState().error;

@@ -10,7 +10,6 @@ import {
   TextInput,
   Animated,
   Vibration,
-  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -73,7 +72,7 @@ export default function DiscoveryScreen() {
     return Math.max(0, Math.ceil(diff / 60000));
   }, [creditBalance?.boostExpiresAt]);
 
-  const handleBoostPress = () => {
+  const handleBoostPress = async () => {
     if (isBoostActive) {
       toast.info(
         `Your profile is boosted for another ${boostRemainingMinutes} minute(s). Enjoy 10x more reach!`,
@@ -86,52 +85,35 @@ export default function DiscoveryScreen() {
     const availableCoins = creditBalance?.coins ?? 0;
 
     if (availableBoosts > 0) {
-      Alert.alert(
-        '⚡ Activate Profile Boost',
-        `You have ${availableBoosts} Profile Boost credit(s) available.\n\nBoost your profile for 30 minutes to get 10x more views and front-row card ranking!`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Boost Me (1 Credit)',
-            style: 'default',
-            onPress: async () => {
-              try {
-                const res = await activateBoost();
-                if (res?.success) {
-                  showPill('⚡ Boost Activated! (30m)');
-                  fetchCreditBalance();
-                }
-              } catch (err: any) {
-                toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
-              }
-            },
-          },
-        ],
-      );
+      try {
+        const res = await activateBoost();
+        if (res?.success) {
+          toast.success(
+            '⚡ Profile Boost Activated! You now get 10x more views for 30 minutes.',
+            'Boost Active',
+          );
+          showPill('⚡ Boost Activated! (30m)');
+          fetchCreditBalance();
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
+      }
     } else if (availableCoins >= 30) {
-      Alert.alert(
-        '⚡ Activate Profile Boost',
-        `You have 🪙 ${availableCoins} Coins available.\n\nBoost your profile for 30 minutes using 30 Coins to get 10x more views and front-row card ranking!`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Boost Me (30 🪙)',
-            style: 'default',
-            onPress: async () => {
-              try {
-                const res = await activateBoost();
-                if (res?.success) {
-                  showPill('⚡ Boost Activated with 30 🪙! (30m)');
-                  fetchCreditBalance();
-                }
-              } catch (err: any) {
-                toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
-              }
-            },
-          },
-        ],
-      );
+      try {
+        const res = await activateBoost();
+        if (res?.success) {
+          toast.success(
+            '⚡ Profile Boost Activated with 30 coins! 10x more views for 30 minutes.',
+            'Boost Active',
+          );
+          showPill('⚡ Boost Activated with 30 🪙! (30m)');
+          fetchCreditBalance();
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'Could not activate boost.', 'Boost Failed');
+      }
     } else {
+      toast.info('Top up your wallet or get boosts to get 10x more visibility!', 'Profile Boost');
       openPaywall('BOOST');
     }
   };
@@ -165,7 +147,7 @@ export default function DiscoveryScreen() {
         fetchDiscoveryFeed(true);
       }
     } catch {
-      Alert.alert('Error', 'Could not switch discovery mode.');
+      toast.error('Could not switch discovery mode.');
     }
   };
 
@@ -188,7 +170,7 @@ export default function DiscoveryScreen() {
         fetchDiscoveryFeed(true);
       }
     } catch {
-      Alert.alert('Error', 'Could not set destination city.');
+      toast.error('Could not set destination city.');
     }
   };
 
@@ -211,7 +193,7 @@ export default function DiscoveryScreen() {
         fetchDiscoveryFeed(true);
       }
     } catch {
-      Alert.alert('Error', 'Could not reset destination city.');
+      toast.error('Could not reset destination city.');
     }
   };
 

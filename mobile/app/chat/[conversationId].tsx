@@ -244,6 +244,7 @@ export default function ChatScreen() {
           onPress: async () => {
             setIsBlockedLocally(true);
             await blockUser(matchedProfile.userId, 'Blocked from chat');
+            toast.success(`${matchedProfile.displayName} has been blocked.`, 'User Blocked');
             router.back();
           },
         },

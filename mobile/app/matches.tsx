@@ -98,18 +98,10 @@ export default function MatchesScreen() {
       }
 
       if (res?.matched && res.match) {
-        const newMatch = res.match;
-        Alert.alert(
+        toast.match(
           'It’s a Match! 🎉',
-          `You and ${noteItem.senderProfile.displayName} are now connected!`,
-          [
-            { text: 'Later', style: 'cancel' },
-            {
-              text: 'Chat Now',
-              style: 'default',
-              onPress: () => handleStartChat(newMatch.id),
-            },
-          ],
+          `You and ${noteItem.senderProfile.displayName} are now connected! Tap to chat.`,
+          '/conversations',
         );
       } else {
         toast.success(`You matched with ${noteItem.senderProfile.displayName}!`, 'Connected! ✨', '/matches');
@@ -136,6 +128,7 @@ export default function MatchesScreen() {
             if (selectedNotePreview?.actionId === noteItem.actionId) {
               setSelectedNotePreview(null);
             }
+            toast.info('Note declined.');
           },
         },
       ],
@@ -162,7 +155,7 @@ export default function MatchesScreen() {
       } as any);
     } catch (err: any) {
       setIsStartingChat(false);
-      Alert.alert('Error', err.message || 'Failed to open chat.');
+      toast.error(err.message || 'Failed to open chat.', 'Chat Error');
     }
   };
 
@@ -181,6 +174,7 @@ export default function MatchesScreen() {
             setIsUnmatching(false);
             if (success) {
               setSelectedMatch(null);
+              toast.info(`Unmatched with ${match.matchedProfile.displayName}.`);
             }
           },
         },
@@ -202,6 +196,7 @@ export default function MatchesScreen() {
             if (success) {
               setSelectedMatch(null);
               fetchMatches(true);
+              toast.success(`${match.matchedProfile.displayName} has been blocked.`, 'User Blocked');
             }
           },
         },

@@ -17,6 +17,7 @@ import { CallType, ReportTargetType } from '../../../../shared/src/types';
 import { ReportModal } from '../ReportModal';
 import { useScreenCapturePrevention } from '../../hooks/useScreenCapturePrevention';
 import { VideoSurfaceView } from './VideoSurfaceView';
+import { toast } from '../../stores/toast-store';
 
 export const ActiveCallModal: React.FC = () => {
   const {
@@ -80,7 +81,7 @@ export const ActiveCallModal: React.FC = () => {
           onPress: async () => {
             hangupCall();
             await blockUser(activeCall.partnerUserId, 'Terminated call and blocked');
-            Alert.alert('Blocked', `${activeCall.partnerName} has been blocked.`);
+            toast.success(`${activeCall.partnerName} has been blocked.`, 'User Blocked');
           },
         },
         { text: 'Cancel', style: 'cancel' },
@@ -99,7 +100,10 @@ export const ActiveCallModal: React.FC = () => {
         targetName={activeCall.partnerName}
         onSuccess={() => {
           setReportModalVisible(false);
-          Alert.alert('Report Submitted', 'Thank you for keeping our community safe. Our team is reviewing this call.');
+          toast.success(
+            'Our team is reviewing this call. Thank you for keeping our community safe.',
+            'Report Submitted 🛡️',
+          );
         }}
       />
 

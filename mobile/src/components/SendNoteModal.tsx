@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
@@ -59,20 +58,12 @@ export function SendNoteModal({
       creditBalance.directNotes <= 0 &&
       (creditBalance.coins ?? 0) < 15
     ) {
-      Alert.alert(
-        'Recharge Coins 🪙',
-        'You need 15 coins to send a Direct Note. Recharge your Coin Wallet now to connect instantly.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Recharge Coins',
-            onPress: () => {
-              onClose();
-              openPaywall('DIRECT_NOTES');
-            },
-          },
-        ],
+      onClose();
+      toast.info(
+        'You need 15 coins to send a Direct Note. Top up your Coin Wallet to connect instantly!',
+        'Coins Needed 🪙',
       );
+      openPaywall('DIRECT_NOTES');
       return;
     }
 

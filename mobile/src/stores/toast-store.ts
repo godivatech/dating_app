@@ -62,6 +62,13 @@ export const toast = {
       message,
       route: route || '/matches',
     }),
+  match: (title: string, message: string, route?: string) =>
+    useToastStore.getState().showToast({
+      type: 'match',
+      title,
+      message,
+      route: route || '/conversations',
+    }),
   message: (title: string, message: string, route?: string) =>
     useToastStore.getState().showToast({
       type: 'message',

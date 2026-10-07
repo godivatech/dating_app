@@ -7,7 +7,6 @@ import {
   StyleSheet,
   ActivityIndicator,
   ScrollView,
-  Alert,
   Dimensions,
   Image,
   Platform,
@@ -114,20 +113,12 @@ export const GiftPickerModal: React.FC = () => {
 
   const handleSend = async () => {
     if (!hasEnoughCoins) {
-      Alert.alert(
-        'Insufficient Coins',
-        `You need ${selectedGift.coins} coins to send this gift, but currently have ${currentCoins} coins. Would you like to recharge?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Recharge Coins',
-            onPress: () => {
-              closeGiftModal();
-              openPaywall('COINS');
-            },
-          },
-        ],
+      closeGiftModal();
+      toast.info(
+        `You need ${selectedGift.coins} coins to send this gift. Recharge your wallet to send gifts anytime!`,
+        'Coins Needed 🪙',
       );
+      openPaywall('COINS');
       return;
     }
 

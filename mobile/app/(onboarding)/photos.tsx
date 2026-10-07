@@ -7,7 +7,6 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -18,6 +17,7 @@ import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { StepperHeader } from '../../src/components/StepperHeader';
 import { Colors } from '../../src/theme/colors';
 import { SafeProfilePhoto } from '../../../shared/src/types';
+import { toast } from '../../src/stores/toast-store';
 
 export default function PhotosScreen() {
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function PhotosScreen() {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Denied', 'Camera roll permission is required to upload photos.');
+        toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
         return;
       }
 
@@ -76,7 +76,7 @@ export default function PhotosScreen() {
     } catch (err: any) {
       setLocalUploading(false);
       setOptimisticUri(null);
-      Alert.alert('Upload Failed', err?.message || 'Unable to upload photo.');
+      toast.error(err?.message || 'Unable to upload photo.', 'Upload Failed');
     }
   };
 
@@ -99,11 +99,7 @@ export default function PhotosScreen() {
       return;
     }
     if (!hasPhoto) {
-      Alert.alert(
-        'Photo Required',
-        'Please upload at least 1 photo to complete your profile and find matches.',
-        [{ text: 'OK' }],
-      );
+      toast.error('Please upload at least 1 photo to complete your profile.', 'Photo Required');
       return;
     }
     router.push('/(onboarding)/interests');

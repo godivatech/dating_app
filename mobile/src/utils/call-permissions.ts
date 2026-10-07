@@ -1,4 +1,5 @@
-import { PermissionsAndroid, Platform, Alert } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { toast } from '../stores/toast-store';
 
 /**
  * Requests necessary hardware permissions for real-time audio and video calling,
@@ -30,10 +31,9 @@ export async function requestCallingPermissions(isVideo: boolean = false): Promi
     const isAudioGranted = audioStatus === PermissionsAndroid.RESULTS.GRANTED;
 
     if (!isAudioGranted) {
-      Alert.alert(
-        'Microphone Permission Required',
+      toast.error(
         'Please allow microphone access in your device settings to make and receive calls.',
-        [{ text: 'OK' }],
+        'Microphone Required',
       );
       return false;
     }
@@ -41,10 +41,9 @@ export async function requestCallingPermissions(isVideo: boolean = false): Promi
     if (isVideo) {
       const cameraStatus = statuses[PermissionsAndroid.PERMISSIONS.CAMERA];
       if (cameraStatus !== PermissionsAndroid.RESULTS.GRANTED) {
-        Alert.alert(
-          'Camera Permission Required',
+        toast.error(
           'Please allow camera access in your device settings for video calls.',
-          [{ text: 'OK' }],
+          'Camera Required',
         );
         return false;
       }
