@@ -8,11 +8,20 @@ import {
   AudioProfileType,
   AudioScenarioType,
   AudioRoute,
+  AudioDeviceInfo,
 } from 'react-native-agora';
 import { IRtcEngine, RtcJoinChannelOptions } from './rtc.interface';
 import { requestCallingPermissions } from '../../utils/call-permissions';
 
 export type AppAudioRoute = 'SPEAKER' | 'EARPIECE' | 'HEADSET' | 'BLUETOOTH';
+
+export interface DetectedAudioDevices {
+  hasBluetooth: boolean;
+  hasHeadset: boolean;
+  bluetoothDeviceName?: string;
+  headsetDeviceName?: string;
+  devices: AudioDeviceInfo[];
+}
 
 // High-fidelity standard VoIP call progress tones (open source, telecom spec)
 const OUTGOING_RINGBACK_URL =
@@ -125,9 +134,10 @@ export class AgoraRtcService implements IRtcEngine {
 
   /**
    * Plays outgoing ringback tone (for caller) or incoming musical ringtone (for receiver).
-   * Uses Agora startAudioMixing in loopback mode so it plays locally through active audio route.
+   * Uses Agora playEffect / startAudioMixing in loopback mode so it plays locally through active audio route.
    */
   async playRingtone(type: 'outgoing' | 'incoming'): Promise<void> {
+    const soundId = type === 'outgoing' ? 101 : 102;
     const url = type === 'outgoing' ? OUTGOING_RINGBACK_URL : INCOMING_RINGTONE_URL;
 
     if (Platform.OS === 'web') {
@@ -149,12 +159,27 @@ export class AgoraRtcService implements IRtcEngine {
     if (!this.engine || !this.isAvailable) return;
 
     try {
-      // Loopback=true plays only locally, cycle=-1 plays indefinitely
-      this.engine.startAudioMixing(url, true, -1);
-      this.engine.adjustAudioMixingPlayoutVolume(100);
-      this.engine.adjustAudioMixingPublishVolume(0);
+      // 1. First attempt playEffect which works seamlessly outside and inside an RTC channel
+      const res = this.engine.playEffect(
+        soundId,
+        url,
+        -1, // loop indefinitely
+        1.0, // pitch
+        0.0, // pan center
+        100, // volume
+        false, // publish=false (local playback only)
+      );
+
+      // 2. If playEffect returned error code (< 0), fall back to startAudioMixing
+      if (res < 0) {
+        this.engine.startAudioMixing(url, true, -1);
+        this.engine.adjustAudioMixingPlayoutVolume(100);
+      }
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error playing ringtone: ${error?.message}`);
+      try {
+        this.engine.startAudioMixing(url, true, -1);
+      } catch {}
     }
   }
 
@@ -175,10 +200,90 @@ export class AgoraRtcService implements IRtcEngine {
     if (!this.engine || !this.isAvailable) return;
 
     try {
-      this.engine.stopAudioMixing();
       this.engine.stopAllEffects();
+      this.engine.stopAudioMixing();
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error stopping ringtone: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Queries connected audio playback devices (Bluetooth headsets, Wired headsets, Loudspeaker, Receiver).
+   */
+  detectConnectedDevices(): DetectedAudioDevices {
+    if (!this.engine || !this.isAvailable) {
+      return { hasBluetooth: false, hasHeadset: false, devices: [] };
+    }
+
+    try {
+      const dm = this.engine.getAudioDeviceManager();
+      if (dm && typeof dm.enumeratePlaybackDevices === 'function') {
+        const devices = dm.enumeratePlaybackDevices() || [];
+        let hasBluetooth = false;
+        let hasHeadset = false;
+        let bluetoothDeviceName: string | undefined;
+        let headsetDeviceName: string | undefined;
+
+        for (const dev of devices) {
+          const name = (dev.deviceName || '').toLowerCase();
+          const type = (dev.deviceTypeName || '').toLowerCase();
+          const combined = `${name} ${type}`;
+
+          if (
+            combined.includes('bluetooth') ||
+            combined.includes('bt') ||
+            combined.includes('airpod') ||
+            combined.includes('buds') ||
+            combined.includes('wireless') ||
+            combined.includes('freebuds') ||
+            combined.includes('wh-') ||
+            combined.includes('wf-') ||
+            combined.includes('hfp') ||
+            combined.includes('a2dp')
+          ) {
+            hasBluetooth = true;
+            if (!bluetoothDeviceName && dev.deviceName) {
+              bluetoothDeviceName = dev.deviceName;
+            }
+          } else if (
+            combined.includes('headset') ||
+            combined.includes('headphone') ||
+            combined.includes('earphone') ||
+            combined.includes('wired') ||
+            combined.includes('3.5mm') ||
+            combined.includes('usb')
+          ) {
+            hasHeadset = true;
+            if (!headsetDeviceName && dev.deviceName) {
+              headsetDeviceName = dev.deviceName;
+            }
+          }
+        }
+
+        return {
+          hasBluetooth,
+          hasHeadset,
+          bluetoothDeviceName,
+          headsetDeviceName,
+          devices,
+        };
+      }
+    } catch (err: any) {
+      console.warn('[AGORA_RTC] detectConnectedDevices warning:', err?.message);
+    }
+
+    return { hasBluetooth: false, hasHeadset: false, devices: [] };
+  }
+
+  /**
+   * Directly queries native Agora engine whether speakerphone is currently active.
+   */
+  isSpeakerphoneEnabled(): boolean {
+    if (!this.engine || !this.isAvailable) return false;
+    try {
+      return this.engine.isSpeakerphoneEnabled();
+    } catch {
+      return this.currentRoute === 'SPEAKER';
     }
   }
 
@@ -199,30 +304,43 @@ export class AgoraRtcService implements IRtcEngine {
         return 'SPEAKER';
       case AudioRoute.RouteEarpiece:
         return 'EARPIECE';
+      case AudioRoute.RouteDefault:
       default:
-        return 'SPEAKER';
+        return this.currentRoute || 'EARPIECE';
     }
   }
 
   /**
    * Selects an audio route explicitly (Speakerphone, Earpiece, Bluetooth, or Headset).
+   * Ensures physical speakerphone hardware and communication routing are simultaneously activated.
    */
   async setAudioRoute(route: AppAudioRoute): Promise<void> {
     if (!this.engine || !this.isAvailable) return;
     this.currentRoute = route;
 
     try {
+      const isSpeaker = route === 'SPEAKER';
+
+      // 1. Primary Agora speakerphone control (Invokes AudioManager.setSpeakerphoneOn on Android & AVAudioSession on iOS)
+      this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
+      this.engine.setEnableSpeakerphone(isSpeaker);
+
+      // 2. On Android, explicitly set routing in communication mode
       if (Platform.OS === 'android') {
-        let targetRoute = 3; // Default RouteSpeakerphone
-        if (route === 'SPEAKER') targetRoute = 3;
-        else if (route === 'BLUETOOTH') targetRoute = 5; // RouteBluetoothDeviceHfp
-        else if (route === 'HEADSET') targetRoute = 0; // RouteHeadset
-        else if (route === 'EARPIECE') targetRoute = 1; // RouteEarpiece
+        let targetRoute = AudioRoute.RouteSpeakerphone;
+        if (route === 'SPEAKER') {
+          targetRoute = AudioRoute.RouteSpeakerphone; // 3
+        } else if (route === 'BLUETOOTH') {
+          targetRoute = AudioRoute.RouteBluetoothDeviceHfp; // 5
+        } else if (route === 'HEADSET') {
+          targetRoute = AudioRoute.RouteHeadset; // 0
+        } else if (route === 'EARPIECE') {
+          targetRoute = AudioRoute.RouteEarpiece; // 1
+        }
         this.engine.setRouteInCommunicationMode(targetRoute);
-      } else {
-        const isSpeaker = route === 'SPEAKER';
-        this.engine.setEnableSpeakerphone(isSpeaker);
       }
+
+      console.log(`[AGORA_RTC] Audio route set to: ${route} (speakerphone enabled: ${this.isSpeakerphoneEnabled()})`);
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error setting audio route to ${route}: ${error?.message}`);
     }
@@ -284,24 +402,20 @@ export class AgoraRtcService implements IRtcEngine {
       this.engine.adjustRecordingSignalVolume(100);
       this.engine.adjustPlaybackSignalVolume(100);
 
-      // Setup audio routing based on call type
-      if (isVideo) {
-        if (Platform.OS === 'android') {
-          this.engine.setRouteInCommunicationMode(3);
-        } else {
-          this.engine.setDefaultAudioRouteToSpeakerphone(true);
-          this.engine.setEnableSpeakerphone(true);
-        }
-        this.currentRoute = 'SPEAKER';
-      } else {
-        // Audio calls default to system communication routing (prioritizing Bluetooth/Headset/Earpiece)
-        if (Platform.OS === 'android') {
-          this.engine.setRouteInCommunicationMode(-1);
-        } else {
-          this.engine.setDefaultAudioRouteToSpeakerphone(false);
-          this.engine.setEnableSpeakerphone(false);
-        }
-        this.currentRoute = 'EARPIECE';
+      // Setup audio routing based on active route preference or call type
+      const targetRoute = this.currentRoute;
+      const isSpeaker = targetRoute === 'SPEAKER';
+
+      this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
+      this.engine.setEnableSpeakerphone(isSpeaker);
+
+      if (Platform.OS === 'android') {
+        let routeCode = AudioRoute.RouteSpeakerphone;
+        if (targetRoute === 'SPEAKER') routeCode = AudioRoute.RouteSpeakerphone;
+        else if (targetRoute === 'BLUETOOTH') routeCode = AudioRoute.RouteBluetoothDeviceHfp;
+        else if (targetRoute === 'HEADSET') routeCode = AudioRoute.RouteHeadset;
+        else if (targetRoute === 'EARPIECE') routeCode = AudioRoute.RouteEarpiece;
+        this.engine.setRouteInCommunicationMode(routeCode);
       }
 
       const result = this.engine.joinChannel(token, channelName, uid, {

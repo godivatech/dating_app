@@ -28,12 +28,17 @@ export const ActiveCallModal: React.FC = () => {
     isMicMuted,
     isVideoMuted,
     currentAudioRoute,
+    connectedExternalDevice,
+    bluetoothDeviceName,
+    headsetDeviceName,
     isCameraFlipped,
     partnerVideoMuted,
     statusMessage,
     toggleMic,
     toggleVideo,
     toggleSpeaker,
+    setAudioRoute,
+    detectAudioDevices,
     flipCamera,
     hangupCall,
   } = useCallStore();
@@ -41,6 +46,7 @@ export const ActiveCallModal: React.FC = () => {
   const { blockUser } = useSafetyStore();
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [showSafetySheet, setShowSafetySheet] = useState(false);
+  const [showAudioDeviceSheet, setShowAudioDeviceSheet] = useState(false);
 
   // Animated pulsing heartbeat concentric rings around avatar
   const pulseAnim1 = useRef(new Animated.Value(1)).current;
@@ -137,14 +143,14 @@ export const ActiveCallModal: React.FC = () => {
         return {
           icon: 'bluetooth' as const,
           label: 'Bluetooth',
-          deviceTag: 'Bluetooth Headset',
+          deviceTag: bluetoothDeviceName || 'Bluetooth Headset',
           isActive: true,
         };
       case 'HEADSET':
         return {
           icon: 'headset' as const,
           label: 'Headset',
-          deviceTag: 'Wired Headset',
+          deviceTag: headsetDeviceName || 'Wired Headset',
           isActive: true,
         };
       case 'SPEAKER':
@@ -249,6 +255,185 @@ export const ActiveCallModal: React.FC = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Audio Output Device Picker Sheet */}
+      <Modal
+        visible={showAudioDeviceSheet}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAudioDeviceSheet(false)}
+      >
+        <TouchableOpacity
+          style={styles.audioSheetOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAudioDeviceSheet(false)}
+        >
+          <View style={styles.audioSheetContent}>
+            <View style={styles.audioSheetHandle} />
+            <View style={styles.audioSheetHeader}>
+              <Text style={styles.audioSheetTitle}>Select Audio Output</Text>
+              <Text style={styles.audioSheetSubtitle}>Route call audio to your preferred device</Text>
+            </View>
+
+            {/* 1. Built-in Speakerphone */}
+            <TouchableOpacity
+              style={[
+                styles.deviceOptionItem,
+                currentAudioRoute === 'SPEAKER' && styles.deviceOptionSelected,
+              ]}
+              onPress={() => {
+                setAudioRoute('SPEAKER');
+                setShowAudioDeviceSheet(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.deviceOptionIconBox,
+                  currentAudioRoute === 'SPEAKER' && styles.deviceOptionIconBoxActive,
+                ]}
+              >
+                <Ionicons
+                  name="volume-high"
+                  size={22}
+                  color={currentAudioRoute === 'SPEAKER' ? '#FD5D65' : '#FFFFFF'}
+                />
+              </View>
+              <View style={styles.deviceOptionTextBox}>
+                <Text style={styles.deviceOptionName}>Speakerphone</Text>
+                <Text style={styles.deviceOptionDesc}>Built-in phone loudspeaker</Text>
+              </View>
+              {currentAudioRoute === 'SPEAKER' && (
+                <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+              )}
+            </TouchableOpacity>
+
+            {/* 2. Bluetooth Headset */}
+            <TouchableOpacity
+              style={[
+                styles.deviceOptionItem,
+                currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionSelected,
+              ]}
+              onPress={() => {
+                setAudioRoute('BLUETOOTH');
+                setShowAudioDeviceSheet(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.deviceOptionIconBox,
+                  currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionIconBoxActive,
+                ]}
+              >
+                <Ionicons
+                  name="bluetooth"
+                  size={22}
+                  color={currentAudioRoute === 'BLUETOOTH' ? '#FD5D65' : '#FFFFFF'}
+                />
+              </View>
+              <View style={styles.deviceOptionTextBox}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.deviceOptionName}>
+                    {bluetoothDeviceName || 'Bluetooth Headset'}
+                  </Text>
+                  {connectedExternalDevice === 'BLUETOOTH' && (
+                    <View style={styles.connectedBadge}>
+                      <Text style={styles.connectedBadgeText}>Connected</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={styles.deviceOptionDesc}>
+                  {connectedExternalDevice === 'BLUETOOTH'
+                    ? 'Wireless headset / earbuds active'
+                    : 'Select to route through Bluetooth device'}
+                </Text>
+              </View>
+              {currentAudioRoute === 'BLUETOOTH' && (
+                <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+              )}
+            </TouchableOpacity>
+
+            {/* 3. Phone Receiver (Earpiece) */}
+            <TouchableOpacity
+              style={[
+                styles.deviceOptionItem,
+                currentAudioRoute === 'EARPIECE' && styles.deviceOptionSelected,
+              ]}
+              onPress={() => {
+                setAudioRoute('EARPIECE');
+                setShowAudioDeviceSheet(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[
+                  styles.deviceOptionIconBox,
+                  currentAudioRoute === 'EARPIECE' && styles.deviceOptionIconBoxActive,
+                ]}
+              >
+                <Ionicons
+                  name="phone-portrait-outline"
+                  size={22}
+                  color={currentAudioRoute === 'EARPIECE' ? '#FD5D65' : '#FFFFFF'}
+                />
+              </View>
+              <View style={styles.deviceOptionTextBox}>
+                <Text style={styles.deviceOptionName}>Phone Receiver (Earpiece)</Text>
+                <Text style={styles.deviceOptionDesc}>Private internal ear speaker</Text>
+              </View>
+              {currentAudioRoute === 'EARPIECE' && (
+                <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+              )}
+            </TouchableOpacity>
+
+            {/* 4. Wired Headset (Shown if detected or currently routed) */}
+            {(connectedExternalDevice === 'HEADSET' || currentAudioRoute === 'HEADSET') && (
+              <TouchableOpacity
+                style={[
+                  styles.deviceOptionItem,
+                  currentAudioRoute === 'HEADSET' && styles.deviceOptionSelected,
+                ]}
+                onPress={() => {
+                  setAudioRoute('HEADSET');
+                  setShowAudioDeviceSheet(false);
+                }}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.deviceOptionIconBox,
+                    currentAudioRoute === 'HEADSET' && styles.deviceOptionIconBoxActive,
+                  ]}
+                >
+                  <Ionicons
+                    name="headset"
+                    size={22}
+                    color={currentAudioRoute === 'HEADSET' ? '#FD5D65' : '#FFFFFF'}
+                  />
+                </View>
+                <View style={styles.deviceOptionTextBox}>
+                  <Text style={styles.deviceOptionName}>
+                    {headsetDeviceName || 'Wired Headset'}
+                  </Text>
+                  <Text style={styles.deviceOptionDesc}>3.5mm jack / USB audio</Text>
+                </View>
+                {currentAudioRoute === 'HEADSET' && (
+                  <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+                )}
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.audioSheetDoneBtn}
+              onPress={() => setShowAudioDeviceSheet(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.audioSheetDoneText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       <Modal
         visible={isVisible}
         animationType="slide"
@@ -330,11 +515,19 @@ export const ActiveCallModal: React.FC = () => {
                     : statusMessage || 'Calling...'}
                 </Text>
 
-                {/* Connected Audio Device Badge */}
-                <View style={styles.audioDeviceTag}>
+                {/* Connected Audio Device Badge & Selector */}
+                <TouchableOpacity
+                  style={styles.audioDeviceTag}
+                  onPress={() => {
+                    detectAudioDevices();
+                    setShowAudioDeviceSheet(true);
+                  }}
+                  activeOpacity={0.7}
+                >
                   <Ionicons name={audioInfo.icon} size={13} color="#FD5D65" style={{ marginRight: 5 }} />
                   <Text style={styles.audioDeviceTagText}>{audioInfo.deviceTag}</Text>
-                </View>
+                  <Ionicons name="chevron-down" size={12} color="#FD5D65" style={{ marginLeft: 4 }} />
+                </TouchableOpacity>
               </View>
             )}
 
@@ -464,7 +657,18 @@ export const ActiveCallModal: React.FC = () => {
                     styles.toolBtn,
                     audioInfo.isActive && styles.toolBtnSpeakerActive,
                   ]}
-                  onPress={toggleSpeaker}
+                  onPress={() => {
+                    if (connectedExternalDevice) {
+                      detectAudioDevices();
+                      setShowAudioDeviceSheet(true);
+                    } else {
+                      toggleSpeaker();
+                    }
+                  }}
+                  onLongPress={() => {
+                    detectAudioDevices();
+                    setShowAudioDeviceSheet(true);
+                  }}
                   activeOpacity={0.7}
                 >
                   <Ionicons
@@ -883,6 +1087,109 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: Colors.textSecondary,
+  },
+  audioSheetOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    justifyContent: 'flex-end',
+  },
+  audioSheetContent: {
+    backgroundColor: '#1E0C16',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
+  },
+  audioSheetHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignSelf: 'center',
+    marginBottom: 18,
+  },
+  audioSheetHeader: {
+    marginBottom: 16,
+  },
+  audioSheetTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  audioSheetSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255, 255, 255, 0.6)',
+  },
+  deviceOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  deviceOptionSelected: {
+    backgroundColor: 'rgba(253, 93, 101, 0.12)',
+    borderColor: '#FD5D65',
+  },
+  deviceOptionIconBox: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+  },
+  deviceOptionIconBoxActive: {
+    backgroundColor: 'rgba(253, 93, 101, 0.2)',
+  },
+  deviceOptionTextBox: {
+    flex: 1,
+  },
+  deviceOptionName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  deviceOptionDesc: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.55)',
+    marginTop: 2,
+  },
+  connectedBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  connectedBadgeText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  audioSheetDoneBtn: {
+    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioSheetDoneText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

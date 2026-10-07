@@ -39,6 +39,8 @@ interface CallStoreState {
   isSpeakerOn: boolean;
   currentAudioRoute: AppAudioRoute;
   connectedExternalDevice: 'BLUETOOTH' | 'HEADSET' | null;
+  bluetoothDeviceName: string | null;
+  headsetDeviceName: string | null;
   isCameraFlipped: boolean;
   partnerVideoMuted: boolean;
   partnerAudioMuted: boolean;
@@ -60,6 +62,8 @@ interface CallStoreState {
   toggleMic: () => void;
   toggleVideo: () => void;
   toggleSpeaker: () => void;
+  setAudioRoute: (route: AppAudioRoute) => Promise<void>;
+  detectAudioDevices: () => void;
   flipCamera: () => void;
   resetCall: () => void;
 }
@@ -84,6 +88,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   isSpeakerOn: true,
   currentAudioRoute: 'SPEAKER',
   connectedExternalDevice: null,
+  bluetoothDeviceName: null,
+  headsetDeviceName: null,
   isCameraFlipped: false,
   partnerVideoMuted: false,
   partnerAudioMuted: false,
@@ -94,9 +100,10 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     clearPendingResetTimeout();
     get().initCallSocket();
 
-    // Trigger native incoming ringtone
+    // Initialize Agora & detect connected devices early for incoming call
     const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
     agoraRtcService.init(appId).then(() => {
+      get().detectAudioDevices();
       agoraRtcService.playRingtone('incoming');
     }).catch(() => {});
 
@@ -176,11 +183,26 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       const partnerUid = myUid === 1001 ? 2002 : 1001;
       const token = data.rtcToken || data.agoraToken;
 
+      // Query connected audio devices before establishing audio route
+      get().detectAudioDevices();
+      const extDevice = get().connectedExternalDevice;
+
+      let targetAudioRoute: AppAudioRoute = 'SPEAKER';
+      if (isVideo) {
+        targetAudioRoute = 'SPEAKER';
+      } else if (extDevice === 'BLUETOOTH') {
+        targetAudioRoute = 'BLUETOOTH';
+      } else if (extDevice === 'HEADSET') {
+        targetAudioRoute = 'HEADSET';
+      } else {
+        targetAudioRoute = 'EARPIECE';
+      }
+
       set((state) => ({
         callState: 'CONNECTED',
         statusMessage: 'Connected',
-        currentAudioRoute: isVideo ? 'SPEAKER' : (state.connectedExternalDevice || 'EARPIECE'),
-        isSpeakerOn: isVideo,
+        currentAudioRoute: targetAudioRoute,
+        isSpeakerOn: targetAudioRoute === 'SPEAKER',
         activeCall: state.activeCall
           ? {
               ...state.activeCall,
@@ -204,6 +226,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
         if (appId) {
           await agoraRtcService.init(appId);
+          await agoraRtcService.setAudioRoute(targetAudioRoute);
           await agoraRtcService.joinChannel({
             channelName: data.channelName,
             token,
@@ -306,6 +329,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     // Automatically sync active device and speaker state with native audio route changes
     agoraRtcService.onAudioRoutingChanged((routing: number) => {
       const mappedRoute = agoraRtcService.getAudioRouteFromAgora(routing);
+      get().detectAudioDevices();
       let extDevice = get().connectedExternalDevice;
 
       if (mappedRoute === 'BLUETOOTH') {
@@ -380,18 +404,34 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     const granted = await requestCallingPermissions(callType === CallType.VIDEO);
     if (!granted) return;
 
-    // Start outgoing ringback tone immediately
+    // Initialize Agora & detect connected devices early before dialing
     const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
-    agoraRtcService.init(appId).then(() => {
-      agoraRtcService.playRingtone('outgoing');
-    }).catch(() => {});
+    try {
+      await agoraRtcService.init(appId);
+      get().detectAudioDevices();
+    } catch {}
+
+    const extDevice = get().connectedExternalDevice;
+    let initialRoute: AppAudioRoute = 'SPEAKER';
+    if (callType === CallType.VIDEO) {
+      initialRoute = 'SPEAKER';
+    } else if (extDevice === 'BLUETOOTH') {
+      initialRoute = 'BLUETOOTH';
+    } else if (extDevice === 'HEADSET') {
+      initialRoute = 'HEADSET';
+    } else {
+      initialRoute = 'EARPIECE';
+    }
+
+    agoraRtcService.setAudioRoute(initialRoute).catch(() => {});
+    agoraRtcService.playRingtone('outgoing').catch(() => {});
 
     set({
       callState: 'OUTGOING_RINGING',
       durationSeconds: 0,
       statusMessage: 'Calling...',
-      currentAudioRoute: callType === CallType.VIDEO ? 'SPEAKER' : 'EARPIECE',
-      isSpeakerOn: callType === CallType.VIDEO,
+      currentAudioRoute: initialRoute,
+      isSpeakerOn: initialRoute === 'SPEAKER',
       activeCall: {
         callId: '',
         matchId,
@@ -494,13 +534,41 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
   toggleSpeaker: async () => {
     const { currentAudioRoute, connectedExternalDevice } = get();
+    // Proactively query hardware audio manager for any newly connected headset or Bluetooth device
+    get().detectAudioDevices();
+    const updatedDevice = get().connectedExternalDevice;
+
     const nextRoute = await agoraRtcService.toggleAudioRoute(
       currentAudioRoute,
-      connectedExternalDevice,
+      updatedDevice || connectedExternalDevice,
     );
     set({
       currentAudioRoute: nextRoute,
       isSpeakerOn: nextRoute === 'SPEAKER',
+    });
+  },
+
+  setAudioRoute: async (route: AppAudioRoute) => {
+    await agoraRtcService.setAudioRoute(route);
+    set({
+      currentAudioRoute: route,
+      isSpeakerOn: route === 'SPEAKER',
+    });
+  },
+
+  detectAudioDevices: () => {
+    const detected = agoraRtcService.detectConnectedDevices();
+    let extDevice: 'BLUETOOTH' | 'HEADSET' | null = null;
+    if (detected.hasBluetooth) {
+      extDevice = 'BLUETOOTH';
+    } else if (detected.hasHeadset) {
+      extDevice = 'HEADSET';
+    }
+
+    set({
+      connectedExternalDevice: extDevice,
+      bluetoothDeviceName: detected.bluetoothDeviceName || (detected.hasBluetooth ? 'Bluetooth Headset' : null),
+      headsetDeviceName: detected.headsetDeviceName || (detected.hasHeadset ? 'Wired Headset' : null),
     });
   },
 
@@ -526,6 +594,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       isSpeakerOn: true,
       currentAudioRoute: 'SPEAKER',
       connectedExternalDevice: null,
+      bluetoothDeviceName: null,
+      headsetDeviceName: null,
       isCameraFlipped: false,
       partnerVideoMuted: false,
       partnerAudioMuted: false,
