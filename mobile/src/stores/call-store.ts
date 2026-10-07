@@ -105,7 +105,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     agoraRtcService.init(appId).then(() => {
       get().detectAudioDevices();
       agoraRtcService.playRingtone('incoming');
-    }).catch(() => {});
+    }).catch(() => { });
 
     set({
       callState: 'INCOMING_RINGING',
@@ -147,10 +147,10 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         statusMessage: 'Ringing...',
         activeCall: state.activeCall
           ? {
-              ...state.activeCall,
-              callId: data.callId,
-              channelName: data.channelName,
-            }
+            ...state.activeCall,
+            callId: data.callId,
+            channelName: data.channelName,
+          }
           : null,
       }));
     });
@@ -205,19 +205,19 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
         isSpeakerOn: targetAudioRoute === 'SPEAKER',
         activeCall: state.activeCall
           ? {
-              ...state.activeCall,
-              callId: data.callId,
-              channelName: data.channelName,
-              agoraToken: data.agoraToken,
-              agoraUid: data.agoraUid,
-              rtcToken: token,
-              rtcUid: myUid,
-              partnerAgoraUid: partnerUid,
-              callType: data.callType,
-              isVibeCheck: data.isVibeCheck ?? state.activeCall.isVibeCheck,
-              maxDurationSeconds:
-                data.maxDurationSeconds ?? state.activeCall.maxDurationSeconds,
-            }
+            ...state.activeCall,
+            callId: data.callId,
+            channelName: data.channelName,
+            agoraToken: data.agoraToken,
+            agoraUid: data.agoraUid,
+            rtcToken: token,
+            rtcUid: myUid,
+            partnerAgoraUid: partnerUid,
+            callType: data.callType,
+            isVibeCheck: data.isVibeCheck ?? state.activeCall.isVibeCheck,
+            maxDurationSeconds:
+              data.maxDurationSeconds ?? state.activeCall.maxDurationSeconds,
+          }
           : null,
       }));
 
@@ -409,7 +409,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     try {
       await agoraRtcService.init(appId);
       get().detectAudioDevices();
-    } catch {}
+    } catch { }
 
     const extDevice = get().connectedExternalDevice;
     let initialRoute: AppAudioRoute = 'SPEAKER';
@@ -423,8 +423,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       initialRoute = 'EARPIECE';
     }
 
-    agoraRtcService.setAudioRoute(initialRoute).catch(() => {});
-    agoraRtcService.playRingtone('outgoing').catch(() => {});
+    agoraRtcService.setAudioRoute(initialRoute).catch(() => { });
+    agoraRtcService.playRingtone('outgoing').catch(() => { });
 
     set({
       callState: 'OUTGOING_RINGING',
@@ -533,15 +533,12 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   toggleSpeaker: async () => {
-    const { currentAudioRoute, connectedExternalDevice } = get();
-    // Proactively query hardware audio manager for any newly connected headset or Bluetooth device
-    get().detectAudioDevices();
-    const updatedDevice = get().connectedExternalDevice;
-
-    const nextRoute = await agoraRtcService.toggleAudioRoute(
-      currentAudioRoute,
-      updatedDevice || connectedExternalDevice,
-    );
+    const { currentAudioRoute } = get();
+    // Direct toggle: if currently on speaker, go to earpiece. Otherwise go to speaker.
+    // This ensures the speaker button ALWAYS works as a simple toggle.
+    // The full device picker (with Bluetooth/Headset options) is accessible via long-press.
+    const nextRoute: AppAudioRoute = currentAudioRoute === 'SPEAKER' ? 'EARPIECE' : 'SPEAKER';
+    await agoraRtcService.setAudioRoute(nextRoute);
     set({
       currentAudioRoute: nextRoute,
       isSpeakerOn: nextRoute === 'SPEAKER',

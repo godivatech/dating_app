@@ -8,7 +8,6 @@ import {
   AudioProfileType,
   AudioScenarioType,
   AudioRoute,
-  AudioDeviceInfo,
 } from 'react-native-agora';
 import { IRtcEngine, RtcJoinChannelOptions } from './rtc.interface';
 import { requestCallingPermissions } from '../../utils/call-permissions';
@@ -20,7 +19,6 @@ export interface DetectedAudioDevices {
   hasHeadset: boolean;
   bluetoothDeviceName?: string;
   headsetDeviceName?: string;
-  devices: AudioDeviceInfo[];
 }
 
 // High-fidelity standard VoIP call progress tones (open source, telecom spec)
@@ -37,6 +35,9 @@ export class AgoraRtcService implements IRtcEngine {
   private currentAppId: string | null = null;
   private webAudio: any = null;
   private currentRoute: AppAudioRoute = 'SPEAKER';
+  // Track which external devices are currently active based on native OS audio routing events
+  private _nativeBluetoothActive = false;
+  private _nativeHeadsetActive = false;
 
   private userJoinedCallbacks = new Set<(uid: number) => void>();
   private userOfflineCallbacks = new Set<(uid: number) => void>();
@@ -94,6 +95,17 @@ export class AgoraRtcService implements IRtcEngine {
         onAudioRoutingChanged: (routing) => {
           console.log(`[AGORA_RTC] Audio route changed to: ${routing}`);
           this.currentRoute = this.getAudioRouteFromAgora(routing);
+          // Track external device presence based on real OS audio routing events
+          if (this.currentRoute === 'BLUETOOTH') {
+            this._nativeBluetoothActive = true;
+          } else {
+            this._nativeBluetoothActive = false;
+          }
+          if (this.currentRoute === 'HEADSET') {
+            this._nativeHeadsetActive = true;
+          } else {
+            this._nativeHeadsetActive = false;
+          }
           this.audioRoutingCallbacks.forEach((cb) => cb(routing));
         },
         onError: (err, msg) => {
@@ -208,71 +220,26 @@ export class AgoraRtcService implements IRtcEngine {
   }
 
   /**
-   * Queries connected audio playback devices (Bluetooth headsets, Wired headsets, Loudspeaker, Receiver).
+   * Detects connected audio devices based on the native OS audio routing state.
+   * On Android/iOS mobile, getAudioDeviceManager().enumeratePlaybackDevices() is a
+   * desktop-only API and returns stale/virtual entries causing ghost Bluetooth detections.
+   * Instead we rely on the actual onAudioRoutingChanged native callbacks to track which
+   * external devices (Bluetooth, wired headset) the OS has routed audio to.
    */
   detectConnectedDevices(): DetectedAudioDevices {
     if (!this.engine || !this.isAvailable) {
-      return { hasBluetooth: false, hasHeadset: false, devices: [] };
+      return { hasBluetooth: false, hasHeadset: false };
     }
 
-    try {
-      const dm = this.engine.getAudioDeviceManager();
-      if (dm && typeof dm.enumeratePlaybackDevices === 'function') {
-        const devices = dm.enumeratePlaybackDevices() || [];
-        let hasBluetooth = false;
-        let hasHeadset = false;
-        let bluetoothDeviceName: string | undefined;
-        let headsetDeviceName: string | undefined;
-
-        for (const dev of devices) {
-          const name = (dev.deviceName || '').toLowerCase();
-          const type = (dev.deviceTypeName || '').toLowerCase();
-          const combined = `${name} ${type}`;
-
-          if (
-            combined.includes('bluetooth') ||
-            combined.includes('bt') ||
-            combined.includes('airpod') ||
-            combined.includes('buds') ||
-            combined.includes('wireless') ||
-            combined.includes('freebuds') ||
-            combined.includes('wh-') ||
-            combined.includes('wf-') ||
-            combined.includes('hfp') ||
-            combined.includes('a2dp')
-          ) {
-            hasBluetooth = true;
-            if (!bluetoothDeviceName && dev.deviceName) {
-              bluetoothDeviceName = dev.deviceName;
-            }
-          } else if (
-            combined.includes('headset') ||
-            combined.includes('headphone') ||
-            combined.includes('earphone') ||
-            combined.includes('wired') ||
-            combined.includes('3.5mm') ||
-            combined.includes('usb')
-          ) {
-            hasHeadset = true;
-            if (!headsetDeviceName && dev.deviceName) {
-              headsetDeviceName = dev.deviceName;
-            }
-          }
-        }
-
-        return {
-          hasBluetooth,
-          hasHeadset,
-          bluetoothDeviceName,
-          headsetDeviceName,
-          devices,
-        };
-      }
-    } catch (err: any) {
-      console.warn('[AGORA_RTC] detectConnectedDevices warning:', err?.message);
-    }
-
-    return { hasBluetooth: false, hasHeadset: false, devices: [] };
+    // On mobile, we trust the native OS routing events tracked in _nativeBluetoothActive
+    // and _nativeHeadsetActive. These are only set to true when the OS actually routes
+    // audio through that hardware — no string-matching heuristics, no stale device lists.
+    return {
+      hasBluetooth: this._nativeBluetoothActive,
+      hasHeadset: this._nativeHeadsetActive,
+      bluetoothDeviceName: this._nativeBluetoothActive ? 'Bluetooth Device' : undefined,
+      headsetDeviceName: this._nativeHeadsetActive ? 'Wired Headset' : undefined,
+    };
   }
 
   /**

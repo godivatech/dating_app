@@ -307,51 +307,49 @@ export const ActiveCallModal: React.FC = () => {
               )}
             </TouchableOpacity>
 
-            {/* 2. Bluetooth Headset */}
-            <TouchableOpacity
-              style={[
-                styles.deviceOptionItem,
-                currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionSelected,
-              ]}
-              onPress={() => {
-                setAudioRoute('BLUETOOTH');
-                setShowAudioDeviceSheet(false);
-              }}
-              activeOpacity={0.7}
-            >
-              <View
+            {/* 2. Bluetooth Headset — Only shown when a real BT device is connected */}
+            {connectedExternalDevice === 'BLUETOOTH' && (
+              <TouchableOpacity
                 style={[
-                  styles.deviceOptionIconBox,
-                  currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionIconBoxActive,
+                  styles.deviceOptionItem,
+                  currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionSelected,
                 ]}
+                onPress={() => {
+                  setAudioRoute('BLUETOOTH');
+                  setShowAudioDeviceSheet(false);
+                }}
+                activeOpacity={0.7}
               >
-                <Ionicons
-                  name="bluetooth"
-                  size={22}
-                  color={currentAudioRoute === 'BLUETOOTH' ? '#FD5D65' : '#FFFFFF'}
-                />
-              </View>
-              <View style={styles.deviceOptionTextBox}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={styles.deviceOptionName}>
-                    {bluetoothDeviceName || 'Bluetooth Headset'}
-                  </Text>
-                  {connectedExternalDevice === 'BLUETOOTH' && (
+                <View
+                  style={[
+                    styles.deviceOptionIconBox,
+                    currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionIconBoxActive,
+                  ]}
+                >
+                  <Ionicons
+                    name="bluetooth"
+                    size={22}
+                    color={currentAudioRoute === 'BLUETOOTH' ? '#FD5D65' : '#FFFFFF'}
+                  />
+                </View>
+                <View style={styles.deviceOptionTextBox}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.deviceOptionName}>
+                      {bluetoothDeviceName || 'Bluetooth Headset'}
+                    </Text>
                     <View style={styles.connectedBadge}>
                       <Text style={styles.connectedBadgeText}>Connected</Text>
                     </View>
-                  )}
+                  </View>
+                  <Text style={styles.deviceOptionDesc}>
+                    Wireless headset / earbuds active
+                  </Text>
                 </View>
-                <Text style={styles.deviceOptionDesc}>
-                  {connectedExternalDevice === 'BLUETOOTH'
-                    ? 'Wireless headset / earbuds active'
-                    : 'Select to route through Bluetooth device'}
-                </Text>
-              </View>
-              {currentAudioRoute === 'BLUETOOTH' && (
-                <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
-              )}
-            </TouchableOpacity>
+                {currentAudioRoute === 'BLUETOOTH' && (
+                  <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+                )}
+              </TouchableOpacity>
+            )}
 
             {/* 3. Phone Receiver (Earpiece) */}
             <TouchableOpacity
@@ -657,14 +655,7 @@ export const ActiveCallModal: React.FC = () => {
                     styles.toolBtn,
                     audioInfo.isActive && styles.toolBtnSpeakerActive,
                   ]}
-                  onPress={() => {
-                    if (connectedExternalDevice) {
-                      detectAudioDevices();
-                      setShowAudioDeviceSheet(true);
-                    } else {
-                      toggleSpeaker();
-                    }
-                  }}
+                  onPress={toggleSpeaker}
                   onLongPress={() => {
                     detectAudioDevices();
                     setShowAudioDeviceSheet(true);
