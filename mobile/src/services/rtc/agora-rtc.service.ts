@@ -279,20 +279,14 @@ export class AgoraRtcService implements IRtcEngine {
 
   /**
    * Selects an audio route explicitly (Speakerphone, Earpiece, Bluetooth, or Headset).
-   * Ensures physical speakerphone hardware and communication routing are simultaneously activated.
+   * On Android communication mode, uses setRouteInCommunicationMode exclusively to prevent
+   * mutual cancellation conflicts with setEnableSpeakerphone (per official Agora architecture).
    */
   async setAudioRoute(route: AppAudioRoute): Promise<void> {
     if (!this.engine || !this.isAvailable) return;
     this.currentRoute = route;
 
     try {
-      const isSpeaker = route === 'SPEAKER';
-
-      // 1. Primary Agora speakerphone control (Invokes AudioManager.setSpeakerphoneOn on Android & AVAudioSession on iOS)
-      this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
-      this.engine.setEnableSpeakerphone(isSpeaker);
-
-      // 2. On Android, explicitly set routing in communication mode
       if (Platform.OS === 'android') {
         let targetRoute = AudioRoute.RouteSpeakerphone;
         if (route === 'SPEAKER') {
@@ -305,9 +299,12 @@ export class AgoraRtcService implements IRtcEngine {
           targetRoute = AudioRoute.RouteEarpiece; // 1
         }
         this.engine.setRouteInCommunicationMode(targetRoute);
+      } else {
+        const isSpeaker = route === 'SPEAKER';
+        this.engine.setEnableSpeakerphone(isSpeaker);
       }
 
-      console.log(`[AGORA_RTC] Audio route set to: ${route} (speakerphone enabled: ${this.isSpeakerphoneEnabled()})`);
+      console.log(`[AGORA_RTC] Audio route set to: ${route}`);
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error setting audio route to ${route}: ${error?.message}`);
     }
@@ -369,12 +366,11 @@ export class AgoraRtcService implements IRtcEngine {
       this.engine.adjustRecordingSignalVolume(100);
       this.engine.adjustPlaybackSignalVolume(100);
 
-      // Setup audio routing based on active route preference or call type
+      // Setup initial audio routing based on active route preference or call type
       const targetRoute = this.currentRoute;
       const isSpeaker = targetRoute === 'SPEAKER';
 
       this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
-      this.engine.setEnableSpeakerphone(isSpeaker);
 
       if (Platform.OS === 'android') {
         let routeCode = AudioRoute.RouteSpeakerphone;
@@ -383,6 +379,8 @@ export class AgoraRtcService implements IRtcEngine {
         else if (targetRoute === 'HEADSET') routeCode = AudioRoute.RouteHeadset;
         else if (targetRoute === 'EARPIECE') routeCode = AudioRoute.RouteEarpiece;
         this.engine.setRouteInCommunicationMode(routeCode);
+      } else {
+        this.engine.setEnableSpeakerphone(isSpeaker);
       }
 
       const result = this.engine.joinChannel(token, channelName, uid, {

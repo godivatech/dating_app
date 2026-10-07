@@ -307,49 +307,51 @@ export const ActiveCallModal: React.FC = () => {
               )}
             </TouchableOpacity>
 
-            {/* 2. Bluetooth Headset — Only shown when a real BT device is connected */}
-            {connectedExternalDevice === 'BLUETOOTH' && (
-              <TouchableOpacity
+            {/* 2. Bluetooth Headset / Wireless Device */}
+            <TouchableOpacity
+              style={[
+                styles.deviceOptionItem,
+                currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionSelected,
+              ]}
+              onPress={() => {
+                setAudioRoute('BLUETOOTH');
+                setShowAudioDeviceSheet(false);
+              }}
+              activeOpacity={0.7}
+            >
+              <View
                 style={[
-                  styles.deviceOptionItem,
-                  currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionSelected,
+                  styles.deviceOptionIconBox,
+                  currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionIconBoxActive,
                 ]}
-                onPress={() => {
-                  setAudioRoute('BLUETOOTH');
-                  setShowAudioDeviceSheet(false);
-                }}
-                activeOpacity={0.7}
               >
-                <View
-                  style={[
-                    styles.deviceOptionIconBox,
-                    currentAudioRoute === 'BLUETOOTH' && styles.deviceOptionIconBoxActive,
-                  ]}
-                >
-                  <Ionicons
-                    name="bluetooth"
-                    size={22}
-                    color={currentAudioRoute === 'BLUETOOTH' ? '#FD5D65' : '#FFFFFF'}
-                  />
-                </View>
-                <View style={styles.deviceOptionTextBox}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={styles.deviceOptionName}>
-                      {bluetoothDeviceName || 'Bluetooth Headset'}
-                    </Text>
-                    <View style={styles.connectedBadge}>
-                      <Text style={styles.connectedBadgeText}>Connected</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.deviceOptionDesc}>
-                    Wireless headset / earbuds active
+                <Ionicons
+                  name="bluetooth"
+                  size={22}
+                  color={currentAudioRoute === 'BLUETOOTH' ? '#FD5D65' : '#FFFFFF'}
+                />
+              </View>
+              <View style={styles.deviceOptionTextBox}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Text style={styles.deviceOptionName}>
+                    {bluetoothDeviceName || 'Bluetooth Headset'}
                   </Text>
+                  {currentAudioRoute === 'BLUETOOTH' && (
+                    <View style={styles.connectedBadge}>
+                      <Text style={styles.connectedBadgeText}>Active</Text>
+                    </View>
+                  )}
                 </View>
-                {currentAudioRoute === 'BLUETOOTH' && (
-                  <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
-                )}
-              </TouchableOpacity>
-            )}
+                <Text style={styles.deviceOptionDesc}>
+                  {currentAudioRoute === 'BLUETOOTH'
+                    ? 'Audio routed to Bluetooth headset'
+                    : 'Route call audio to Bluetooth headset / earbuds'}
+                </Text>
+              </View>
+              {currentAudioRoute === 'BLUETOOTH' && (
+                <Ionicons name="checkmark-circle" size={22} color="#FD5D65" />
+              )}
+            </TouchableOpacity>
 
             {/* 3. Phone Receiver (Earpiece) */}
             <TouchableOpacity
