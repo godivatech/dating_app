@@ -46,7 +46,7 @@ export class AgoraRtcService implements IRtcEngine {
 
   private eventHandler: IRtcEngineEventHandler | null = null;
 
-  private constructor() {}
+  private constructor() { }
 
   static getInstance(): AgoraRtcService {
     if (!AgoraRtcService.instance) {
@@ -160,7 +160,7 @@ export class AgoraRtcService implements IRtcEngine {
           }
           this.webAudio = new Audio(url);
           this.webAudio.loop = true;
-          this.webAudio.play().catch(() => {});
+          this.webAudio.play().catch(() => { });
         }
       } catch (e) {
         console.warn('[AGORA_RTC] Web ringtone error:', e);
@@ -191,7 +191,7 @@ export class AgoraRtcService implements IRtcEngine {
       console.warn(`[AGORA_RTC] Error playing ringtone: ${error?.message}`);
       try {
         this.engine.startAudioMixing(url, true, -1);
-      } catch {}
+      } catch { }
     }
   }
 
@@ -204,7 +204,7 @@ export class AgoraRtcService implements IRtcEngine {
         try {
           this.webAudio.pause();
           this.webAudio = null;
-        } catch {}
+        } catch { }
       }
       return;
     }
