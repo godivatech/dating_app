@@ -7,9 +7,18 @@ import {
   IRtcEngineEventHandler,
   AudioProfileType,
   AudioScenarioType,
+  AudioRoute,
 } from 'react-native-agora';
 import { IRtcEngine, RtcJoinChannelOptions } from './rtc.interface';
 import { requestCallingPermissions } from '../../utils/call-permissions';
+
+export type AppAudioRoute = 'SPEAKER' | 'EARPIECE' | 'HEADSET' | 'BLUETOOTH';
+
+// High-fidelity standard VoIP call progress tones (open source, telecom spec)
+const OUTGOING_RINGBACK_URL =
+  'https://raw.githubusercontent.com/matrix-org/matrix-react-sdk/develop/res/media/ringback.mp3';
+const INCOMING_RINGTONE_URL =
+  'https://raw.githubusercontent.com/matrix-org/matrix-react-sdk/develop/res/media/ring.mp3';
 
 export class AgoraRtcService implements IRtcEngine {
   private static instance: AgoraRtcService;
@@ -17,6 +26,8 @@ export class AgoraRtcService implements IRtcEngine {
   private isInitialized = false;
   private isAvailable = true;
   private currentAppId: string | null = null;
+  private webAudio: any = null;
+  private currentRoute: AppAudioRoute = 'SPEAKER';
 
   private userJoinedCallbacks = new Set<(uid: number) => void>();
   private userOfflineCallbacks = new Set<(uid: number) => void>();
@@ -73,6 +84,7 @@ export class AgoraRtcService implements IRtcEngine {
         },
         onAudioRoutingChanged: (routing) => {
           console.log(`[AGORA_RTC] Audio route changed to: ${routing}`);
+          this.currentRoute = this.getAudioRouteFromAgora(routing);
           this.audioRoutingCallbacks.forEach((cb) => cb(routing));
         },
         onError: (err, msg) => {
@@ -112,6 +124,136 @@ export class AgoraRtcService implements IRtcEngine {
   }
 
   /**
+   * Plays outgoing ringback tone (for caller) or incoming musical ringtone (for receiver).
+   * Uses Agora startAudioMixing in loopback mode so it plays locally through active audio route.
+   */
+  async playRingtone(type: 'outgoing' | 'incoming'): Promise<void> {
+    const url = type === 'outgoing' ? OUTGOING_RINGBACK_URL : INCOMING_RINGTONE_URL;
+
+    if (Platform.OS === 'web') {
+      try {
+        if (typeof Audio !== 'undefined') {
+          if (this.webAudio) {
+            this.webAudio.pause();
+          }
+          this.webAudio = new Audio(url);
+          this.webAudio.loop = true;
+          this.webAudio.play().catch(() => {});
+        }
+      } catch (e) {
+        console.warn('[AGORA_RTC] Web ringtone error:', e);
+      }
+      return;
+    }
+
+    if (!this.engine || !this.isAvailable) return;
+
+    try {
+      // Loopback=true plays only locally, cycle=-1 plays indefinitely
+      this.engine.startAudioMixing(url, true, -1);
+      this.engine.adjustAudioMixingPlayoutVolume(100);
+      this.engine.adjustAudioMixingPublishVolume(0);
+    } catch (error: any) {
+      console.warn(`[AGORA_RTC] Error playing ringtone: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Stops any currently playing ringback tone or ringtone.
+   */
+  async stopRingtone(): Promise<void> {
+    if (Platform.OS === 'web') {
+      if (this.webAudio) {
+        try {
+          this.webAudio.pause();
+          this.webAudio = null;
+        } catch {}
+      }
+      return;
+    }
+
+    if (!this.engine || !this.isAvailable) return;
+
+    try {
+      this.engine.stopAudioMixing();
+      this.engine.stopAllEffects();
+    } catch (error: any) {
+      console.warn(`[AGORA_RTC] Error stopping ringtone: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Maps native Agora routing integers to semantic AppAudioRoute types.
+   */
+  getAudioRouteFromAgora(routing: number): AppAudioRoute {
+    switch (routing) {
+      case AudioRoute.RouteBluetoothDeviceHfp:
+      case AudioRoute.RouteBluetoothDeviceA2dp:
+        return 'BLUETOOTH';
+      case AudioRoute.RouteHeadset:
+      case AudioRoute.RouteHeadsetnomic:
+      case AudioRoute.RouteUsb:
+        return 'HEADSET';
+      case AudioRoute.RouteSpeakerphone:
+      case AudioRoute.RouteLoudspeaker:
+        return 'SPEAKER';
+      case AudioRoute.RouteEarpiece:
+        return 'EARPIECE';
+      default:
+        return 'SPEAKER';
+    }
+  }
+
+  /**
+   * Selects an audio route explicitly (Speakerphone, Earpiece, Bluetooth, or Headset).
+   */
+  async setAudioRoute(route: AppAudioRoute): Promise<void> {
+    if (!this.engine || !this.isAvailable) return;
+    this.currentRoute = route;
+
+    try {
+      if (Platform.OS === 'android') {
+        let targetRoute = 3; // Default RouteSpeakerphone
+        if (route === 'SPEAKER') targetRoute = 3;
+        else if (route === 'BLUETOOTH') targetRoute = 5; // RouteBluetoothDeviceHfp
+        else if (route === 'HEADSET') targetRoute = 0; // RouteHeadset
+        else if (route === 'EARPIECE') targetRoute = 1; // RouteEarpiece
+        this.engine.setRouteInCommunicationMode(targetRoute);
+      } else {
+        const isSpeaker = route === 'SPEAKER';
+        this.engine.setEnableSpeakerphone(isSpeaker);
+      }
+    } catch (error: any) {
+      console.warn(`[AGORA_RTC] Error setting audio route to ${route}: ${error?.message}`);
+    }
+  }
+
+  /**
+   * Intelligently toggles between speakerphone and external connected headset/bluetooth or earpiece.
+   */
+  async toggleAudioRoute(
+    currentRoute: AppAudioRoute,
+    connectedExternalDevice?: 'BLUETOOTH' | 'HEADSET' | null,
+  ): Promise<AppAudioRoute> {
+    let nextRoute: AppAudioRoute = 'SPEAKER';
+
+    if (currentRoute === 'SPEAKER') {
+      if (connectedExternalDevice === 'BLUETOOTH') {
+        nextRoute = 'BLUETOOTH';
+      } else if (connectedExternalDevice === 'HEADSET') {
+        nextRoute = 'HEADSET';
+      } else {
+        nextRoute = 'EARPIECE';
+      }
+    } else {
+      nextRoute = 'SPEAKER';
+    }
+
+    await this.setAudioRoute(nextRoute);
+    return nextRoute;
+  }
+
+  /**
    * Joins an Agora video or voice channel with the given token and UID.
    */
   async joinChannel({ channelName, token, uid, isVideo }: RtcJoinChannelOptions): Promise<boolean> {
@@ -126,7 +268,7 @@ export class AgoraRtcService implements IRtcEngine {
     try {
       if (isVideo) {
         this.engine.enableVideo();
-        // Pin video encoder strictly to 720p HD @ 30fps as mandated by revenue and QoS specifications
+        // Pin video encoder strictly to 720p HD @ 30fps
         this.engine.setVideoEncoderConfiguration({
           dimensions: { width: 1280, height: 720 },
           frameRate: 30,
@@ -137,18 +279,29 @@ export class AgoraRtcService implements IRtcEngine {
         this.engine.disableVideo();
       }
 
-
       // Ensure local audio capture is active and volumes are nominal
       this.engine.enableLocalAudio(true);
       this.engine.adjustRecordingSignalVolume(100);
       this.engine.adjustPlaybackSignalVolume(100);
 
-      // Set default audio route: hands-free speakerphone
-      if (Platform.OS === 'android') {
-        this.engine.setRouteInCommunicationMode(3);
+      // Setup audio routing based on call type
+      if (isVideo) {
+        if (Platform.OS === 'android') {
+          this.engine.setRouteInCommunicationMode(3);
+        } else {
+          this.engine.setDefaultAudioRouteToSpeakerphone(true);
+          this.engine.setEnableSpeakerphone(true);
+        }
+        this.currentRoute = 'SPEAKER';
       } else {
-        this.engine.setDefaultAudioRouteToSpeakerphone(true);
-        this.engine.setEnableSpeakerphone(true);
+        // Audio calls default to system communication routing (prioritizing Bluetooth/Headset/Earpiece)
+        if (Platform.OS === 'android') {
+          this.engine.setRouteInCommunicationMode(-1);
+        } else {
+          this.engine.setDefaultAudioRouteToSpeakerphone(false);
+          this.engine.setEnableSpeakerphone(false);
+        }
+        this.currentRoute = 'EARPIECE';
       }
 
       const result = this.engine.joinChannel(token, channelName, uid, {
@@ -170,6 +323,7 @@ export class AgoraRtcService implements IRtcEngine {
    * Leaves the active channel and stops local camera preview.
    */
   async leaveChannel(): Promise<void> {
+    await this.stopRingtone();
     if (!this.engine || !this.isAvailable) return;
 
     try {
@@ -215,21 +369,7 @@ export class AgoraRtcService implements IRtcEngine {
    * Toggles audio output between loudspeaker and earpiece/headset.
    */
   async toggleSpeaker(speakerOn: boolean): Promise<void> {
-    if (!this.engine || !this.isAvailable) return;
-
-    try {
-      if (Platform.OS === 'android') {
-        // In react-native-agora on Android, setRouteInCommunicationMode selects the route:
-        // 3: Built-in speaker (loudspeaker)
-        // 1: Earpiece (phone against ear)
-        const route = speakerOn ? 3 : 1;
-        this.engine.setRouteInCommunicationMode(route);
-      } else {
-        this.engine.setEnableSpeakerphone(speakerOn);
-      }
-    } catch (error: any) {
-      console.warn(`[AGORA_RTC] Error toggling speaker: ${error.message}`);
-    }
+    await this.setAudioRoute(speakerOn ? 'SPEAKER' : 'EARPIECE');
   }
 
   /**
@@ -249,6 +389,7 @@ export class AgoraRtcService implements IRtcEngine {
    * Completely destroys and unregisters the Agora engine.
    */
   async destroy(): Promise<void> {
+    await this.stopRingtone();
     if (!this.engine || !this.isAvailable) return;
 
     try {
@@ -285,4 +426,5 @@ export class AgoraRtcService implements IRtcEngine {
 }
 
 export const agoraRtcService = AgoraRtcService.getInstance();
+
 

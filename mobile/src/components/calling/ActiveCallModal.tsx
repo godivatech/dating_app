@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -8,6 +8,7 @@ import {
   Image,
   SafeAreaView,
   Platform,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallStore } from '../../stores/call-store';
@@ -26,8 +27,7 @@ export const ActiveCallModal: React.FC = () => {
     durationSeconds,
     isMicMuted,
     isVideoMuted,
-
-    isSpeakerOn,
+    currentAudioRoute,
     isCameraFlipped,
     partnerVideoMuted,
     statusMessage,
@@ -41,6 +41,68 @@ export const ActiveCallModal: React.FC = () => {
   const { blockUser } = useSafetyStore();
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [showSafetySheet, setShowSafetySheet] = useState(false);
+
+  // Animated pulsing heartbeat concentric rings around avatar
+  const pulseAnim1 = useRef(new Animated.Value(1)).current;
+  const opacityAnim1 = useRef(new Animated.Value(0.6)).current;
+  const pulseAnim2 = useRef(new Animated.Value(1)).current;
+  const opacityAnim2 = useRef(new Animated.Value(0.4)).current;
+  const pulseAnim3 = useRef(new Animated.Value(1)).current;
+  const opacityAnim3 = useRef(new Animated.Value(0.2)).current;
+
+  useEffect(() => {
+    const createPulseLoop = (
+      scaleVal: Animated.Value,
+      opacityVal: Animated.Value,
+      delayMs: number,
+      targetScale: number,
+      initialOpacity: number,
+    ) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delayMs),
+          Animated.parallel([
+            Animated.timing(scaleVal, {
+              toValue: targetScale,
+              duration: 2200,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacityVal, {
+              toValue: 0,
+              duration: 2200,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(scaleVal, {
+              toValue: 1,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacityVal, {
+              toValue: initialOpacity,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      );
+    };
+
+    const loop1 = createPulseLoop(pulseAnim1, opacityAnim1, 0, 1.45, 0.55);
+    const loop2 = createPulseLoop(pulseAnim2, opacityAnim2, 600, 1.75, 0.4);
+    const loop3 = createPulseLoop(pulseAnim3, opacityAnim3, 1200, 2.05, 0.25);
+
+    loop1.start();
+    loop2.start();
+    loop3.start();
+
+    return () => {
+      loop1.stop();
+      loop2.stop();
+      loop3.stop();
+    };
+  }, []);
 
   const isVisible =
     (callState === 'OUTGOING_RINGING' ||
@@ -68,6 +130,43 @@ export const ActiveCallModal: React.FC = () => {
     setShowSafetySheet(true);
   };
 
+  // Resolve active audio routing details for UI presentation
+  const getAudioRouteInfo = () => {
+    switch (currentAudioRoute) {
+      case 'BLUETOOTH':
+        return {
+          icon: 'bluetooth' as const,
+          label: 'Bluetooth',
+          deviceTag: 'Bluetooth Headset',
+          isActive: true,
+        };
+      case 'HEADSET':
+        return {
+          icon: 'headset' as const,
+          label: 'Headset',
+          deviceTag: 'Wired Headset',
+          isActive: true,
+        };
+      case 'SPEAKER':
+        return {
+          icon: 'volume-high' as const,
+          label: 'Speaker',
+          deviceTag: 'Speakerphone',
+          isActive: true,
+        };
+      case 'EARPIECE':
+      default:
+        return {
+          icon: 'phone-portrait-outline' as const,
+          label: 'Earpiece',
+          deviceTag: 'Phone Receiver',
+          isActive: false,
+        };
+    }
+  };
+
+  const audioInfo = getAudioRouteInfo();
+
   return (
     <>
       <ReportModal
@@ -85,6 +184,7 @@ export const ActiveCallModal: React.FC = () => {
           );
         }}
       />
+
       {/* Sleek In-Call Safety Action Sheet */}
       <Modal
         visible={showSafetySheet}
@@ -156,7 +256,10 @@ export const ActiveCallModal: React.FC = () => {
         statusBarTranslucent
       >
         <View style={styles.container}>
-          {/* Main Stage (Video or Avatar) */}
+          {/* Ambient Brand Glow Aura (Behind Avatar) */}
+          <View style={styles.ambientAura} />
+
+          {/* Main Stage (Video or TrueLove Branded Avatar) */}
           <View style={styles.mainStage}>
             {isConnected && isVideo && !partnerVideoMuted ? (
               // Active Video Stream Stage (Remote Partner)
@@ -169,29 +272,69 @@ export const ActiveCallModal: React.FC = () => {
                   style={StyleSheet.absoluteFill}
                 />
                 <View style={styles.videoBadge}>
-                  <Text style={styles.videoBadgeText}>HD Streaming</Text>
+                  <Text style={styles.videoBadgeText}>HD 720p</Text>
                 </View>
               </View>
             ) : (
-              // Audio Call or Camera Muted State
+              // Audio Call or Camera Muted State with Romantic Heartbeat Waves
               <View style={styles.avatarCenterBox}>
-                <View style={styles.avatarGlow}>
-                  {avatarUri ? (
-                    <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
-                  ) : (
-                    <View style={styles.largeAvatarInitial}>
-                      <Text style={styles.largeAvatarInitialText}>{nameInitial}</Text>
-                    </View>
-                  )}
+                <View style={styles.avatarPulseWrapper}>
+                  {/* Concentric Animated Waves */}
+                  <Animated.View
+                    style={[
+                      styles.pulseWaveRing,
+                      {
+                        transform: [{ scale: pulseAnim3 }],
+                        opacity: opacityAnim3,
+                      },
+                    ]}
+                  />
+                  <Animated.View
+                    style={[
+                      styles.pulseWaveRing,
+                      {
+                        transform: [{ scale: pulseAnim2 }],
+                        opacity: opacityAnim2,
+                      },
+                    ]}
+                  />
+                  <Animated.View
+                    style={[
+                      styles.pulseWaveRing,
+                      {
+                        transform: [{ scale: pulseAnim1 }],
+                        opacity: opacityAnim1,
+                      },
+                    ]}
+                  />
+
+                  {/* Brand Coral Glowing Core Avatar */}
+                  <View style={styles.avatarGlow}>
+                    {avatarUri ? (
+                      <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
+                    ) : (
+                      <View style={styles.largeAvatarInitial}>
+                        <Text style={styles.largeAvatarInitialText}>{nameInitial}</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
+
+                {/* Partner Details */}
                 <Text style={styles.stagePartnerName}>{activeCall.partnerName}</Text>
                 <Text style={styles.stageStatusText}>
                   {isConnected
                     ? partnerVideoMuted
                       ? 'Camera is off'
-                      : 'Audio Call'
-                    : statusMessage || 'Ringing...'}
+                      : 'Voice Call Connected'
+                    : statusMessage || 'Calling...'}
                 </Text>
+
+                {/* Connected Audio Device Badge */}
+                <View style={styles.audioDeviceTag}>
+                  <Ionicons name={audioInfo.icon} size={13} color="#FD5D65" style={{ marginRight: 5 }} />
+                  <Text style={styles.audioDeviceTagText}>{audioInfo.deviceTag}</Text>
+                </View>
               </View>
             )}
 
@@ -200,7 +343,7 @@ export const ActiveCallModal: React.FC = () => {
               <View style={styles.pipWindow}>
                 {isVideoMuted ? (
                   <View style={styles.pipMuted}>
-                    <Ionicons name="videocam-off" size={20} color="#94A3B8" />
+                    <Ionicons name="videocam-off" size={22} color="#FD5D65" />
                   </View>
                 ) : (
                   <VideoSurfaceView
@@ -224,15 +367,19 @@ export const ActiveCallModal: React.FC = () => {
                 onPress={handleSafetyAction}
                 activeOpacity={0.7}
               >
-                <Ionicons name="shield-checkmark" size={20} color="#F43F5E" />
+                <Ionicons name="shield-checkmark" size={20} color="#FD5D65" />
               </TouchableOpacity>
 
-              {/* Call Timer / State */}
+              {/* Call Timer / State Pill */}
               <View style={[styles.timerPill, activeCall.isVibeCheck && styles.vibeCheckPill]}>
                 <View
                   style={[
                     styles.statusDot,
-                    activeCall.isVibeCheck ? styles.dotAmber : isConnected ? styles.dotGreen : styles.dotOrange,
+                    activeCall.isVibeCheck
+                      ? styles.dotAmber
+                      : isConnected
+                      ? styles.dotGreen
+                      : styles.dotCoral,
                   ]}
                 />
                 <Text style={[styles.timerText, activeCall.isVibeCheck && styles.vibeCheckText]}>
@@ -254,7 +401,7 @@ export const ActiveCallModal: React.FC = () => {
                   <Ionicons name="camera-reverse" size={20} color="#FFFFFF" />
                 </TouchableOpacity>
               ) : (
-                <View style={{ width: 40 }} />
+                <View style={{ width: 42 }} />
               )}
             </View>
 
@@ -273,54 +420,75 @@ export const ActiveCallModal: React.FC = () => {
           <SafeAreaView style={styles.bottomSafeArea}>
             <View style={styles.toolbar}>
               {/* Mic Toggle */}
-              <TouchableOpacity
-                style={[styles.toolBtn, isMicMuted && styles.toolBtnActive]}
-                onPress={toggleMic}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={isMicMuted ? 'mic-off' : 'mic'}
-                  size={24}
-                  color={isMicMuted ? '#EF4444' : '#FFFFFF'}
-                />
-              </TouchableOpacity>
-
-              {/* Video Toggle (If video call) */}
-              {isVideo && (
+              <View style={styles.toolCol}>
                 <TouchableOpacity
-                  style={[styles.toolBtn, isVideoMuted && styles.toolBtnActive]}
-                  onPress={toggleVideo}
+                  style={[styles.toolBtn, isMicMuted && styles.toolBtnMuted]}
+                  onPress={toggleMic}
                   activeOpacity={0.7}
                 >
                   <Ionicons
-                    name={isVideoMuted ? 'videocam-off' : 'videocam'}
+                    name={isMicMuted ? 'mic-off' : 'mic'}
                     size={24}
-                    color={isVideoMuted ? '#EF4444' : '#FFFFFF'}
+                    color={isMicMuted ? '#EF4444' : '#FFFFFF'}
                   />
                 </TouchableOpacity>
+                <Text style={[styles.toolLabel, isMicMuted && styles.toolLabelMuted]}>
+                  {isMicMuted ? 'Muted' : 'Mute'}
+                </Text>
+              </View>
+
+              {/* Video Toggle (If video call) */}
+              {isVideo && (
+                <View style={styles.toolCol}>
+                  <TouchableOpacity
+                    style={[styles.toolBtn, isVideoMuted && styles.toolBtnMuted]}
+                    onPress={toggleVideo}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons
+                      name={isVideoMuted ? 'videocam-off' : 'videocam'}
+                      size={24}
+                      color={isVideoMuted ? '#EF4444' : '#FFFFFF'}
+                    />
+                  </TouchableOpacity>
+                  <Text style={[styles.toolLabel, isVideoMuted && styles.toolLabelMuted]}>
+                    {isVideoMuted ? 'Cam Off' : 'Camera'}
+                  </Text>
+                </View>
               )}
 
-              {/* Speaker / Earpiece Toggle */}
-              <TouchableOpacity
-                style={[styles.toolBtn, isSpeakerOn && styles.toolBtnSpeakerActive]}
-                onPress={toggleSpeaker}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={isSpeakerOn ? 'volume-high' : 'phone-portrait-outline'}
-                  size={24}
-                  color={isSpeakerOn ? '#38BDF8' : '#94A3B8'}
-                />
-              </TouchableOpacity>
+              {/* Dynamic Audio Output Routing Button (Speaker, Bluetooth, Headset, Earpiece) */}
+              <View style={styles.toolCol}>
+                <TouchableOpacity
+                  style={[
+                    styles.toolBtn,
+                    audioInfo.isActive && styles.toolBtnSpeakerActive,
+                  ]}
+                  onPress={toggleSpeaker}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={audioInfo.icon}
+                    size={24}
+                    color={audioInfo.isActive ? '#FD5D65' : '#FFFFFF'}
+                  />
+                </TouchableOpacity>
+                <Text style={[styles.toolLabel, audioInfo.isActive && styles.toolLabelActive]}>
+                  {audioInfo.label}
+                </Text>
+              </View>
 
               {/* End Call Button */}
-              <TouchableOpacity
-                style={styles.endCallBtn}
-                onPress={() => hangupCall()}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="call" size={28} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
-              </TouchableOpacity>
+              <View style={styles.toolCol}>
+                <TouchableOpacity
+                  style={styles.endCallBtn}
+                  onPress={() => hangupCall()}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="call" size={28} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                </TouchableOpacity>
+                <Text style={styles.toolLabelEnd}>End</Text>
+              </View>
             </View>
           </SafeAreaView>
         </View>
@@ -332,7 +500,16 @@ export const ActiveCallModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#14050C', // Romantic TrueLove midnight velvet
+  },
+  ambientAura: {
+    position: 'absolute',
+    top: '25%',
+    left: '10%',
+    width: '80%',
+    height: '40%',
+    borderRadius: 160,
+    backgroundColor: 'rgba(253, 93, 101, 0.08)',
   },
   mainStage: {
     position: 'absolute',
@@ -350,100 +527,125 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
   },
-  fullscreenVideoMock: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-  },
   videoBadge: {
     position: 'absolute',
     top: 100,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 10,
+    backgroundColor: 'rgba(20, 5, 12, 0.65)',
+    paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.3)',
   },
   videoBadgeText: {
-    color: '#38BDF8',
+    color: '#FD5D65',
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   avatarCenterBox: {
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPulseWrapper: {
+    width: 220,
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  pulseWaveRing: {
+    position: 'absolute',
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    borderWidth: 2,
+    borderColor: '#FD5D65',
+    backgroundColor: 'rgba(253, 93, 101, 0.08)',
   },
   avatarGlow: {
     width: 160,
     height: 160,
     borderRadius: 80,
-    borderWidth: 3,
-    borderColor: '#F43F5E',
+    borderWidth: 3.5,
+    borderColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(244, 63, 94, 0.15)',
-    marginBottom: 24,
+    backgroundColor: 'rgba(253, 93, 101, 0.2)',
+    shadowColor: '#FD5D65',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 10,
   },
   largeAvatar: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
   },
   largeAvatarInitial: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 144,
+    height: 144,
+    borderRadius: 72,
     backgroundColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
   },
   largeAvatarInitialText: {
-    fontSize: 52,
+    fontSize: 54,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   stagePartnerName: {
     color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     marginBottom: 6,
+    letterSpacing: 0.2,
   },
   stageStatusText: {
-    color: '#94A3B8',
-    fontSize: 16,
+    color: '#FDA4AF',
+    fontSize: 15,
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  audioDeviceTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(253, 93, 101, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
+  },
+  audioDeviceTagText: {
+    color: '#FFE4E6',
+    fontSize: 12,
+    fontWeight: '600',
   },
   pipWindow: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 100 : 80,
     right: 18,
-    width: 100,
-    height: 140,
-    borderRadius: 16,
+    width: 104,
+    height: 146,
+    borderRadius: 18,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
-    backgroundColor: '#1E293B',
-    elevation: 8,
+    borderColor: 'rgba(253, 93, 101, 0.5)',
+    backgroundColor: '#1C0812',
+    elevation: 10,
     shadowColor: '#000',
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
-  pipActive: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#334155',
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
   },
   pipMuted: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0F172A',
-  },
-  pipLabel: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: '500',
+    backgroundColor: '#18060F',
   },
   topSafeArea: {
     position: 'absolute',
@@ -459,20 +661,24 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'android' ? 35 : 10,
   },
   shieldBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(25, 7, 15, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
   },
   timerPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    backgroundColor: 'rgba(25, 7, 15, 0.85)',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
   },
   vibeCheckPill: {
     backgroundColor: 'rgba(245, 158, 11, 0.25)',
@@ -488,8 +694,8 @@ const styles = StyleSheet.create({
   dotGreen: {
     backgroundColor: '#10B981',
   },
-  dotOrange: {
-    backgroundColor: '#F59E0B',
+  dotCoral: {
+    backgroundColor: '#FD5D65',
   },
   dotAmber: {
     backgroundColor: '#FBBF24',
@@ -497,7 +703,7 @@ const styles = StyleSheet.create({
   timerText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   vibeCheckText: {
     color: '#FDE68A',
@@ -525,12 +731,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   topCircleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(25, 7, 15, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
   },
   bottomSafeArea: {
     position: 'absolute',
@@ -541,41 +749,72 @@ const styles = StyleSheet.create({
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.85)',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    justifyContent: 'space-around',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    backgroundColor: 'rgba(20, 5, 12, 0.92)',
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    borderTopWidth: 1.5,
+    borderTopColor: 'rgba(253, 93, 101, 0.25)',
   },
-  toolBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  toolCol: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toolBtnActive: {
+  toolBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  toolBtnMuted: {
     backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderWidth: 1.5,
+    borderColor: '#EF4444',
   },
   toolBtnSpeakerActive: {
-    backgroundColor: 'rgba(56, 189, 248, 0.25)',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.4)',
+    backgroundColor: 'rgba(253, 93, 101, 0.25)',
+    borderWidth: 1.5,
+    borderColor: '#FD5D65',
+    shadowColor: '#FD5D65',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+  },
+  toolLabel: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  toolLabelMuted: {
+    color: '#EF4444',
+  },
+  toolLabelActive: {
+    color: '#FD5D65',
+    fontWeight: '700',
   },
   endCallBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 6,
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.5,
     shadowRadius: 8,
     elevation: 8,
+  },
+  toolLabelEnd: {
+    color: '#EF4444',
+    fontSize: 12,
+    fontWeight: '700',
   },
   safetySheetOverlay: {
     flex: 1,
@@ -646,3 +885,4 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
 });
+

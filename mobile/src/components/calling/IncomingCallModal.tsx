@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Platform,
   Vibration,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallStore } from '../../stores/call-store';
@@ -27,6 +28,65 @@ export const IncomingCallModal: React.FC = () => {
 
   // Block screenshots and screen recordings on incoming call screens
   useScreenCapturePrevention(isVisible);
+
+  // Concentric animated heartbeat pulse rings
+  const pulseAnim1 = useRef(new Animated.Value(1)).current;
+  const opacityAnim1 = useRef(new Animated.Value(0.6)).current;
+  const pulseAnim2 = useRef(new Animated.Value(1)).current;
+  const opacityAnim2 = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const createPulseLoop = (
+      scaleVal: Animated.Value,
+      opacityVal: Animated.Value,
+      delayMs: number,
+      targetScale: number,
+      initialOpacity: number,
+    ) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(delayMs),
+          Animated.parallel([
+            Animated.timing(scaleVal, {
+              toValue: targetScale,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacityVal, {
+              toValue: 0,
+              duration: 2000,
+              useNativeDriver: true,
+            }),
+          ]),
+          Animated.parallel([
+            Animated.timing(scaleVal, {
+              toValue: 1,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+            Animated.timing(opacityVal, {
+              toValue: initialOpacity,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ]),
+        ]),
+      );
+    };
+
+    const loop1 = createPulseLoop(pulseAnim1, opacityAnim1, 0, 1.5, 0.6);
+    const loop2 = createPulseLoop(pulseAnim2, opacityAnim2, 600, 1.85, 0.4);
+
+    loop1.start();
+    loop2.start();
+
+    return () => {
+      loop1.stop();
+      loop2.stop();
+    };
+  }, [isVisible]);
 
   // Trigger continuous ringing vibration while incoming call modal is visible
   useEffect(() => {
@@ -61,6 +121,9 @@ export const IncomingCallModal: React.FC = () => {
       statusBarTranslucent
     >
       <View style={styles.container}>
+        {/* Ambient Warm Romantic Glow */}
+        <View style={styles.ambientAura} />
+
         <SafeAreaView style={styles.safeArea}>
           {/* Top Info */}
           <View style={styles.topInfo}>
@@ -68,7 +131,7 @@ export const IncomingCallModal: React.FC = () => {
               <Ionicons
                 name={isVideo ? 'videocam' : 'call'}
                 size={16}
-                color="#FFFFFF"
+                color="#FD5D65"
                 style={{ marginRight: 6 }}
               />
               <Text style={styles.typeBadgeText}>
@@ -79,16 +142,37 @@ export const IncomingCallModal: React.FC = () => {
             <Text style={styles.ringingSubtext}>Ringing...</Text>
           </View>
 
-          {/* Central Avatar */}
+          {/* Central Avatar with Animated Concentric Waves */}
           <View style={styles.avatarContainer}>
-            <View style={styles.pulseCircle}>
-              {avatarUri ? (
-                <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
-              ) : (
-                <View style={styles.avatarInitialCircle}>
-                  <Text style={styles.avatarInitialText}>{nameInitial}</Text>
-                </View>
-              )}
+            <View style={styles.pulseWrapper}>
+              <Animated.View
+                style={[
+                  styles.pulseWaveRing,
+                  {
+                    transform: [{ scale: pulseAnim2 }],
+                    opacity: opacityAnim2,
+                  },
+                ]}
+              />
+              <Animated.View
+                style={[
+                  styles.pulseWaveRing,
+                  {
+                    transform: [{ scale: pulseAnim1 }],
+                    opacity: opacityAnim1,
+                  },
+                ]}
+              />
+
+              <View style={styles.avatarGlowCircle}>
+                {avatarUri ? (
+                  <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
+                ) : (
+                  <View style={styles.avatarInitialCircle}>
+                    <Text style={styles.avatarInitialText}>{nameInitial}</Text>
+                  </View>
+                )}
+              </View>
             </View>
           </View>
 
@@ -131,7 +215,16 @@ export const IncomingCallModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#14050C', // TrueLove dark romantic theme
+  },
+  ambientAura: {
+    position: 'absolute',
+    top: '25%',
+    left: '10%',
+    width: '80%',
+    height: '40%',
+    borderRadius: 160,
+    backgroundColor: 'rgba(253, 93, 101, 0.08)',
   },
   safeArea: {
     flex: 1,
@@ -147,52 +240,75 @@ const styles = StyleSheet.create({
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
+    backgroundColor: 'rgba(253, 93, 101, 0.15)',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    borderRadius: 22,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.35)',
   },
   typeBadgeText: {
-    color: '#FFFFFF',
+    color: '#FFE4E6',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   callerName: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 30,
+    fontWeight: '800',
     marginBottom: 8,
   },
   ringingSubtext: {
-    color: '#94A3B8',
+    color: '#FDA4AF',
     fontSize: 16,
+    fontWeight: '500',
   },
   avatarContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: 40,
   },
-  pulseCircle: {
+  pulseWrapper: {
+    width: 220,
+    height: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseWaveRing: {
+    position: 'absolute',
     width: 170,
     height: 170,
     borderRadius: 85,
-    borderWidth: 3,
-    borderColor: '#38BDF8',
+    borderWidth: 2,
+    borderColor: '#FD5D65',
+    backgroundColor: 'rgba(253, 93, 101, 0.08)',
+  },
+  avatarGlowCircle: {
+    width: 164,
+    height: 164,
+    borderRadius: 82,
+    borderWidth: 3.5,
+    borderColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    backgroundColor: 'rgba(253, 93, 101, 0.2)',
+    shadowColor: '#FD5D65',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
+    elevation: 8,
   },
   avatarImage: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
   },
   avatarInitialCircle: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
     backgroundColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,15 +337,17 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 8,
   },
   declineBtn: {
     backgroundColor: '#EF4444',
+    shadowColor: '#EF4444',
   },
   acceptBtn: {
     backgroundColor: '#10B981',
+    shadowColor: '#10B981',
   },
   actionLabel: {
     color: '#E2E8F0',
@@ -237,3 +355,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { callSocket } from '../services/call-socket.service';
-import { agoraRtcService } from '../services/rtc/agora-rtc.service';
+import { agoraRtcService, AppAudioRoute } from '../services/rtc/agora-rtc.service';
 import { requestCallingPermissions } from '../utils/call-permissions';
 import {
   CallType,
@@ -37,6 +37,8 @@ interface CallStoreState {
   isMicMuted: boolean;
   isVideoMuted: boolean;
   isSpeakerOn: boolean;
+  currentAudioRoute: AppAudioRoute;
+  connectedExternalDevice: 'BLUETOOTH' | 'HEADSET' | null;
   isCameraFlipped: boolean;
   partnerVideoMuted: boolean;
   partnerAudioMuted: boolean;
@@ -80,6 +82,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   isMicMuted: false,
   isVideoMuted: false,
   isSpeakerOn: true,
+  currentAudioRoute: 'SPEAKER',
+  connectedExternalDevice: null,
   isCameraFlipped: false,
   partnerVideoMuted: false,
   partnerAudioMuted: false,
@@ -89,6 +93,13 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   handleIncomingCallPayload: (data: IncomingCallPayload) => {
     clearPendingResetTimeout();
     get().initCallSocket();
+
+    // Trigger native incoming ringtone
+    const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
+    agoraRtcService.init(appId).then(() => {
+      agoraRtcService.playRingtone('incoming');
+    }).catch(() => {});
+
     set({
       callState: 'INCOMING_RINGING',
       activeCall: {
@@ -139,6 +150,9 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallConnected(async (data: CallConnectedPayload) => {
       clearPendingResetTimeout();
+      // Instantly stop outgoing ringback tone or incoming ringtone
+      await agoraRtcService.stopRingtone();
+
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
         const nextSecs = get().durationSeconds + 1;
@@ -165,6 +179,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       set((state) => ({
         callState: 'CONNECTED',
         statusMessage: 'Connected',
+        currentAudioRoute: isVideo ? 'SPEAKER' : (state.connectedExternalDevice || 'EARPIECE'),
+        isSpeakerOn: isVideo,
         activeCall: state.activeCall
           ? {
               ...state.activeCall,
@@ -202,6 +218,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallRejected((data: any) => {
       clearPendingResetTimeout();
+      agoraRtcService.stopRingtone();
       set({
         statusMessage: data.reason || 'Call Declined',
       });
@@ -212,6 +229,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallBusy((data: any) => {
       clearPendingResetTimeout();
+      agoraRtcService.stopRingtone();
       set({
         statusMessage: data.message || 'User is busy on another call',
       });
@@ -222,6 +240,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallError((data: { message: string }) => {
       clearPendingResetTimeout();
+      agoraRtcService.stopRingtone();
       let userFriendlyMessage = 'Call failed. Please try again.';
       if (data?.message) {
         if (
@@ -245,6 +264,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallTimeout(() => {
       clearPendingResetTimeout();
+      agoraRtcService.stopRingtone();
       set({
         statusMessage: 'Call Unanswered (Missed)',
       });
@@ -255,6 +275,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     callSocket.onCallEnded((data: CallEndedNotification) => {
       clearPendingResetTimeout();
+      agoraRtcService.stopRingtone();
       if (timerInterval) {
         clearInterval(timerInterval);
         timerInterval = null;
@@ -282,10 +303,22 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       });
     });
 
-    // Automatically sync speaker state with native audio route (e.g. Bluetooth headset or loudspeaker)
+    // Automatically sync active device and speaker state with native audio route changes
     agoraRtcService.onAudioRoutingChanged((routing: number) => {
-      // 3 = Built-in speaker; 5 = Bluetooth headset; 0/2 = Wired headset; 1 = Earpiece
-      set({ isSpeakerOn: routing === 3 });
+      const mappedRoute = agoraRtcService.getAudioRouteFromAgora(routing);
+      let extDevice = get().connectedExternalDevice;
+
+      if (mappedRoute === 'BLUETOOTH') {
+        extDevice = 'BLUETOOTH';
+      } else if (mappedRoute === 'HEADSET') {
+        extDevice = 'HEADSET';
+      }
+
+      set({
+        currentAudioRoute: mappedRoute,
+        isSpeakerOn: mappedRoute === 'SPEAKER',
+        connectedExternalDevice: extDevice,
+      });
     });
 
     // Auto-terminate call when remote partner disconnects or kills the app
@@ -347,10 +380,18 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     const granted = await requestCallingPermissions(callType === CallType.VIDEO);
     if (!granted) return;
 
+    // Start outgoing ringback tone immediately
+    const appId = process.env.EXPO_PUBLIC_AGORA_APP_ID || '07f3de63ed2c431c9e7c40cd26b1c91b';
+    agoraRtcService.init(appId).then(() => {
+      agoraRtcService.playRingtone('outgoing');
+    }).catch(() => {});
+
     set({
       callState: 'OUTGOING_RINGING',
       durationSeconds: 0,
       statusMessage: 'Calling...',
+      currentAudioRoute: callType === CallType.VIDEO ? 'SPEAKER' : 'EARPIECE',
+      isSpeakerOn: callType === CallType.VIDEO,
       activeCall: {
         callId: '',
         matchId,
@@ -367,6 +408,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
   acceptIncomingCall: async () => {
     clearPendingResetTimeout();
+    await agoraRtcService.stopRingtone();
     const { activeCall } = get();
     if (!activeCall || !activeCall.callId) return;
 
@@ -375,9 +417,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
     set({ statusMessage: 'Connecting...' });
 
-    // Ensure the socket is live before emitting call:accept.
-    // This is critical on cold start (app was killed) where the socket
-    // has not yet had time to connect after the push notification tap.
+    // Ensure the socket is live before emitting call:accept
     const isConnected = await callSocket.ensureConnected(6000);
     if (!isConnected) {
       console.warn('[CALL_STORE] Socket not connected after 6s; cannot accept call.');
@@ -391,6 +431,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
   rejectIncomingCall: (reason?: string) => {
     clearPendingResetTimeout();
+    agoraRtcService.stopRingtone();
     const { activeCall } = get();
     if (!activeCall || !activeCall.callId) {
       get().resetCall();
@@ -403,6 +444,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
   hangupCall: (reason: CallEndReason = CallEndReason.CALLER_HANGUP) => {
     clearPendingResetTimeout();
+    agoraRtcService.stopRingtone();
     const { activeCall, callState } = get();
     if (activeCall?.callId) {
       callSocket.endCall(activeCall.callId, reason);
@@ -450,10 +492,16 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     }
   },
 
-  toggleSpeaker: () => {
-    const next = !get().isSpeakerOn;
-    set({ isSpeakerOn: next });
-    agoraRtcService.toggleSpeaker(next);
+  toggleSpeaker: async () => {
+    const { currentAudioRoute, connectedExternalDevice } = get();
+    const nextRoute = await agoraRtcService.toggleAudioRoute(
+      currentAudioRoute,
+      connectedExternalDevice,
+    );
+    set({
+      currentAudioRoute: nextRoute,
+      isSpeakerOn: nextRoute === 'SPEAKER',
+    });
   },
 
   flipCamera: () => {
@@ -463,6 +511,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
 
   resetCall: () => {
     clearPendingResetTimeout();
+    agoraRtcService.stopRingtone();
     agoraRtcService.leaveChannel();
     if (timerInterval) {
       clearInterval(timerInterval);
@@ -475,6 +524,8 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       isMicMuted: false,
       isVideoMuted: false,
       isSpeakerOn: true,
+      currentAudioRoute: 'SPEAKER',
+      connectedExternalDevice: null,
       isCameraFlipped: false,
       partnerVideoMuted: false,
       partnerAudioMuted: false,
@@ -482,3 +533,4 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
   },
 }));
+
