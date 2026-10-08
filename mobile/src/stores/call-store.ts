@@ -533,11 +533,25 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   },
 
   toggleSpeaker: async () => {
-    const { currentAudioRoute } = get();
-    // Direct toggle: if currently on speaker, go to earpiece. Otherwise go to speaker.
-    // This ensures the speaker button ALWAYS works as a simple toggle.
-    // The full device picker (with Bluetooth/Headset options) is accessible via long-press.
-    const nextRoute: AppAudioRoute = currentAudioRoute === 'SPEAKER' ? 'EARPIECE' : 'SPEAKER';
+    const { currentAudioRoute, connectedExternalDevice } = get();
+    // Intelligent toggle:
+    // If currently on SPEAKER:
+    //   Switch back to BLUETOOTH if headset connected, or HEADSET, else EARPIECE.
+    // If currently on EARPIECE / BLUETOOTH / HEADSET:
+    //   Switch to physical SPEAKER.
+    let nextRoute: AppAudioRoute = 'SPEAKER';
+    if (currentAudioRoute === 'SPEAKER') {
+      if (connectedExternalDevice === 'BLUETOOTH') {
+        nextRoute = 'BLUETOOTH';
+      } else if (connectedExternalDevice === 'HEADSET') {
+        nextRoute = 'HEADSET';
+      } else {
+        nextRoute = 'EARPIECE';
+      }
+    } else {
+      nextRoute = 'SPEAKER';
+    }
+
     await agoraRtcService.setAudioRoute(nextRoute);
     set({
       currentAudioRoute: nextRoute,

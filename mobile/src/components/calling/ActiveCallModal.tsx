@@ -116,6 +116,13 @@ export const ActiveCallModal: React.FC = () => {
       callState === 'ENDED') &&
     !!activeCall;
 
+  // Immediately detect audio devices when call modal mounts or state changes
+  useEffect(() => {
+    if (isVisible) {
+      detectAudioDevices();
+    }
+  }, [isVisible]);
+
   // Block screenshots and screen recordings during active video and voice calls
   useScreenCapturePrevention(isVisible);
 
