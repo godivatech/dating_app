@@ -187,12 +187,16 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       get().detectAudioDevices();
       const extDevice = get().connectedExternalDevice;
 
+      // Respect user's explicit selection if already made during ringing, or determine sensible target
+      const currentSelected = get().currentAudioRoute;
       let targetAudioRoute: AppAudioRoute = 'SPEAKER';
       if (isVideo) {
         targetAudioRoute = 'SPEAKER';
-      } else if (extDevice === 'BLUETOOTH') {
+      } else if (currentSelected === 'SPEAKER') {
+        targetAudioRoute = 'SPEAKER';
+      } else if (extDevice === 'BLUETOOTH' || currentSelected === 'BLUETOOTH') {
         targetAudioRoute = 'BLUETOOTH';
-      } else if (extDevice === 'HEADSET') {
+      } else if (extDevice === 'HEADSET' || currentSelected === 'HEADSET') {
         targetAudioRoute = 'HEADSET';
       } else {
         targetAudioRoute = 'EARPIECE';
@@ -390,6 +394,27 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       }
     });
 
+    // Real-time synchronization of native audio route changes (Bluetooth connected/disconnected, speaker toggle)
+    agoraRtcService.onAudioRoutingChanged((routing: number) => {
+      const route = agoraRtcService.getAudioRouteFromAgora(routing);
+      console.log(`[CALL_STORE] Native audio routing changed: ${routing} -> ${route}`);
+
+      const updates: Partial<CallStoreState> = {
+        currentAudioRoute: route,
+        isSpeakerOn: route === 'SPEAKER',
+      };
+
+      if (route === 'BLUETOOTH') {
+        updates.connectedExternalDevice = 'BLUETOOTH';
+        updates.bluetoothDeviceName = 'Bluetooth Headset';
+      } else if (route === 'HEADSET') {
+        updates.connectedExternalDevice = 'HEADSET';
+        updates.headsetDeviceName = 'Wired Headset';
+      }
+
+      set(updates);
+    });
+
     set({ isInitialized: true });
   },
 
@@ -411,19 +436,26 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       get().detectAudioDevices();
     } catch { }
 
+    const isVideo = callType === CallType.VIDEO;
     const extDevice = get().connectedExternalDevice;
-    let initialRoute: AppAudioRoute = 'SPEAKER';
-    if (callType === CallType.VIDEO) {
+    let initialRoute: AppAudioRoute = 'EARPIECE';
+
+    if (isVideo) {
       initialRoute = 'SPEAKER';
+      agoraRtcService.setDefaultRoute(true);
     } else if (extDevice === 'BLUETOOTH') {
       initialRoute = 'BLUETOOTH';
+      agoraRtcService.setAudioRoute('BLUETOOTH').catch(() => { });
     } else if (extDevice === 'HEADSET') {
       initialRoute = 'HEADSET';
+      agoraRtcService.setAudioRoute('HEADSET').catch(() => { });
     } else {
       initialRoute = 'EARPIECE';
+      // For audio call with no external device forced, apply system default route policy
+      // (-1 on Android) so if a Bluetooth headset is connected, Android routes to it without interference.
+      agoraRtcService.setDefaultRoute(false);
     }
 
-    agoraRtcService.setAudioRoute(initialRoute).catch(() => { });
     agoraRtcService.playRingtone('outgoing').catch(() => { });
 
     set({
@@ -591,6 +623,7 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
   resetCall: () => {
     clearPendingResetTimeout();
     agoraRtcService.stopRingtone();
+    agoraRtcService.resetRoutingState();
     agoraRtcService.leaveChannel();
     if (timerInterval) {
       clearInterval(timerInterval);

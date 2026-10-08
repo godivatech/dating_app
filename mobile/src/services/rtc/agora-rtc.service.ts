@@ -35,6 +35,8 @@ export class AgoraRtcService implements IRtcEngine {
   private currentAppId: string | null = null;
   private webAudio: any = null;
   private currentRoute: AppAudioRoute = 'SPEAKER';
+  // Track currently active ringtone so routing changes can rebind the playback stream immediately
+  private currentRingtoneType: 'outgoing' | 'incoming' | null = null;
   // Track which external devices are currently active based on native OS audio routing events
   private _nativeBluetoothActive = false;
   private _nativeHeadsetActive = false;
@@ -97,8 +99,7 @@ export class AgoraRtcService implements IRtcEngine {
           this.currentRoute = this.getAudioRouteFromAgora(routing);
           if (this.currentRoute === 'BLUETOOTH') {
             this._nativeBluetoothActive = true;
-          }
-          if (this.currentRoute === 'HEADSET') {
+          } else if (this.currentRoute === 'HEADSET') {
             this._nativeHeadsetActive = true;
           }
           this.audioRoutingCallbacks.forEach((cb) => cb(routing));
@@ -144,6 +145,7 @@ export class AgoraRtcService implements IRtcEngine {
    * Uses Agora playEffect / startAudioMixing in loopback mode so it plays locally through active audio route.
    */
   async playRingtone(type: 'outgoing' | 'incoming'): Promise<void> {
+    this.currentRingtoneType = type;
     const soundId = type === 'outgoing' ? 101 : 102;
     const url = type === 'outgoing' ? OUTGOING_RINGBACK_URL : INCOMING_RINGTONE_URL;
 
@@ -194,6 +196,7 @@ export class AgoraRtcService implements IRtcEngine {
    * Stops any currently playing ringback tone or ringtone.
    */
   async stopRingtone(): Promise<void> {
+    this.currentRingtoneType = null;
     if (Platform.OS === 'web') {
       if (this.webAudio) {
         try {
@@ -333,10 +336,40 @@ export class AgoraRtcService implements IRtcEngine {
   }
 
   /**
+   * Resets internal audio routing state between calls.
+   */
+  resetRoutingState(): void {
+    this._nativeBluetoothActive = false;
+    this._nativeHeadsetActive = false;
+    this.currentRoute = 'SPEAKER';
+    this.currentRingtoneType = null;
+  }
+
+  /**
+   * Sets default audio route policy without forcing a specific device in communication mode.
+   * On Android, setting route to RouteDefault (-1) lets the OS automatically choose:
+   * Bluetooth headset (if connected) > Wired headset > Built-in speaker / Earpiece.
+   */
+  setDefaultRoute(toSpeaker: boolean): void {
+    if (!this.engine || !this.isAvailable) return;
+    try {
+      this.engine.setDefaultAudioRouteToSpeakerphone(toSpeaker);
+      if (Platform.OS === 'android') {
+        this.engine.setRouteInCommunicationMode(AudioRoute.RouteDefault);
+      } else {
+        this.engine.setEnableSpeakerphone(toSpeaker);
+      }
+    } catch (err: any) {
+      console.warn('[AGORA_RTC] setDefaultRoute warning:', err?.message);
+    }
+  }
+
+  /**
    * Selects an audio route explicitly (Speakerphone, Earpiece, Bluetooth, or Headset).
-   * Simultaneously engages setDefaultAudioRouteToSpeakerphone, setEnableSpeakerphone,
-   * and Android setRouteInCommunicationMode to ensure immediate hardware speakerphone
-   * activation during both ringing and active call states.
+   * On Android, uses setRouteInCommunicationMode alone (per Agora's documented requirement
+   * to avoid conflicting with setEnableSpeakerphone).
+   * Also restarts the active ringtone if currently playing so the AudioTrack physically
+   * binds immediately to the newly selected output.
    */
   async setAudioRoute(route: AppAudioRoute): Promise<void> {
     if (!this.engine || !this.isAvailable) return;
@@ -345,11 +378,13 @@ export class AgoraRtcService implements IRtcEngine {
     try {
       const isSpeaker = route === 'SPEAKER';
 
-      // 1. Primary Agora speakerphone hardware controls (activates physical loudspeaker on both Android & iOS)
+      // 1. Configure default audio route preference
       this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
-      this.engine.setEnableSpeakerphone(isSpeaker);
 
-      // 2. On Android, explicitly set routing in communication mode
+      // 2. Hardware routing control:
+      // On Android in communication mode, Agora explicitly states that calling setEnableSpeakerphone
+      // and setRouteInCommunicationMode together causes internal AudioManager conflicts.
+      // Use setRouteInCommunicationMode ALONE on Android.
       if (Platform.OS === 'android') {
         let targetRoute = AudioRoute.RouteSpeakerphone;
         if (route === 'SPEAKER') {
@@ -362,6 +397,32 @@ export class AgoraRtcService implements IRtcEngine {
           targetRoute = AudioRoute.RouteEarpiece; // 1
         }
         this.engine.setRouteInCommunicationMode(targetRoute);
+      } else {
+        // On iOS / other platforms, use standard setEnableSpeakerphone
+        this.engine.setEnableSpeakerphone(isSpeaker);
+      }
+
+      // 3. Ringtone AudioTrack migration:
+      // If ringtone is currently playing (outgoing or incoming), Android AudioTrack does NOT
+      // re-route an in-flight playback stream to the new hardware output.
+      // We must stop and immediately restart the effect so the new track binds to the selected hardware output!
+      if (this.currentRingtoneType) {
+        try {
+          this.engine.stopAllEffects();
+          const soundId = this.currentRingtoneType === 'outgoing' ? 101 : 102;
+          const url = this.currentRingtoneType === 'outgoing' ? OUTGOING_RINGBACK_URL : INCOMING_RINGTONE_URL;
+          this.engine.playEffect(
+            soundId,
+            url,
+            -1, // loop indefinitely
+            1.0,
+            0.0,
+            100,
+            false,
+          );
+        } catch (e) {
+          console.warn('[AGORA_RTC] Error restarting ringtone on new route:', e);
+        }
       }
 
       console.log(`[AGORA_RTC] Audio route set to: ${route} (speakerphone enabled: ${this.isSpeakerphoneEnabled()})`);
@@ -438,6 +499,7 @@ export class AgoraRtcService implements IRtcEngine {
         else if (targetRoute === 'BLUETOOTH') routeCode = AudioRoute.RouteBluetoothDeviceHfp;
         else if (targetRoute === 'HEADSET') routeCode = AudioRoute.RouteHeadset;
         else if (targetRoute === 'EARPIECE') routeCode = AudioRoute.RouteEarpiece;
+        else routeCode = AudioRoute.RouteDefault;
         this.engine.setRouteInCommunicationMode(routeCode);
       } else {
         this.engine.setEnableSpeakerphone(isSpeaker);
@@ -463,6 +525,7 @@ export class AgoraRtcService implements IRtcEngine {
    */
   async leaveChannel(): Promise<void> {
     await this.stopRingtone();
+    this.resetRoutingState();
     if (!this.engine || !this.isAvailable) return;
 
     try {
