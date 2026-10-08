@@ -457,33 +457,43 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Cash Balance & Withdraw Row */}
-            <View style={styles.coinBalanceRow}>
-              <View>
-                <Text style={styles.coinBalanceValue}>
-                  ₹{(wallet?.balanceInr ?? 0).toFixed(2)}
-                </Text>
-                <Text style={styles.coinBalanceLabel}>Withdrawable to UPI</Text>
+            {/* Cash Balance & Responsive Action Buttons */}
+            <View style={styles.coinBalanceCard}>
+              <View style={styles.coinBalanceHeader}>
+                <View>
+                  <Text style={styles.coinBalanceLabel}>Withdrawable to UPI</Text>
+                  <Text style={styles.coinBalanceValue}>
+                    ₹{(wallet?.balanceInr ?? 0).toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.instantCashPill}>
+                  <Ionicons name="flash" size={12} color="#FD5D65" />
+                  <Text style={styles.instantCashPillText}>INSTANT UPI</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+
+              {/* Action Buttons Row (100% Mobile Responsive, Equal Flex) */}
+              <View style={styles.coinActionsRow}>
                 <TouchableOpacity
                   style={styles.passbookCoinsBtn}
                   onPress={() => setShowCreatorWalletModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="gift-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
-                  <Text style={styles.passbookCoinsBtnText}>
+                  <Ionicons name="gift-outline" size={15} color="#E11D48" style={{ marginRight: 5 }} />
+                  <Text style={styles.passbookCoinsBtnText} numberOfLines={1}>
                     {wallet?.giftsReceivedCount ?? 0} Gifts
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.rechargeCoinsBtn, { backgroundColor: '#10B981' }]}
+                  style={styles.rechargeCoinsBtn}
                   onPress={() => setShowCreatorWalletModal(true)}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="cash-outline" size={14} color={Colors.white} style={{ marginRight: 4 }} />
-                  <Text style={styles.rechargeCoinsBtnText}>Withdraw</Text>
+                  <Ionicons name="cash-outline" size={16} color={Colors.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.rechargeCoinsBtnText} numberOfLines={1}>
+                    Withdraw Cash
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -830,17 +840,19 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   passbookCoinsBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 20,
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    height: 42,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#FECDD3',
+    paddingHorizontal: 8,
   },
   passbookCoinsBtnText: {
-    color: '#475569',
+    color: '#E11D48',
     fontSize: 12.5,
     fontWeight: '700',
   },
@@ -1005,13 +1017,13 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   coinWalletCard: {
-    backgroundColor: '#FFFDF7',
+    backgroundColor: '#FFF8F9',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1.5,
-    borderColor: '#FDE68A',
+    borderColor: '#FFE4E8',
     marginBottom: 20,
-    shadowColor: '#F59E0B',
+    shadowColor: '#FD5D65',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 10,
@@ -1026,32 +1038,34 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFF0F3',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: '#FECDD3',
   },
   coinWalletTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#92400E',
+    color: '#1E293B',
   },
   prepaidPill: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 6,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 6,
   },
   prepaidPillText: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#FFFFFF',
+    color: '#059669',
     letterSpacing: 0.5,
   },
   coinWalletSubtitle: {
     fontSize: 12,
-    color: '#B45309',
+    color: '#64748B',
     marginTop: 2,
   },
   coinBalanceRow: {
@@ -1066,29 +1080,69 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE047',
   },
+  coinBalanceCard: {
+    backgroundColor: '#FFF0F3',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#FCE7F3',
+  },
+  coinBalanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   coinBalanceValue: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#78350F',
+    color: '#E11D48',
+    marginTop: 2,
   },
   coinBalanceLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#92400E',
-    marginTop: 1,
+    color: '#9F1239',
   },
-  rechargeCoinsBtn: {
+  instantCashPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#D97706',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    shadowColor: '#B45309',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: 'rgba(253, 93, 101, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
+  },
+  instantCashPillText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FD5D65',
+    letterSpacing: 0.5,
+  },
+  coinActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    width: '100%',
+  },
+  rechargeCoinsBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FD5D65',
+    height: 42,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    shadowColor: '#FD5D65',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   rechargeCoinsBtnText: {
     color: '#FFFFFF',

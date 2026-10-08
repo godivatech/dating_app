@@ -8,9 +8,10 @@ import {
   ActivityIndicator,
   ScrollView,
   TextInput,
-  SafeAreaView,
-  Dimensions,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { useCreatorStore } from '../../stores/creator-store';
@@ -26,10 +27,10 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
   visible,
   onClose,
 }) => {
+  const insets = useSafeAreaInsets();
   const wallet = useCreatorStore((state) => state.wallet);
   const payoutHistory = useCreatorStore((state) => state.payoutHistory);
   const receivedGifts = useCreatorStore((state) => state.receivedGifts);
-  const isLoading = useCreatorStore((state) => state.isLoading);
   const isRequestingPayout = useCreatorStore((state) => state.isRequestingPayout);
   const fetchWallet = useCreatorStore((state) => state.fetchWallet);
   const fetchPayoutHistory = useCreatorStore((state) => state.fetchPayoutHistory);
@@ -103,41 +104,52 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
   const getStatusBadge = (status: PayoutStatus) => {
     switch (status) {
       case PayoutStatus.PAID:
-        return { label: 'PAID', bg: 'rgba(16, 185, 129, 0.15)', text: '#10B981' };
+        return { label: 'PAID', bg: 'rgba(16, 185, 129, 0.18)', text: '#10B981' };
       case PayoutStatus.PROCESSING:
-        return { label: 'PROCESSING', bg: 'rgba(59, 130, 246, 0.15)', text: '#3B82F6' };
+        return { label: 'PROCESSING', bg: 'rgba(59, 130, 246, 0.18)', text: '#60A5FA' };
       case PayoutStatus.REJECTED:
-        return { label: 'REJECTED', bg: 'rgba(239, 68, 68, 0.15)', text: '#EF4444' };
+        return { label: 'REJECTED', bg: 'rgba(239, 68, 68, 0.18)', text: '#EF4444' };
       case PayoutStatus.PENDING:
       default:
-        return { label: 'PENDING', bg: 'rgba(245, 158, 11, 0.15)', text: '#F59E0B' };
+        return { label: 'PENDING', bg: 'rgba(245, 158, 11, 0.18)', text: '#FBBF24' };
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent={false}
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={[styles.container, { paddingTop: Platform.OS === 'android' ? Math.max(insets.top, 38) : insets.top }]}>
+        <StatusBar style="light" />
+
+        {/* Top Header - Safe from Notification Bar Overlap */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn} activeOpacity={0.7}>
-            <Ionicons name="close" size={24} color="#F8FAFC" />
+            <Ionicons name="close" size={22} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Creator Earnings & Payouts</Text>
           <View style={{ width: 40 }} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Main Earnings Card */}
+          {/* Main Earnings Card in TrueLove Luxury Dark Aesthetic */}
           <View style={styles.earningsCard}>
             <View style={styles.balanceHeader}>
               <Text style={styles.balanceLabel}>Available Balance</Text>
               <View style={styles.instantPill}>
-                <Ionicons name="flash" size={12} color="#10B981" />
+                <Ionicons name="flash" size={12} color="#FD5D65" />
                 <Text style={styles.instantPillText}>UPI WITHDRAWAL</Text>
               </View>
             </View>
 
-            <Text style={styles.mainBalanceText}>₹{availableBalance.toFixed(2)}</Text>
+            <View style={styles.balanceRow}>
+              <Text style={styles.currencySymbol}>₹</Text>
+              <Text style={styles.mainBalanceText}>{availableBalance.toFixed(2)}</Text>
+            </View>
 
             {/* Quick Stats Grid */}
             <View style={styles.statsRow}>
@@ -157,13 +169,13 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
               </View>
             </View>
 
-            {/* Withdraw Button */}
+            {/* TrueLove Signature Brand Withdraw Button */}
             <TouchableOpacity
               style={[styles.withdrawBtn, availableBalance < 100 && styles.withdrawBtnDisabled]}
               onPress={handleOpenWithdraw}
               activeOpacity={0.85}
             >
-              <Ionicons name="arrow-up-circle" size={20} color="#FFFFFF" style={{ marginRight: 6 }} />
+              <Ionicons name="cash-outline" size={20} color="#FFFFFF" style={{ marginRight: 8 }} />
               <Text style={styles.withdrawBtnText}>
                 {availableBalance >= 100 ? 'Withdraw to UPI Bank' : 'Min ₹100 to Withdraw'}
               </Text>
@@ -172,7 +184,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
 
           {/* Value Proposition Note */}
           <View style={styles.infoBanner}>
-            <Text style={{ fontSize: 18, marginRight: 8 }}>💎</Text>
+            <Text style={{ fontSize: 18, marginRight: 10 }}>💎</Text>
             <Text style={styles.infoBannerText}>
               Receive virtual gifts from matches in chat & video calls to earn real money. You keep 70% of every gift value!
             </Text>
@@ -209,7 +221,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
                   <Text style={{ fontSize: 40, marginBottom: 8 }}>🎁</Text>
                   <Text style={styles.emptyTitle}>No gifts received yet</Text>
                   <Text style={styles.emptySubtitle}>
-                    When someone sends you a virtual gift in chat or during a call, your earnings will appear here!
+                    When someone sends you a virtual gift in chat or during a call, your cash earnings will appear here!
                   </Text>
                 </View>
               ) : (
@@ -217,7 +229,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
                   <View key={gift.id} style={styles.giftItem}>
                     <View style={styles.giftItemLeft}>
                       <View style={styles.giftItemIconBox}>
-                        <Text style={{ fontSize: 24 }}>🎁</Text>
+                        <Ionicons name="gift" size={20} color="#FD5D65" />
                       </View>
                       <View>
                         <Text style={styles.giftItemSender}>
@@ -260,7 +272,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
                     <View key={payout.id} style={styles.payoutItem}>
                       <View style={styles.payoutItemLeft}>
                         <View style={styles.payoutIconBox}>
-                          <Ionicons name="wallet-outline" size={22} color="#94A3B8" />
+                          <Ionicons name="wallet-outline" size={20} color="#FDA4AF" />
                         </View>
                         <View>
                           <Text style={styles.payoutUpiText}>{payout.upiId}</Text>
@@ -300,7 +312,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
               <View style={styles.dialogHeader}>
                 <Text style={styles.dialogTitle}>Withdraw to UPI 🏦</Text>
                 <TouchableOpacity onPress={() => setShowWithdrawDialog(false)}>
-                  <Ionicons name="close" size={22} color="#94A3B8" />
+                  <Ionicons name="close" size={22} color="#FDA4AF" />
                 </TouchableOpacity>
               </View>
 
@@ -319,7 +331,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
                     value={withdrawAmount}
                     onChangeText={setWithdrawAmount}
                     placeholder="100"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="#94A3B8"
                   />
                   <TouchableOpacity
                     style={styles.maxBtn}
@@ -334,13 +346,13 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Your UPI ID (VPA)</Text>
                 <View style={styles.inputWrap}>
-                  <Ionicons name="card-outline" size={18} color="#64748B" style={{ marginRight: 8 }} />
+                  <Ionicons name="card-outline" size={18} color="#FDA4AF" style={{ marginRight: 8 }} />
                   <TextInput
                     style={styles.textInput}
                     value={upiId}
                     onChangeText={setUpiId}
                     placeholder="e.g. name@oksbi or mobile@upi"
-                    placeholderTextColor="#64748B"
+                    placeholderTextColor="#94A3B8"
                     autoCapitalize="none"
                     autoCorrect={false}
                   />
@@ -362,7 +374,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
             </View>
           </View>
         </Modal>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
@@ -370,7 +382,7 @@ export const CreatorWalletModal: React.FC<CreatorWalletModalProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#090D16',
+    backgroundColor: '#0D040A',
   },
   header: {
     flexDirection: 'row',
@@ -385,30 +397,31 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
   },
   earningsCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#1C0B18',
     borderRadius: 24,
     padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-    shadowColor: '#000',
+    borderWidth: 1.5,
+    borderColor: 'rgba(253, 93, 101, 0.25)',
+    shadowColor: '#FD5D65',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 8,
   },
   balanceHeader: {
     flexDirection: 'row',
@@ -418,40 +431,54 @@ const styles = StyleSheet.create({
   balanceLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(255, 255, 255, 0.7)',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   instantPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: 'rgba(253, 93, 101, 0.18)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 8,
     gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.35)',
   },
   instantPillText: {
     fontSize: 10,
     fontWeight: '800',
-    color: '#34D399',
+    color: '#FD5D65',
     letterSpacing: 0.5,
   },
-  mainBalanceText: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: '#10B981',
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     marginVertical: 12,
+  },
+  currencySymbol: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#FD5D65',
+    marginRight: 4,
+  },
+  mainBalanceText: {
+    fontSize: 40,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    backgroundColor: 'rgba(13, 4, 10, 0.75)',
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 12,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   statBox: {
     alignItems: 'center',
@@ -466,7 +493,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
   statDivider: {
     width: 1,
@@ -477,17 +504,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: '#FD5D65',
     paddingVertical: 14,
     borderRadius: 14,
-    shadowColor: '#10B981',
+    shadowColor: '#FD5D65',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 6,
   },
   withdrawBtnDisabled: {
-    backgroundColor: '#475569',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     shadowOpacity: 0,
   },
   withdrawBtnText: {
@@ -498,12 +525,12 @@ const styles = StyleSheet.create({
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    backgroundColor: 'rgba(253, 93, 101, 0.1)',
     borderRadius: 14,
     padding: 14,
     marginVertical: 16,
     borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.25)',
+    borderColor: 'rgba(253, 93, 101, 0.22)',
   },
   infoBannerText: {
     flex: 1,
@@ -513,10 +540,12 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#190815',
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   tabItem: {
     flex: 1,
@@ -525,7 +554,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   tabItemActive: {
-    backgroundColor: '#0F172A',
+    backgroundColor: 'rgba(253, 93, 101, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.4)',
   },
   tabText: {
     fontSize: 13,
@@ -533,7 +564,7 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   tabTextActive: {
-    color: '#F8FAFC',
+    color: '#FD5D65',
     fontWeight: '700',
   },
   listSection: {
@@ -548,7 +579,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   emptySubtitle: {
@@ -561,12 +592,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#190815',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   giftItemLeft: {
     flexDirection: 'row',
@@ -577,14 +608,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(253, 93, 101, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   giftItemSender: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
   giftItemDate: {
     fontSize: 11,
@@ -597,23 +628,23 @@ const styles = StyleSheet.create({
   giftEarningsText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#10B981',
+    color: '#FD5D65',
   },
   giftTypeTag: {
     fontSize: 10,
-    color: '#94A3B8',
+    color: '#FDA4AF',
     marginTop: 2,
   },
   payoutItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#190815',
     borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.06)',
   },
   payoutItemLeft: {
     flexDirection: 'row',
@@ -624,14 +655,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    backgroundColor: 'rgba(253, 93, 101, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   payoutUpiText: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
   payoutDate: {
     fontSize: 11,
@@ -644,12 +675,12 @@ const styles = StyleSheet.create({
   payoutAmountText: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   statusBadge: {
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 2.5,
     borderRadius: 6,
   },
   statusBadgeText: {
@@ -658,18 +689,23 @@ const styles = StyleSheet.create({
   },
   dialogBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   dialogContainer: {
     width: '100%',
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#1A0816',
+    borderRadius: 22,
+    padding: 22,
+    borderWidth: 1.5,
+    borderColor: 'rgba(253, 93, 101, 0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
   },
   dialogHeader: {
     flexDirection: 'row',
@@ -680,11 +716,11 @@ const styles = StyleSheet.create({
   dialogTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#F8FAFC',
+    color: '#FFFFFF',
   },
   dialogSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#FDA4AF',
     marginBottom: 16,
   },
   inputGroup: {
@@ -693,48 +729,55 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#94A3B8',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 6,
     textTransform: 'uppercase',
   },
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    paddingHorizontal: 12,
+    backgroundColor: '#0F040C',
+    borderRadius: 14,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(253, 93, 101, 0.25)',
   },
   inputCurrency: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#10B981',
+    color: '#FD5D65',
     marginRight: 6,
   },
   textInput: {
     flex: 1,
-    color: '#F8FAFC',
-    fontSize: 14,
+    color: '#FFFFFF',
+    fontSize: 15,
     paddingVertical: 12,
   },
   maxBtn: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: 'rgba(253, 93, 101, 0.2)',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(253, 93, 101, 0.4)',
   },
   maxBtnText: {
-    color: '#10B981',
+    color: '#FD5D65',
     fontSize: 11,
     fontWeight: '800',
   },
   confirmWithdrawBtn: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#FD5D65',
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 14,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#FD5D65',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 4,
   },
   confirmWithdrawBtnText: {
     color: '#FFFFFF',
