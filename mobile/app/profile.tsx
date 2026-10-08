@@ -377,22 +377,32 @@ export default function ProfileScreen() {
               </View>
             </View>
 
-            {/* Coin Balance & Recharge Row */}
-            <View style={styles.coinBalanceRow}>
-              <View>
-                <Text style={styles.coinBalanceValue}>
-                  🪙 {creditBalance?.coins ?? 0}
-                </Text>
-                <Text style={styles.coinBalanceLabel}>Coins Available</Text>
+            {/* Coin Balance & Responsive Action Buttons */}
+            <View style={styles.coinBalanceCard}>
+              <View style={styles.coinBalanceHeader}>
+                <View>
+                  <Text style={styles.coinBalanceLabel}>Coins Available</Text>
+                  <Text style={styles.coinBalanceValue}>
+                    🪙 {creditBalance?.coins ?? 0}
+                  </Text>
+                </View>
+                <View style={styles.instantCashPill}>
+                  <Ionicons name="flash" size={12} color="#FD5D65" />
+                  <Text style={styles.instantCashPillText}>1-TAP RECHARGE</Text>
+                </View>
               </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+
+              {/* Action Buttons Row (100% Mobile Responsive) */}
+              <View style={styles.coinActionsRow}>
                 <TouchableOpacity
                   style={styles.passbookCoinsBtn}
                   onPress={() => setShowPassbookModal(true)}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="time-outline" size={13} color="#475569" style={{ marginRight: 3 }} />
-                  <Text style={styles.passbookCoinsBtnText}>History</Text>
+                  <Ionicons name="time-outline" size={15} color="#E11D48" style={{ marginRight: 5 }} />
+                  <Text style={styles.passbookCoinsBtnText} numberOfLines={1}>
+                    History
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -400,8 +410,10 @@ export default function ProfileScreen() {
                   onPress={() => openPaywall('COINS')}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="flash" size={14} color={Colors.white} style={{ marginRight: 4 }} />
-                  <Text style={styles.rechargeCoinsBtnText}>Recharge</Text>
+                  <Ionicons name="flash" size={15} color={Colors.white} style={{ marginRight: 6 }} />
+                  <Text style={styles.rechargeCoinsBtnText} numberOfLines={1}>
+                    Recharge Coins
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
