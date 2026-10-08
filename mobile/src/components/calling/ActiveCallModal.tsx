@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Platform,
   Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallStore } from '../../stores/call-store';
@@ -19,6 +20,147 @@ import { useScreenCapturePrevention } from '../../hooks/useScreenCapturePreventi
 import { VideoSurfaceView } from './VideoSurfaceView';
 import { toast } from '../../stores/toast-store';
 import { Colors } from '../../theme/colors';
+
+const NUM_BARS = 33;
+const MID_INDEX = 16;
+
+interface VoiceWaveformProps {
+  isActive: boolean;
+  isMuted: boolean;
+}
+
+/**
+ * Pixel-perfect animated voice equalizer waveform.
+ * Uses 33 symmetrically distributed bars matching the bell-curve
+ * audio frequency visualization in the luxury calling screen.
+ * 60fps native-driven animation loop with zero JS thread overhead.
+ */
+const VoiceWaveformVisualizer: React.FC<VoiceWaveformProps> = ({ isActive, isMuted }) => {
+  const anim1 = useRef(new Animated.Value(1)).current;
+  const anim2 = useRef(new Animated.Value(1)).current;
+  const anim3 = useRef(new Animated.Value(1)).current;
+  const anim4 = useRef(new Animated.Value(1)).current;
+  const anim5 = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!isActive || isMuted) {
+      Animated.parallel([
+        Animated.timing(anim1, { toValue: 0.45, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim2, { toValue: 0.45, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim3, { toValue: 0.45, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim4, { toValue: 0.45, duration: 400, useNativeDriver: true }),
+        Animated.timing(anim5, { toValue: 0.45, duration: 400, useNativeDriver: true }),
+      ]).start();
+      return;
+    }
+
+    const createOscillator = (val: Animated.Value, min: number, max: number, duration: number) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(val, {
+            toValue: max,
+            duration,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(val, {
+            toValue: min,
+            duration,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ]),
+      );
+    };
+
+    const l1 = createOscillator(anim1, 0.65, 1.25, 420);
+    const l2 = createOscillator(anim2, 0.55, 1.35, 540);
+    const l3 = createOscillator(anim3, 0.70, 1.20, 360);
+    const l4 = createOscillator(anim4, 0.60, 1.30, 620);
+    const l5 = createOscillator(anim5, 0.50, 1.15, 480);
+
+    l1.start();
+    l2.start();
+    l3.start();
+    l4.start();
+    l5.start();
+
+    return () => {
+      l1.stop();
+      l2.stop();
+      l3.stop();
+      l4.stop();
+      l5.stop();
+    };
+  }, [isActive, isMuted]);
+
+  // Precompute base heights following Gaussian distribution
+  const barsData = useMemo(() => {
+    return Array.from({ length: NUM_BARS }, (_, i) => {
+      const distance = Math.abs(i - MID_INDEX);
+      const baseHeight = Math.max(3, Math.round(46 * Math.exp(-(distance * distance) / 54)));
+
+      let color = 'rgba(255, 75, 114, 0.45)';
+      if (distance <= 2) {
+        color = '#FFAEC0'; // bright luminous center peak
+      } else if (distance <= 5) {
+        color = '#FF7294'; // vibrant coral-pink
+      } else if (distance <= 9) {
+        color = '#FF4B72'; // signature romantic coral
+      } else if (distance <= 12) {
+        color = 'rgba(255, 75, 114, 0.72)';
+      }
+
+      const animGroup = i % 5;
+      const animVal =
+        animGroup === 0
+          ? anim1
+          : animGroup === 1
+          ? anim2
+          : animGroup === 2
+          ? anim3
+          : animGroup === 3
+          ? anim4
+          : anim5;
+
+      return { id: i, baseHeight, color, animVal };
+    });
+  }, []);
+
+  return (
+    <View style={waveformStyles.container}>
+      {barsData.map((bar) => (
+        <Animated.View
+          key={bar.id}
+          style={[
+            waveformStyles.bar,
+            {
+              height: bar.baseHeight,
+              backgroundColor: bar.color,
+              transform: [{ scaleY: bar.animVal }],
+            },
+          ]}
+        />
+      ))}
+    </View>
+  );
+};
+
+const waveformStyles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 52,
+    marginTop: 26,
+    marginBottom: 10,
+  },
+  bar: {
+    width: 2.8,
+    marginHorizontal: 1.8,
+    borderRadius: 1.5,
+  },
+});
 
 export const ActiveCallModal: React.FC = () => {
   const {
@@ -49,34 +191,34 @@ export const ActiveCallModal: React.FC = () => {
   const [showSafetySheet, setShowSafetySheet] = useState(false);
   const [showAudioDeviceSheet, setShowAudioDeviceSheet] = useState(false);
 
-  // Soft breathing ambient halo animation around avatar
+  // Soft romantic breathing ambient aura around avatar
   const pulseAnim1 = useRef(new Animated.Value(1)).current;
-  const opacityAnim1 = useRef(new Animated.Value(0.35)).current;
+  const opacityAnim1 = useRef(new Animated.Value(0.28)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(pulseAnim1, {
-            toValue: 1.28,
-            duration: 2400,
+            toValue: 1.15,
+            duration: 2200,
             useNativeDriver: true,
           }),
           Animated.timing(opacityAnim1, {
-            toValue: 0.1,
-            duration: 2400,
+            toValue: 0.12,
+            duration: 2200,
             useNativeDriver: true,
           }),
         ]),
         Animated.parallel([
           Animated.timing(pulseAnim1, {
             toValue: 1,
-            duration: 2400,
+            duration: 2200,
             useNativeDriver: true,
           }),
           Animated.timing(opacityAnim1, {
-            toValue: 0.35,
-            duration: 2400,
+            toValue: 0.28,
+            duration: 2200,
             useNativeDriver: true,
           }),
         ]),
@@ -147,8 +289,8 @@ export const ActiveCallModal: React.FC = () => {
       case 'EARPIECE':
       default:
         return {
-          icon: 'phone-portrait-outline' as const,
-          label: 'Earpiece',
+          icon: 'volume-high' as const,
+          label: 'Speaker',
           deviceTag: 'Phone Receiver',
           isActive: false,
         };
@@ -159,6 +301,7 @@ export const ActiveCallModal: React.FC = () => {
 
   return (
     <>
+      {/* Report Modal */}
       <ReportModal
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
@@ -175,7 +318,7 @@ export const ActiveCallModal: React.FC = () => {
         }}
       />
 
-      {/* Sleek In-Call Safety Action Sheet */}
+      {/* In-Call Safety Action Sheet */}
       <Modal
         visible={showSafetySheet}
         transparent
@@ -258,7 +401,7 @@ export const ActiveCallModal: React.FC = () => {
               <Text style={styles.audioSheetSubtitle}>Route call audio to your preferred device</Text>
             </View>
 
-            {/* 1. Built-in Speakerphone */}
+            {/* Built-in Speakerphone */}
             <TouchableOpacity
               style={[
                 styles.deviceOptionItem,
@@ -291,7 +434,7 @@ export const ActiveCallModal: React.FC = () => {
               )}
             </TouchableOpacity>
 
-            {/* 2. Bluetooth Headset / Wireless Device (Shown strictly if detected or currently active) */}
+            {/* Bluetooth Headset / Wireless Device */}
             {(connectedExternalDevice === 'BLUETOOTH' || currentAudioRoute === 'BLUETOOTH') && (
               <TouchableOpacity
                 style={[
@@ -339,7 +482,7 @@ export const ActiveCallModal: React.FC = () => {
               </TouchableOpacity>
             )}
 
-            {/* 3. Phone Receiver (Earpiece) */}
+            {/* Phone Receiver (Earpiece) */}
             <TouchableOpacity
               style={[
                 styles.deviceOptionItem,
@@ -372,7 +515,7 @@ export const ActiveCallModal: React.FC = () => {
               )}
             </TouchableOpacity>
 
-            {/* 4. Wired Headset (Shown if detected or currently routed) */}
+            {/* Wired Headset */}
             {(connectedExternalDevice === 'HEADSET' || currentAudioRoute === 'HEADSET') && (
               <TouchableOpacity
                 style={[
@@ -420,6 +563,7 @@ export const ActiveCallModal: React.FC = () => {
         </TouchableOpacity>
       </Modal>
 
+      {/* Main Call Fullscreen Window */}
       <Modal
         visible={isVisible}
         animationType="slide"
@@ -427,17 +571,83 @@ export const ActiveCallModal: React.FC = () => {
         statusBarTranslucent
       >
         <View style={styles.container}>
-          {/* Ambient Blurred Backdrop of Partner Photo (FaceTime / Luxury Dating Style) */}
+          {/* Ambient Blurred Backdrop of Partner Photo */}
           {avatarUri ? (
             <Image
               source={{ uri: avatarUri }}
               style={StyleSheet.absoluteFill}
-              blurRadius={Platform.OS === 'android' ? 24 : 36}
+              blurRadius={Platform.OS === 'android' ? 28 : 38}
             />
           ) : null}
           <View style={[StyleSheet.absoluteFill, styles.backdropOverlay]} />
 
-          {/* Main Stage (Video or TrueLove Branded Avatar) */}
+          {/* Ambient Subtle Romantic Bokeh Hearts */}
+          <View style={[styles.bokehHeart, styles.bokehHeartLeft]} pointerEvents="none">
+            <Ionicons name="heart" size={120} color="rgba(255, 75, 114, 0.09)" />
+          </View>
+          <View style={[styles.bokehHeart, styles.bokehHeartRight]} pointerEvents="none">
+            <Ionicons name="heart" size={145} color="rgba(255, 75, 114, 0.08)" />
+          </View>
+          <View style={[styles.bokehHeart, styles.bokehHeartBottom]} pointerEvents="none">
+            <Ionicons name="heart" size={90} color="rgba(255, 75, 114, 0.07)" />
+          </View>
+
+          {/* Top Bar Floating Header */}
+          <SafeAreaView style={styles.topSafeArea}>
+            <View style={styles.topHeader}>
+              {/* Left Minimize Chevron */}
+              <TouchableOpacity
+                style={styles.topCircleBtn}
+                onPress={() => {
+                  toast.info('Call remains connected in high quality audio', 'Active Call 📞');
+                }}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chevron-down" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              {/* Center Brand Dual Hearts & Dating App Title */}
+              <View style={styles.topCenterBox}>
+                <View style={styles.topHeartsRow}>
+                  <Ionicons name="heart" size={18} color="#FF3E6C" style={styles.heartLeft} />
+                  <Ionicons name="heart" size={14} color="#FF6584" style={styles.heartRight} />
+                </View>
+                <Text style={styles.topBrandTitle}>Dating App</Text>
+              </View>
+
+              {/* Right: Camera Flip (if Video Call) or Safety Shield */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {isConnected && isVideo && (
+                  <TouchableOpacity
+                    style={styles.topCircleBtn}
+                    onPress={flipCamera}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera-reverse" size={20} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.topCircleBtn}
+                  onPress={handleSafetyAction}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="shield-checkmark" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Vibe Check 15-second Warning Banner */}
+            {isConnected && activeCall.isVibeCheck && durationSeconds >= 45 && durationSeconds < 60 && (
+              <View style={styles.vibeWarningBanner}>
+                <Ionicons name="flash" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.vibeWarningText}>
+                  {Math.max(0, 60 - durationSeconds)}s left in your Free Vibe Check!
+                </Text>
+              </View>
+            )}
+          </SafeAreaView>
+
+          {/* Main Stage: Center Avatar / Equalizer or Video Stream */}
           <View style={styles.mainStage}>
             {isConnected && isVideo && !partnerVideoMuted ? (
               // Active Video Stream Stage (Remote Partner)
@@ -454,13 +664,14 @@ export const ActiveCallModal: React.FC = () => {
                 </View>
               </View>
             ) : (
-              // Audio Call or Camera Muted State with Soft Breathing Ambient Aura
-              <View style={styles.avatarCenterBox}>
+              // Voice Call Stage: Avatar, Ring, Name, Timer, Equalizer
+              <View style={styles.centerStage}>
+                {/* Avatar with Ambient Diffused Halo and Coral-Pink Border */}
                 <View style={styles.avatarGlowContainer}>
-                  {/* Soft Breathing Ambient Halo Glow */}
+                  {/* Diffused Pulsating Halo Aura */}
                   <Animated.View
                     style={[
-                      styles.softAmbientHalo,
+                      styles.avatarAmbientHalo,
                       {
                         transform: [{ scale: pulseAnim1 }],
                         opacity: opacityAnim1,
@@ -468,49 +679,41 @@ export const ActiveCallModal: React.FC = () => {
                     ]}
                   />
 
-                  {/* Luxury Portrait Avatar with subtle glass rim and deep soft shadow */}
-                  <View style={styles.avatarGlassRim}>
+                  {/* 184px Circular Avatar Container with 3px solid rim */}
+                  <View style={styles.avatarRim}>
                     {avatarUri ? (
-                      <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
+                      <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
                     ) : (
-                      <View style={styles.largeAvatarInitial}>
-                        <Text style={styles.largeAvatarInitialText}>{nameInitial}</Text>
+                      <View style={styles.avatarFallback}>
+                        <Text style={styles.avatarFallbackText}>{nameInitial}</Text>
                       </View>
                     )}
                   </View>
                 </View>
 
-                {/* Partner Details */}
-                <Text style={styles.stagePartnerName}>{activeCall.partnerName}</Text>
-                <Text style={styles.stageStatusText} numberOfLines={2} ellipsizeMode="tail">
-                  {isConnected
-                    ? isVideo
-                      ? partnerVideoMuted
-                        ? 'Camera is off'
-                        : 'Video Connected'
-                      : partnerAudioMuted
-                      ? 'Microphone muted'
-                      : 'Voice Call Connected'
-                    : callState === 'OUTGOING_RINGING'
-                    ? 'Ringing...'
-                    : callState === 'ENDED'
-                    ? statusMessage || 'Call Ended'
-                    : statusMessage || 'Calling...'}
+                {/* Partner Name */}
+                <Text style={styles.partnerName} numberOfLines={1}>
+                  {activeCall.partnerName || 'User'}
                 </Text>
 
-                {/* Minimal Audio Route Pill (Clean, unobtrusive) */}
-                <TouchableOpacity
-                  style={styles.audioDeviceTag}
-                  onPress={() => {
-                    detectAudioDevices();
-                    setShowAudioDeviceSheet(true);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name={audioInfo.icon} size={13} color="#FDA4AF" style={{ marginRight: 6 }} />
-                  <Text style={styles.audioDeviceTagText}>{audioInfo.deviceTag}</Text>
-                  <Ionicons name="chevron-down" size={11} color="rgba(253, 164, 175, 0.7)" style={{ marginLeft: 4 }} />
-                </TouchableOpacity>
+                {/* Call Timer or Status */}
+                <Text style={styles.callTimer}>
+                  {isConnected
+                    ? activeCall.isVibeCheck
+                      ? `✨ Vibe Check (${Math.max(0, 60 - durationSeconds)}s)`
+                      : formatTimer(durationSeconds)
+                    : callState === 'OUTGOING_RINGING'
+                    ? 'Calling...'
+                    : callState === 'ENDED'
+                    ? statusMessage || 'Call Ended'
+                    : statusMessage || 'Connecting...'}
+                </Text>
+
+                {/* Pixel-Perfect Animated Voice Equalizer Waveform */}
+                <VoiceWaveformVisualizer
+                  isActive={isConnected}
+                  isMuted={isMicMuted && partnerAudioMuted}
+                />
               </View>
             )}
 
@@ -534,115 +737,59 @@ export const ActiveCallModal: React.FC = () => {
             )}
           </View>
 
-          {/* Top Bar Floating Controls */}
-          <SafeAreaView style={styles.topSafeArea}>
-            <View style={styles.topBar}>
-              {/* Safety Shield Button */}
-              <TouchableOpacity
-                style={styles.shieldBtn}
-                onPress={handleSafetyAction}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="shield-checkmark" size={18} color="#FDA4AF" />
-              </TouchableOpacity>
-
-              {/* Call Timer / State Pill */}
-              <View style={[styles.timerPill, activeCall.isVibeCheck && isConnected && styles.vibeCheckPill]}>
-                <View
-                  style={[
-                    styles.statusDot,
-                    isConnected && activeCall.isVibeCheck
-                      ? styles.dotAmber
-                      : isConnected
-                      ? styles.dotGreen
-                      : styles.dotCoral,
-                  ]}
-                />
-                <Text style={[styles.timerText, isConnected && activeCall.isVibeCheck && styles.vibeCheckText]}>
-                  {isConnected
-                    ? activeCall.isVibeCheck
-                      ? `✨ Vibe Check (${Math.max(0, 60 - durationSeconds)}s)`
-                      : formatTimer(durationSeconds)
-                    : callState === 'OUTGOING_RINGING'
-                    ? 'Calling...'
-                    : callState === 'ENDED'
-                    ? 'Call Ended'
-                    : 'Connecting...'}
-                </Text>
-              </View>
-
-              {/* Camera Flip Button (Only during Video) */}
-              {isConnected && isVideo ? (
-                <TouchableOpacity
-                  style={styles.topCircleBtn}
-                  onPress={flipCamera}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="camera-reverse" size={18} color="#FFFFFF" />
-                </TouchableOpacity>
-              ) : (
-                <View style={{ width: 40 }} />
-              )}
-            </View>
-
-            {/* Vibe Check 15-second Warning Banner */}
-            {isConnected && activeCall.isVibeCheck && durationSeconds >= 45 && durationSeconds < 60 && (
-              <View style={styles.vibeWarningBanner}>
-                <Ionicons name="flash" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.vibeWarningText}>
-                  {Math.max(0, 60 - durationSeconds)}s left in your Free Vibe Check!
-                </Text>
-              </View>
-            )}
-          </SafeAreaView>
-
           {/* Bottom Floating Controls Toolbar */}
           <SafeAreaView style={styles.bottomSafeArea}>
-            <View style={styles.toolbar}>
-              {/* Mic Toggle */}
-              <View style={styles.toolCol}>
+            <View style={styles.bottomButtonsRow}>
+              {/* 1. Mute Button */}
+              <View style={styles.controlItem}>
                 <TouchableOpacity
-                  style={[styles.toolBtn, isMicMuted && styles.toolBtnMuted]}
+                  style={[
+                    styles.circularControlBtn,
+                    isMicMuted && styles.circularControlBtnMuted,
+                  ]}
                   onPress={toggleMic}
                   activeOpacity={0.7}
                 >
                   <Ionicons
                     name={isMicMuted ? 'mic-off' : 'mic'}
-                    size={24}
+                    size={28}
                     color={isMicMuted ? '#EF4444' : '#FFFFFF'}
                   />
                 </TouchableOpacity>
-                <Text style={[styles.toolLabel, isMicMuted && styles.toolLabelMuted]}>
+                <Text style={[styles.controlLabel, isMicMuted && styles.controlLabelMuted]}>
                   {isMicMuted ? 'Muted' : 'Mute'}
                 </Text>
               </View>
 
-              {/* Video Toggle (If video call) */}
+              {/* Camera Toggle Button (Only if Video Call) */}
               {isVideo && (
-                <View style={styles.toolCol}>
+                <View style={styles.controlItem}>
                   <TouchableOpacity
-                    style={[styles.toolBtn, isVideoMuted && styles.toolBtnMuted]}
+                    style={[
+                      styles.circularControlBtn,
+                      isVideoMuted && styles.circularControlBtnMuted,
+                    ]}
                     onPress={toggleVideo}
                     activeOpacity={0.7}
                   >
                     <Ionicons
                       name={isVideoMuted ? 'videocam-off' : 'videocam'}
-                      size={24}
+                      size={28}
                       color={isVideoMuted ? '#EF4444' : '#FFFFFF'}
                     />
                   </TouchableOpacity>
-                  <Text style={[styles.toolLabel, isVideoMuted && styles.toolLabelMuted]}>
+                  <Text style={[styles.controlLabel, isVideoMuted && styles.controlLabelMuted]}>
                     {isVideoMuted ? 'Cam Off' : 'Camera'}
                   </Text>
                 </View>
               )}
 
-              {/* Dynamic Audio Output Routing Button (Speaker, Bluetooth, Headset, Earpiece) */}
-              <View style={styles.toolCol}>
+              {/* 2. Speaker Button */}
+              <View style={styles.controlItem}>
                 <TouchableOpacity
                   style={[
-                    styles.toolBtn,
-                    audioInfo.isActive && styles.toolBtnSpeakerActive,
+                    styles.circularControlBtn,
+                    audioInfo.isActive && styles.circularControlBtnActive,
                   ]}
                   onPress={toggleSpeaker}
                   onLongPress={() => {
@@ -653,25 +800,35 @@ export const ActiveCallModal: React.FC = () => {
                 >
                   <Ionicons
                     name={audioInfo.icon}
-                    size={24}
-                    color={audioInfo.isActive ? '#FD5D65' : '#FFFFFF'}
+                    size={28}
+                    color={audioInfo.isActive ? '#FF537A' : '#FFFFFF'}
                   />
                 </TouchableOpacity>
-                <Text style={[styles.toolLabel, audioInfo.isActive && styles.toolLabelActive]}>
+                <Text
+                  style={[
+                    styles.controlLabel,
+                    audioInfo.isActive && styles.controlLabelActive,
+                  ]}
+                >
                   {audioInfo.label}
                 </Text>
               </View>
 
-              {/* End Call Button */}
-              <View style={styles.toolCol}>
+              {/* 3. End Call Button */}
+              <View style={styles.controlItem}>
                 <TouchableOpacity
-                  style={styles.endCallBtn}
+                  style={styles.endCallControlBtn}
                   onPress={() => hangupCall()}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="call" size={28} color="#FFFFFF" style={{ transform: [{ rotate: '135deg' }] }} />
+                  <Ionicons
+                    name="call"
+                    size={32}
+                    color="#FFFFFF"
+                    style={{ transform: [{ rotate: '135deg' }] }}
+                  />
                 </TouchableOpacity>
-                <Text style={styles.toolLabelEnd}>End</Text>
+                <Text style={styles.controlLabel}>End Call</Text>
               </View>
             </View>
           </SafeAreaView>
@@ -684,13 +841,96 @@ export const ActiveCallModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D040A',
+    backgroundColor: '#0F050C',
   },
   backdropOverlay: {
-    backgroundColor: 'rgba(11, 4, 9, 0.82)',
+    backgroundColor: 'rgba(14, 5, 12, 0.78)',
   },
-  ambientAura: {
-    display: 'none',
+  bokehHeart: {
+    position: 'absolute',
+  },
+  bokehHeartLeft: {
+    top: '32%',
+    left: -20,
+    transform: [{ rotate: '-15deg' }],
+  },
+  bokehHeartRight: {
+    top: '18%',
+    right: -25,
+    transform: [{ rotate: '22deg' }],
+  },
+  bokehHeartBottom: {
+    bottom: '22%',
+    left: 10,
+    transform: [{ rotate: '8deg' }],
+  },
+  topSafeArea: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  topHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'android' ? 42 : 12,
+  },
+  topCircleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  topCenterBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topHeartsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 3,
+  },
+  heartLeft: {
+    transform: [{ rotate: '-10deg' }],
+    marginRight: -4,
+  },
+  heartRight: {
+    transform: [{ rotate: '14deg' }, { translateY: 2 }],
+  },
+  topBrandTitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.78)',
+    letterSpacing: 0.3,
+  },
+  vibeWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(239, 68, 68, 0.88)',
+    marginHorizontal: 32,
+    marginTop: 10,
+    paddingVertical: 7,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  vibeWarningText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
   },
   mainStage: {
     position: 'absolute',
@@ -700,7 +940,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 70,
   },
   videoSurfacePlaceholder: {
     position: 'absolute',
@@ -711,8 +950,8 @@ const styles = StyleSheet.create({
   },
   videoBadge: {
     position: 'absolute',
-    top: 100,
-    right: 20,
+    top: 104,
+    right: 22,
     backgroundColor: 'rgba(20, 5, 12, 0.65)',
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -726,94 +965,79 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.5,
   },
-  avatarCenterBox: {
+  centerStage: {
     alignItems: 'center',
     justifyContent: 'center',
+    width: '100%',
+    paddingBottom: 20,
   },
   avatarGlowContainer: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 22,
+    marginBottom: 20,
   },
-  softAmbientHalo: {
+  avatarAmbientHalo: {
     position: 'absolute',
-    width: 176,
-    height: 176,
-    borderRadius: 88,
-    backgroundColor: 'rgba(253, 93, 101, 0.22)',
+    width: 216,
+    height: 216,
+    borderRadius: 108,
+    backgroundColor: 'rgba(255, 75, 114, 0.28)',
   },
-  avatarGlassRim: {
-    width: 156,
-    height: 156,
-    borderRadius: 78,
-    borderWidth: 2.5,
-    borderColor: 'rgba(255, 255, 255, 0.28)',
+  avatarRim: {
+    width: 184,
+    height: 184,
+    borderRadius: 92,
+    borderWidth: 3,
+    borderColor: '#FF4B72',
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.55,
-    shadowRadius: 28,
-    elevation: 16,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    elevation: 14,
   },
-  largeAvatar: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
-  largeAvatarInitial: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
-    backgroundColor: '#FD5D65',
+  avatarFallback: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#FF4B72',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  largeAvatarInitialText: {
-    fontSize: 52,
+  avatarFallbackText: {
+    fontSize: 64,
     fontWeight: '800',
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  stagePartnerName: {
+  partnerName: {
     color: '#FFFFFF',
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: '700',
-    marginBottom: 8,
     letterSpacing: 0.3,
-  },
-  stageStatusText: {
-    color: '#FDA4AF',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 16,
     textAlign: 'center',
-    paddingHorizontal: 20,
-    maxWidth: 320,
-    letterSpacing: 0.2,
+    paddingHorizontal: 24,
   },
-  audioDeviceTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  audioDeviceTagText: {
-    color: '#FFE4E6',
-    fontSize: 12,
-    fontWeight: '600',
+  callTimer: {
+    color: 'rgba(255, 255, 255, 0.78)',
+    fontSize: 16,
+    fontWeight: '400',
+    letterSpacing: 0.5,
+    marginTop: 6,
+    textAlign: 'center',
   },
   pipWindow: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 100 : 80,
-    right: 18,
+    top: Platform.OS === 'ios' ? 104 : 88,
+    right: 20,
     width: 104,
     height: 146,
     borderRadius: 18,
@@ -832,185 +1056,73 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#18060F',
   },
-  topSafeArea: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 38 : 12,
-  },
-  shieldBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  timerPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(20, 8, 16, 0.82)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  vibeCheckPill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.55)',
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  dotGreen: {
-    backgroundColor: '#10B981',
-  },
-  dotCoral: {
-    backgroundColor: '#FD5D65',
-  },
-  dotAmber: {
-    backgroundColor: '#FBBF24',
-  },
-  timerText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  vibeCheckText: {
-    color: '#FDE68A',
-    fontWeight: '700',
-  },
-  vibeWarningBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.85)',
-    marginHorizontal: 30,
-    marginTop: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  vibeWarningText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  topCircleBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
   bottomSafeArea: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    paddingBottom: Platform.OS === 'ios' ? 12 : 24,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 46,
   },
-  toolbar: {
+  bottomButtonsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 32,
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    backgroundColor: 'rgba(26, 10, 20, 0.88)',
-    borderRadius: 44,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.45,
-    shadowRadius: 20,
-    elevation: 12,
+    gap: 36,
+    paddingHorizontal: 20,
   },
-  toolCol: {
+  controlItem: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  toolBtn: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  circularControlBtn: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
-    marginBottom: 6,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  toolBtnMuted: {
-    backgroundColor: 'rgba(239, 68, 68, 0.22)',
-    borderColor: 'rgba(239, 68, 68, 0.6)',
+  circularControlBtnMuted: {
+    backgroundColor: 'rgba(239, 68, 68, 0.25)',
+    borderColor: 'rgba(239, 68, 68, 0.5)',
   },
-  toolBtnSpeakerActive: {
-    backgroundColor: 'rgba(253, 93, 101, 0.25)',
-    borderColor: '#FD5D65',
-    shadowColor: '#FD5D65',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
+  circularControlBtnActive: {
+    backgroundColor: 'rgba(255, 75, 114, 0.22)',
+    borderColor: '#FF4B72',
   },
-  toolLabel: {
-    color: '#9CA3AF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  toolLabelMuted: {
-    color: '#EF4444',
-  },
-  toolLabelActive: {
-    color: '#FD5D65',
-    fontWeight: '700',
-  },
-  endCallBtn: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    backgroundColor: '#EF4444',
+  endCallControlBtn: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: '#FF3B30',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: '#FF3B30',
+    shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.5,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowRadius: 14,
+    elevation: 10,
   },
-  toolLabelEnd: {
+  controlLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 10,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  controlLabelMuted: {
     color: '#EF4444',
-    fontSize: 11,
-    fontWeight: '700',
+  },
+  controlLabelActive: {
+    color: '#FF537A',
+    fontWeight: '600',
   },
   safetySheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'flex-end',
   },
   safetySheetContent: {
@@ -1180,4 +1292,3 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 });
-
