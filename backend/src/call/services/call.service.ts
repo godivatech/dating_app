@@ -120,8 +120,18 @@ export class CallService {
 
     const alreadyUsed = await this.redisService.get(dailyVibeKey);
     if (alreadyUsed) {
+      const balance = await this.creditService.getOrCreateBalance(callerUserId);
+      if (balance.coins >= config.coins) {
+        return {
+          isVibeCheck: false,
+          maxDurationSeconds: config.durationSeconds,
+          payerUserId: callerUserId,
+          requiredCoins: config.coins,
+        };
+      }
+
       throw new BadRequestException(
-        `You have already used your free 1-minute vibe check with this match today. Unlock an extended 15-minute call for ${config.coins} coins or upgrade to Gold VIP.`,
+        `Daily free 1-minute vibe check already used. ${config.coins} coins required to call.`,
       );
     }
 

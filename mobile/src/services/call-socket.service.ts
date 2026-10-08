@@ -219,8 +219,8 @@ export class CallSocketService {
     this.isConnecting = false;
   }
 
-  initiateCall(matchId: string, receiverUserId: string, callType: CallType = CallType.VIDEO): void {
-    this.socket?.emit('call:initiate', { matchId, receiverUserId, callType });
+  initiateCall(matchId: string, receiverUserId: string, callType: CallType = CallType.VIDEO, agreedCoins?: number): void {
+    this.socket?.emit('call:initiate', { matchId, receiverUserId, callType, agreedCoins });
   }
 
   acceptCall(callId: string): void {
@@ -274,7 +274,7 @@ export class CallSocketService {
     return () => this.callBusyListeners.delete(fn);
   }
 
-  onCallError(fn: (data: { message: string }) => void): () => void {
+  onCallError(fn: (data: { message: string; code?: string }) => void): () => void {
     this.callErrorListeners.add(fn);
     return () => this.callErrorListeners.delete(fn);
   }

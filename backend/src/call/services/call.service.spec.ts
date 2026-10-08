@@ -418,14 +418,35 @@ describe('CallService', () => {
   });
 
 
-  it('should block repeated free vibe checks within 24 hours between same pair', async () => {
+  it('should block repeated free vibe checks within 24 hours between same pair if caller has no coins', async () => {
     mockRedis.get.mockImplementation(async (key: string) => {
       if (key.includes('call:vibe_check:')) return '1';
       return null;
     });
+    mockCreditService.getOrCreateBalance.mockResolvedValueOnce({ coins: 0, coinsReserved: 0 });
 
     await expect(
       service.evaluateCallingTier(callerId, receiverId, CallType.VIDEO),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('should automatically consume coins when free vibe check is already used and caller has sufficient coins', async () => {
+    mockRedis.get.mockImplementation(async (key: string) => {
+      if (key.includes('call:vibe_check:')) return '1';
+      return null;
+    });
+    mockCreditService.getOrCreateBalance.mockResolvedValue({ coins: 50, coinsReserved: 0 });
+
+    const audioTier = await service.evaluateCallingTier(callerId, receiverId, CallType.AUDIO);
+    expect(audioTier.isVibeCheck).toBe(false);
+    expect(audioTier.requiredCoins).toBe(15);
+    expect(audioTier.payerUserId).toBe(callerId);
+    expect(audioTier.maxDurationSeconds).toBe(900);
+
+    const videoTier = await service.evaluateCallingTier(callerId, receiverId, CallType.VIDEO);
+    expect(videoTier.isVibeCheck).toBe(false);
+    expect(videoTier.requiredCoins).toBe(50);
+    expect(videoTier.payerUserId).toBe(callerId);
+    expect(videoTier.maxDurationSeconds).toBe(900);
   });
 });

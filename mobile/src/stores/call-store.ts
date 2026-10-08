@@ -286,28 +286,49 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       }, 2500);
     });
 
-    callSocket.onCallError((data: { message: string }) => {
+    callSocket.onCallError((data: { message: string; code?: string }) => {
       clearPendingResetTimeout();
       agoraRtcService.stopRingtone();
-      let userFriendlyMessage = 'Call failed. Please try again.';
-      if (data?.message) {
-        if (
-          data.message.includes('Prisma') ||
-          data.message.includes('database') ||
-          data.message.includes('column') ||
-          data.message.includes('invocation')
-        ) {
-          userFriendlyMessage = 'Unable to start call. Please try again in a moment.';
-        } else {
-          userFriendlyMessage = data.message;
-        }
+      const rawMsg = (data?.message || '').toLowerCase();
+      const isCoinOrPaywallError =
+        data?.code === 'INSUFFICIENT_COINS' ||
+        rawMsg.includes('coin') ||
+        rawMsg.includes('vibe check') ||
+        rawMsg.includes('vip') ||
+        rawMsg.includes('upgrade') ||
+        rawMsg.includes('balance') ||
+        rawMsg.includes('recharge');
+
+      let userFriendlyMessage = 'Call Unavailable';
+      if (isCoinOrPaywallError) {
+        userFriendlyMessage = 'Coins Required for Call';
+      } else if (rawMsg.includes('busy')) {
+        userFriendlyMessage = 'User is busy on another call';
+      } else if (rawMsg.includes('suspended') || rawMsg.includes('privilege')) {
+        userFriendlyMessage = 'Calling restricted';
+      } else if (
+        data?.message &&
+        data.message.length <= 40 &&
+        !data.message.includes('Prisma') &&
+        !data.message.includes('database') &&
+        !data.message.includes('column') &&
+        !data.message.includes('invocation')
+      ) {
+        userFriendlyMessage = data.message;
       }
+
       set({
+        callState: 'ENDED',
         statusMessage: userFriendlyMessage,
       });
+
+      if (isCoinOrPaywallError) {
+        useBillingStore.getState().openPaywall('CALL');
+      }
+
       resetTimeout = setTimeout(() => {
         get().resetCall();
-      }, 2500);
+      }, isCoinOrPaywallError ? 1000 : 2000);
     });
 
     callSocket.onCallTimeout(() => {
@@ -486,7 +507,11 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
       },
     });
 
-    callSocket.initiateCall(matchId, receiverUserId, callType);
+    const userCoins = useBillingStore.getState().creditBalance?.coins || 0;
+    const requiredCoins = isVideo ? 50 : 15;
+    const agreedCoins = userCoins >= requiredCoins ? requiredCoins : undefined;
+
+    callSocket.initiateCall(matchId, receiverUserId, callType, agreedCoins);
   },
 
   acceptIncomingCall: async () => {

@@ -33,6 +33,7 @@ export const ActiveCallModal: React.FC = () => {
     headsetDeviceName,
     isCameraFlipped,
     partnerVideoMuted,
+    partnerAudioMuted,
     statusMessage,
     toggleMic,
     toggleVideo,
@@ -516,11 +517,19 @@ export const ActiveCallModal: React.FC = () => {
 
                 {/* Partner Details */}
                 <Text style={styles.stagePartnerName}>{activeCall.partnerName}</Text>
-                <Text style={styles.stageStatusText}>
+                <Text style={styles.stageStatusText} numberOfLines={2} ellipsizeMode="tail">
                   {isConnected
-                    ? partnerVideoMuted
-                      ? 'Camera is off'
+                    ? isVideo
+                      ? partnerVideoMuted
+                        ? 'Camera is off'
+                        : 'Video Connected'
+                      : partnerAudioMuted
+                      ? 'Microphone muted'
                       : 'Voice Call Connected'
+                    : callState === 'OUTGOING_RINGING'
+                    ? 'Ringing...'
+                    : callState === 'ENDED'
+                    ? statusMessage || 'Call Ended'
                     : statusMessage || 'Calling...'}
                 </Text>
 
@@ -573,23 +582,27 @@ export const ActiveCallModal: React.FC = () => {
               </TouchableOpacity>
 
               {/* Call Timer / State Pill */}
-              <View style={[styles.timerPill, activeCall.isVibeCheck && styles.vibeCheckPill]}>
+              <View style={[styles.timerPill, activeCall.isVibeCheck && isConnected && styles.vibeCheckPill]}>
                 <View
                   style={[
                     styles.statusDot,
-                    activeCall.isVibeCheck
+                    isConnected && activeCall.isVibeCheck
                       ? styles.dotAmber
                       : isConnected
                       ? styles.dotGreen
                       : styles.dotCoral,
                   ]}
                 />
-                <Text style={[styles.timerText, activeCall.isVibeCheck && styles.vibeCheckText]}>
+                <Text style={[styles.timerText, isConnected && activeCall.isVibeCheck && styles.vibeCheckText]}>
                   {isConnected
                     ? activeCall.isVibeCheck
                       ? `✨ Vibe Check (${Math.max(0, 60 - durationSeconds)}s)`
                       : formatTimer(durationSeconds)
-                    : statusMessage || 'Calling...'}
+                    : callState === 'OUTGOING_RINGING'
+                    ? 'Calling...'
+                    : callState === 'ENDED'
+                    ? 'Call Ended'
+                    : 'Connecting...'}
                 </Text>
               </View>
 
@@ -815,6 +828,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     marginBottom: 12,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    maxWidth: 320,
   },
   audioDeviceTag: {
     flexDirection: 'row',
