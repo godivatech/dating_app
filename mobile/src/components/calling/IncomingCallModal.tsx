@@ -29,63 +29,44 @@ export const IncomingCallModal: React.FC = () => {
   // Block screenshots and screen recordings on incoming call screens
   useScreenCapturePrevention(isVisible);
 
-  // Concentric animated heartbeat pulse rings
+  // Soft breathing halo glow animation
   const pulseAnim1 = useRef(new Animated.Value(1)).current;
-  const opacityAnim1 = useRef(new Animated.Value(0.6)).current;
-  const pulseAnim2 = useRef(new Animated.Value(1)).current;
-  const opacityAnim2 = useRef(new Animated.Value(0.4)).current;
+  const opacityAnim1 = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
     if (!isVisible) return;
 
-    const createPulseLoop = (
-      scaleVal: Animated.Value,
-      opacityVal: Animated.Value,
-      delayMs: number,
-      targetScale: number,
-      initialOpacity: number,
-    ) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delayMs),
-          Animated.parallel([
-            Animated.timing(scaleVal, {
-              toValue: targetScale,
-              duration: 2000,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityVal, {
-              toValue: 0,
-              duration: 2000,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.parallel([
-            Animated.timing(scaleVal, {
-              toValue: 1,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityVal, {
-              toValue: initialOpacity,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ]),
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulseAnim1, {
+            toValue: 1.28,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim1, {
+            toValue: 0.1,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
         ]),
-      );
-    };
+        Animated.parallel([
+          Animated.timing(pulseAnim1, {
+            toValue: 1,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim1, {
+            toValue: 0.35,
+            duration: 2200,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    );
 
-    const loop1 = createPulseLoop(pulseAnim1, opacityAnim1, 0, 1.5, 0.6);
-    const loop2 = createPulseLoop(pulseAnim2, opacityAnim2, 600, 1.85, 0.4);
-
-    loop1.start();
-    loop2.start();
-
-    return () => {
-      loop1.stop();
-      loop2.stop();
-    };
+    loop.start();
+    return () => loop.stop();
   }, [isVisible]);
 
   // Trigger continuous ringing vibration while incoming call modal is visible
@@ -121,8 +102,15 @@ export const IncomingCallModal: React.FC = () => {
       statusBarTranslucent
     >
       <View style={styles.container}>
-        {/* Ambient Warm Romantic Glow */}
-        <View style={styles.ambientAura} />
+        {/* Ambient Blurred Backdrop of Partner Photo (FaceTime / Luxury Dating Style) */}
+        {avatarUri ? (
+          <Image
+            source={{ uri: avatarUri }}
+            style={StyleSheet.absoluteFill}
+            blurRadius={Platform.OS === 'android' ? 24 : 36}
+          />
+        ) : null}
+        <View style={[StyleSheet.absoluteFill, styles.backdropOverlay]} />
 
         <SafeAreaView style={styles.safeArea}>
           {/* Top Info */}
@@ -130,7 +118,7 @@ export const IncomingCallModal: React.FC = () => {
             <View style={styles.typeBadge}>
               <Ionicons
                 name={isVideo ? 'videocam' : 'call'}
-                size={16}
+                size={15}
                 color="#FD5D65"
                 style={{ marginRight: 6 }}
               />
@@ -142,21 +130,12 @@ export const IncomingCallModal: React.FC = () => {
             <Text style={styles.ringingSubtext}>Ringing...</Text>
           </View>
 
-          {/* Central Avatar with Animated Concentric Waves */}
+          {/* Central Avatar with Soft Breathing Halo */}
           <View style={styles.avatarContainer}>
             <View style={styles.pulseWrapper}>
               <Animated.View
                 style={[
-                  styles.pulseWaveRing,
-                  {
-                    transform: [{ scale: pulseAnim2 }],
-                    opacity: opacityAnim2,
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.pulseWaveRing,
+                  styles.softAmbientHalo,
                   {
                     transform: [{ scale: pulseAnim1 }],
                     opacity: opacityAnim1,
@@ -164,7 +143,7 @@ export const IncomingCallModal: React.FC = () => {
                 ]}
               />
 
-              <View style={styles.avatarGlowCircle}>
+              <View style={styles.avatarGlassRim}>
                 {avatarUri ? (
                   <Image source={{ uri: avatarUri }} style={styles.avatarImage} />
                 ) : (
@@ -215,106 +194,103 @@ export const IncomingCallModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#14050C', // TrueLove dark romantic theme
+    backgroundColor: '#0D040A',
+  },
+  backdropOverlay: {
+    backgroundColor: 'rgba(11, 4, 9, 0.82)',
   },
   ambientAura: {
-    position: 'absolute',
-    top: '25%',
-    left: '10%',
-    width: '80%',
-    height: '40%',
-    borderRadius: 160,
-    backgroundColor: 'rgba(253, 93, 101, 0.08)',
+    display: 'none',
   },
   safeArea: {
     flex: 1,
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Platform.OS === 'ios' ? 20 : 40,
+    paddingVertical: Platform.OS === 'ios' ? 24 : 44,
     paddingHorizontal: 24,
   },
   topInfo: {
     alignItems: 'center',
-    marginTop: 30,
+    marginTop: 24,
   },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(253, 93, 101, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 16,
     paddingVertical: 7,
     borderRadius: 22,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(253, 93, 101, 0.35)',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   typeBadgeText: {
     color: '#FFE4E6',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: 0.3,
   },
   callerName: {
     color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '700',
     marginBottom: 8,
+    letterSpacing: 0.3,
   },
   ringingSubtext: {
     color: '#FDA4AF',
     fontSize: 16,
     fontWeight: '500',
+    letterSpacing: 0.2,
   },
   avatarContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 40,
+    marginVertical: 30,
   },
   pulseWrapper: {
-    width: 220,
-    height: 220,
+    width: 210,
+    height: 210,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pulseWaveRing: {
+  softAmbientHalo: {
     position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 2,
-    borderColor: '#FD5D65',
-    backgroundColor: 'rgba(253, 93, 101, 0.08)',
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(253, 93, 101, 0.24)',
   },
-  avatarGlowCircle: {
-    width: 164,
-    height: 164,
-    borderRadius: 82,
-    borderWidth: 3.5,
-    borderColor: '#FD5D65',
+  avatarGlassRim: {
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    borderWidth: 2.5,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(253, 93, 101, 0.2)',
-    shadowColor: '#FD5D65',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
-    elevation: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    elevation: 16,
   },
   avatarImage: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 152,
+    height: 152,
+    borderRadius: 76,
   },
   avatarInitialCircle: {
-    width: 148,
-    height: 148,
-    borderRadius: 74,
+    width: 152,
+    height: 152,
+    borderRadius: 76,
     backgroundColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitialText: {
-    fontSize: 56,
+    fontSize: 54,
     fontWeight: '800',
     color: '#FFFFFF',
   },

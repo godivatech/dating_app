@@ -49,66 +49,42 @@ export const ActiveCallModal: React.FC = () => {
   const [showSafetySheet, setShowSafetySheet] = useState(false);
   const [showAudioDeviceSheet, setShowAudioDeviceSheet] = useState(false);
 
-  // Animated pulsing heartbeat concentric rings around avatar
+  // Soft breathing ambient halo animation around avatar
   const pulseAnim1 = useRef(new Animated.Value(1)).current;
-  const opacityAnim1 = useRef(new Animated.Value(0.6)).current;
-  const pulseAnim2 = useRef(new Animated.Value(1)).current;
-  const opacityAnim2 = useRef(new Animated.Value(0.4)).current;
-  const pulseAnim3 = useRef(new Animated.Value(1)).current;
-  const opacityAnim3 = useRef(new Animated.Value(0.2)).current;
+  const opacityAnim1 = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
-    const createPulseLoop = (
-      scaleVal: Animated.Value,
-      opacityVal: Animated.Value,
-      delayMs: number,
-      targetScale: number,
-      initialOpacity: number,
-    ) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delayMs),
-          Animated.parallel([
-            Animated.timing(scaleVal, {
-              toValue: targetScale,
-              duration: 2200,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityVal, {
-              toValue: 0,
-              duration: 2200,
-              useNativeDriver: true,
-            }),
-          ]),
-          Animated.parallel([
-            Animated.timing(scaleVal, {
-              toValue: 1,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-            Animated.timing(opacityVal, {
-              toValue: initialOpacity,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ]),
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(pulseAnim1, {
+            toValue: 1.28,
+            duration: 2400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim1, {
+            toValue: 0.1,
+            duration: 2400,
+            useNativeDriver: true,
+          }),
         ]),
-      );
-    };
+        Animated.parallel([
+          Animated.timing(pulseAnim1, {
+            toValue: 1,
+            duration: 2400,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacityAnim1, {
+            toValue: 0.35,
+            duration: 2400,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    );
 
-    const loop1 = createPulseLoop(pulseAnim1, opacityAnim1, 0, 1.45, 0.55);
-    const loop2 = createPulseLoop(pulseAnim2, opacityAnim2, 600, 1.75, 0.4);
-    const loop3 = createPulseLoop(pulseAnim3, opacityAnim3, 1200, 2.05, 0.25);
-
-    loop1.start();
-    loop2.start();
-    loop3.start();
-
-    return () => {
-      loop1.stop();
-      loop2.stop();
-      loop3.stop();
-    };
+    loop.start();
+    return () => loop.stop();
   }, []);
 
   const isVisible =
@@ -451,8 +427,15 @@ export const ActiveCallModal: React.FC = () => {
         statusBarTranslucent
       >
         <View style={styles.container}>
-          {/* Ambient Brand Glow Aura (Behind Avatar) */}
-          <View style={styles.ambientAura} />
+          {/* Ambient Blurred Backdrop of Partner Photo (FaceTime / Luxury Dating Style) */}
+          {avatarUri ? (
+            <Image
+              source={{ uri: avatarUri }}
+              style={StyleSheet.absoluteFill}
+              blurRadius={Platform.OS === 'android' ? 24 : 36}
+            />
+          ) : null}
+          <View style={[StyleSheet.absoluteFill, styles.backdropOverlay]} />
 
           {/* Main Stage (Video or TrueLove Branded Avatar) */}
           <View style={styles.mainStage}>
@@ -471,31 +454,13 @@ export const ActiveCallModal: React.FC = () => {
                 </View>
               </View>
             ) : (
-              // Audio Call or Camera Muted State with Romantic Heartbeat Waves
+              // Audio Call or Camera Muted State with Soft Breathing Ambient Aura
               <View style={styles.avatarCenterBox}>
-                <View style={styles.avatarPulseWrapper}>
-                  {/* Concentric Animated Waves */}
+                <View style={styles.avatarGlowContainer}>
+                  {/* Soft Breathing Ambient Halo Glow */}
                   <Animated.View
                     style={[
-                      styles.pulseWaveRing,
-                      {
-                        transform: [{ scale: pulseAnim3 }],
-                        opacity: opacityAnim3,
-                      },
-                    ]}
-                  />
-                  <Animated.View
-                    style={[
-                      styles.pulseWaveRing,
-                      {
-                        transform: [{ scale: pulseAnim2 }],
-                        opacity: opacityAnim2,
-                      },
-                    ]}
-                  />
-                  <Animated.View
-                    style={[
-                      styles.pulseWaveRing,
+                      styles.softAmbientHalo,
                       {
                         transform: [{ scale: pulseAnim1 }],
                         opacity: opacityAnim1,
@@ -503,8 +468,8 @@ export const ActiveCallModal: React.FC = () => {
                     ]}
                   />
 
-                  {/* Brand Coral Glowing Core Avatar */}
-                  <View style={styles.avatarGlow}>
+                  {/* Luxury Portrait Avatar with subtle glass rim and deep soft shadow */}
+                  <View style={styles.avatarGlassRim}>
                     {avatarUri ? (
                       <Image source={{ uri: avatarUri }} style={styles.largeAvatar} />
                     ) : (
@@ -533,7 +498,7 @@ export const ActiveCallModal: React.FC = () => {
                     : statusMessage || 'Calling...'}
                 </Text>
 
-                {/* Connected Audio Device Badge & Selector */}
+                {/* Minimal Audio Route Pill (Clean, unobtrusive) */}
                 <TouchableOpacity
                   style={styles.audioDeviceTag}
                   onPress={() => {
@@ -542,9 +507,9 @@ export const ActiveCallModal: React.FC = () => {
                   }}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name={audioInfo.icon} size={13} color="#FD5D65" style={{ marginRight: 5 }} />
+                  <Ionicons name={audioInfo.icon} size={13} color="#FDA4AF" style={{ marginRight: 6 }} />
                   <Text style={styles.audioDeviceTagText}>{audioInfo.deviceTag}</Text>
-                  <Ionicons name="chevron-down" size={12} color="#FD5D65" style={{ marginLeft: 4 }} />
+                  <Ionicons name="chevron-down" size={11} color="rgba(253, 164, 175, 0.7)" style={{ marginLeft: 4 }} />
                 </TouchableOpacity>
               </View>
             )}
@@ -578,7 +543,7 @@ export const ActiveCallModal: React.FC = () => {
                 onPress={handleSafetyAction}
                 activeOpacity={0.7}
               >
-                <Ionicons name="shield-checkmark" size={20} color="#FD5D65" />
+                <Ionicons name="shield-checkmark" size={18} color="#FDA4AF" />
               </TouchableOpacity>
 
               {/* Call Timer / State Pill */}
@@ -613,10 +578,10 @@ export const ActiveCallModal: React.FC = () => {
                   onPress={flipCamera}
                   activeOpacity={0.7}
                 >
-                  <Ionicons name="camera-reverse" size={20} color="#FFFFFF" />
+                  <Ionicons name="camera-reverse" size={18} color="#FFFFFF" />
                 </TouchableOpacity>
               ) : (
-                <View style={{ width: 42 }} />
+                <View style={{ width: 40 }} />
               )}
             </View>
 
@@ -719,16 +684,13 @@ export const ActiveCallModal: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#14050C', // Romantic TrueLove midnight velvet
+    backgroundColor: '#0D040A',
+  },
+  backdropOverlay: {
+    backgroundColor: 'rgba(11, 4, 9, 0.82)',
   },
   ambientAura: {
-    position: 'absolute',
-    top: '25%',
-    left: '10%',
-    width: '80%',
-    height: '40%',
-    borderRadius: 160,
-    backgroundColor: 'rgba(253, 93, 101, 0.08)',
+    display: 'none',
   },
   mainStage: {
     position: 'absolute',
@@ -738,6 +700,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 70,
   },
   videoSurfacePlaceholder: {
     position: 'absolute',
@@ -767,80 +730,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarPulseWrapper: {
-    width: 220,
-    height: 220,
+  avatarGlowContainer: {
+    width: 200,
+    height: 200,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 22,
   },
-  pulseWaveRing: {
+  softAmbientHalo: {
     position: 'absolute',
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    borderWidth: 2,
-    borderColor: '#FD5D65',
-    backgroundColor: 'rgba(253, 93, 101, 0.08)',
+    width: 176,
+    height: 176,
+    borderRadius: 88,
+    backgroundColor: 'rgba(253, 93, 101, 0.22)',
   },
-  avatarGlow: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    borderWidth: 3.5,
-    borderColor: '#FD5D65',
+  avatarGlassRim: {
+    width: 156,
+    height: 156,
+    borderRadius: 78,
+    borderWidth: 2.5,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(253, 93, 101, 0.2)',
-    shadowColor: '#FD5D65',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    elevation: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.55,
+    shadowRadius: 28,
+    elevation: 16,
   },
   largeAvatar: {
-    width: 144,
-    height: 144,
-    borderRadius: 72,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
   },
   largeAvatarInitial: {
-    width: 144,
-    height: 144,
-    borderRadius: 72,
+    width: 148,
+    height: 148,
+    borderRadius: 74,
     backgroundColor: '#FD5D65',
     alignItems: 'center',
     justifyContent: 'center',
   },
   largeAvatarInitialText: {
-    fontSize: 54,
+    fontSize: 52,
     fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   stagePartnerName: {
     color: '#FFFFFF',
-    fontSize: 28,
-    fontWeight: '800',
-    marginBottom: 6,
-    letterSpacing: 0.2,
+    fontSize: 30,
+    fontWeight: '700',
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
   stageStatusText: {
     color: '#FDA4AF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
     paddingHorizontal: 20,
     maxWidth: 320,
+    letterSpacing: 0.2,
   },
   audioDeviceTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(253, 93, 101, 0.12)',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(253, 93, 101, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   audioDeviceTagText: {
     color: '#FFE4E6',
@@ -880,32 +843,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 35 : 10,
+    paddingTop: Platform.OS === 'android' ? 38 : 12,
   },
   shieldBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(25, 7, 15, 0.85)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(253, 93, 101, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   timerPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(25, 7, 15, 0.85)',
+    backgroundColor: 'rgba(20, 8, 16, 0.82)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: 'rgba(253, 93, 101, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   vibeCheckPill: {
-    backgroundColor: 'rgba(245, 158, 11, 0.25)',
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.6)',
+    borderColor: 'rgba(245, 158, 11, 0.55)',
   },
   statusDot: {
     width: 8,
@@ -953,63 +916,70 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   topCircleBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(25, 7, 15, 0.85)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(253, 93, 101, 0.25)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
   },
   bottomSafeArea: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 12 : 24,
   },
   toolbar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingVertical: 18,
-    paddingHorizontal: 16,
-    backgroundColor: 'rgba(20, 5, 12, 0.92)',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 1.5,
-    borderTopColor: 'rgba(253, 93, 101, 0.25)',
+    justifyContent: 'center',
+    gap: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    backgroundColor: 'rgba(26, 10, 20, 0.88)',
+    borderRadius: 44,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.45,
+    shadowRadius: 20,
+    elevation: 12,
   },
   toolCol: {
     alignItems: 'center',
     justifyContent: 'center',
   },
   toolBtn: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
     marginBottom: 6,
   },
   toolBtnMuted: {
-    backgroundColor: 'rgba(239, 68, 68, 0.25)',
-    borderWidth: 1.5,
-    borderColor: '#EF4444',
+    backgroundColor: 'rgba(239, 68, 68, 0.22)',
+    borderColor: 'rgba(239, 68, 68, 0.6)',
   },
   toolBtnSpeakerActive: {
     backgroundColor: 'rgba(253, 93, 101, 0.25)',
-    borderWidth: 1.5,
     borderColor: '#FD5D65',
     shadowColor: '#FD5D65',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOpacity: 0.45,
+    shadowRadius: 8,
   },
   toolLabel: {
-    color: '#CBD5E1',
-    fontSize: 12,
+    color: '#9CA3AF',
+    fontSize: 11,
     fontWeight: '600',
   },
   toolLabelMuted: {
@@ -1020,9 +990,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   endCallBtn: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1030,12 +1000,12 @@ const styles = StyleSheet.create({
     shadowColor: '#EF4444',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
-    shadowRadius: 8,
+    shadowRadius: 10,
     elevation: 8,
   },
   toolLabelEnd: {
     color: '#EF4444',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
   },
   safetySheetOverlay: {
