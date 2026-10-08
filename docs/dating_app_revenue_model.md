@@ -20,13 +20,13 @@ Truelove uses a modern hybrid monetization strategy combining **Recurring Subscr
                                │
                 ┌───────────────┴───────────────┐
                 ▼                               ▼
-     ~550 Monthly Subscribers          ~1,100 Coin, Calling & Gift Purchases
+     ~535 Monthly Subscribers          ~1,100 Coin, Calling & Gift Purchases
    (Truelove Plus & Gold Plans)      (Truelove Coins, Notes, Calls, Gifts)
-           ₹2,10,000/mo                       ₹1,95,000/mo
+           ₹2,05,000/mo                       ₹1,56,000/mo
                 └───────────────┬───────────────┘
                                 ▼
-         TOTAL REVENUE: ~₹4,05,000 per month
-         NET PROFIT:    ~₹3,15,000 per month (>77% margin)
+         TOTAL REVENUE: ~₹3,61,000 per month
+         NET PROFIT:    ~₹2,91,000 per month (>80% margin)
 ```
 
 ---
@@ -40,7 +40,7 @@ mindmap
   root((Truelove Revenue Engine))
     1. Recurring Subscriptions
       Truelove Plus ₹299/mo
-      Truelove Gold VIP ₹599/mo
+      Truelove Gold VIP ₹499/mo
       Quarterly Savings Bundles
     2. Virtual Coin Wallet
       100 Coins Starter ₹99
@@ -80,7 +80,7 @@ Users subscribe monthly or quarterly through Google Play Billing (UPI, Net Banki
 | :--- | :--- | :--- | :--- |
 | **Free Member** | **₹0** | • 25 Likes per day<br>• Local nearby discovery<br>• Unlimited text chat with mutual matches<br>• 1 Free 60s Vibe Check call per match/day | Zero barrier to entry; maintains a rich and verified dating pool. |
 | **Truelove Plus** | **₹299 / month**<br>*(or ₹699 for 3 months — save 22%)* | • **Unlimited Swipes/Likes** (no 25 daily limit)<br>• **Rewind Pass** (undo accidental left passes)<br>• **5 Direct Notes Daily**<br>• 5 Super Likes daily | **Solves frustration**: Never run out of likes, rewind mistakes, and reach top profiles first every day. |
-| **Truelove Gold VIP** | **₹599 / month**<br>*(or ₹1,399 for 3 months — save 22%)* | • **"See Who Liked You"** (instant match without swiping)<br>• **Unlimited Direct Notes** (with anti-spam protection)<br>• **Target City Passport Mode** (date in any city)<br>• **1 Free Weekly Profile Boost**<br>• **VIP Daily Video & Voice Dating** (up to 30 mins daily Fair Usage)<br>• Everything in Truelove Plus | **The Ultimate VIP Experience**: Instant gratification, secret admirer reveal, and unlimited reach across all cities. |
+| **Truelove Gold VIP** | **₹499 / month**<br>*(or ₹1,199 for 3 months — save 20%)* | • **"See Who Liked You"** (instant match without swiping)<br>• **Unlimited Direct Notes** (with anti-spam protection)<br>• **Target City Passport Mode** (date in any city)<br>• **1 Free Weekly Profile Boost**<br>• **VIP Daily Video & Voice Dating** (up to 30 mins daily Fair Usage)<br>• Everything in Truelove Plus | **The Ultimate VIP Experience**: Instant gratification, secret admirer reveal, and unlimited reach across all cities. |
 
 ---
 
@@ -179,7 +179,7 @@ For every digital gift sent:
 | **Royal Crown** | 300 Coins (~₹300) | **₹150.00** | ₹150.00 (15,000 paise) |
 
 #### 3. Payout Workflow & Compliance
-- **Withdrawal Threshold**: Minimum withdrawable balance is **₹500** (50,000 paise).
+- **Withdrawal Threshold**: Minimum withdrawable balance is **₹100** (10,000 paise).
 - **Payment Method**: Direct transfer via canonical Indian **UPI IDs** (Google Pay, PhonePe, Paytm, BHIM) upon manual or batch Admin approval.
 - **Legal & Store Compliance**: Classified as **"Creator Influencer Tipping & Digital Appreciation"** (identical to YouTube SuperChat, Twitch, and Tango), keeping the platform 100% compliant with Google Play Store, Apple App Store, and Indian regulatory guidelines.
 
@@ -192,13 +192,13 @@ Based on 10,000 active users in Tier 1 and Tier 2 cities (Chennai, Bengaluru, Co
 | Revenue Channel | Projected Paying Users / Units | Average Price | Total Monthly Gross |
 | :--- | :--- | :--- | :--- |
 | **Truelove Plus Subscribers** | 310 daters | ₹299 / month | **₹92,690** |
-| **Truelove Gold VIP Subscribers** | 225 daters | ₹599 / month | **₹1,34,775** |
+| **Truelove Gold VIP Subscribers** | 225 daters | ₹499 / month | **₹1,12,275** |
 | **Truelove Coin Packs (₹199 avg bundle)** | 360 purchases | ~₹199 bundle | **₹71,640** |
 | **Direct Note Packs (Direct Purchases)** | 240 purchases | ~₹150 avg | **₹36,000** |
 | **Profile Boost Packs** | 180 purchases | ₹99 each | **₹17,820** |
 | **Call Passes & Top-ups** | 140 passes | ~₹49 each | **₹6,860** |
 | **Virtual Gifting Platform Cut (50%)** | 600 gifts sent | ~₹80 avg gift | **₹24,000** |
-| **TOTAL MONTHLY GROSS REVENUE** | | | **₹3,83,785 / month** |
+| **TOTAL MONTHLY GROSS REVENUE** | | | **₹3,61,285 / month** |
 
 ---
 
@@ -206,16 +206,16 @@ Based on 10,000 active users in Tier 1 and Tier 2 cities (Chennai, Bengaluru, Co
 
 | Cost Item | Monthly Cost (INR) | Details |
 | :--- | :--- | :--- |
-| **App Store & Google Play Fee (15%)** | ~₹57,560 | 15% small business tier commission |
+| **App Store & Google Play Fee (15%)** | ~₹54,193 | 15% small business tier commission *(See [Payment & Fee Guide](google_play_app_store_payment_and_fee_guide.md))* |
 | **Neon PostgreSQL Database** | ~₹4,500 | Production serverless cloud database |
 | **Backend & Redis Hosting** | ~₹3,500 | Containerized Node/NestJS & Redis cache |
 | **SMS OTP Verification** | ~₹3,000 | Auth OTP messages |
 | **Agora WebRTC Audio/Video Minutes** | ~₹5,500 | After 10,000 free monthly tier minutes |
-| **Total Operational Costs** | **~₹74,060** | |
+| **Total Operational Costs** | **~₹70,693** | |
 
 ### Net Profit Summary:
-$$\text{Net Monthly Profit} = ₹3,83,785 - ₹74,060 = \mathbf{₹3,09,725 \text{ per month}}$$
-$$\text{Net Profit Margin} = \mathbf{80.7\%}$$
+$$\text{Net Monthly Profit} = ₹3,61,285 - ₹70,693 = \mathbf{₹2,90,592 \text{ per month}}$$
+$$\text{Net Profit Margin} = \mathbf{80.4\%}$$
 
 ---
 
