@@ -19,14 +19,11 @@ export async function requestCallingPermissions(isVideo: boolean = false): Promi
       permissions.push(PermissionsAndroid.PERMISSIONS.CAMERA);
     }
 
-    // Android 12 (API 31+) requires runtime permission for Bluetooth headset discovery and routing
+    // Android 12 (API 31+) requires runtime permission for Bluetooth headset audio routing
     const androidVersion = typeof Platform.Version === 'number' ? Platform.Version : parseInt(String(Platform.Version), 10);
     if (androidVersion >= 31) {
       if ((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_CONNECT) {
         permissions.push((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_CONNECT);
-      }
-      if ((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN) {
-        permissions.push((PermissionsAndroid.PERMISSIONS as any).BLUETOOTH_SCAN);
       }
     }
 
