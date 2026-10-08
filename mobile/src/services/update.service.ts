@@ -31,8 +31,13 @@ export async function checkAndFetchUpdateSilently(): Promise<boolean> {
       const fetchResult = await Updates.fetchUpdateAsync();
       
       if (fetchResult.isNew) {
-        console.log('[OTA Updates] Update downloaded successfully and ready to apply.');
+        console.log('[OTA Updates] Update downloaded successfully. Reloading immediately...');
         updateReadyToApply = true;
+        try {
+          await Updates.reloadAsync();
+        } catch (reloadErr) {
+          console.warn('[OTA Updates] Immediate reload error:', reloadErr);
+        }
         return true;
       }
     }
