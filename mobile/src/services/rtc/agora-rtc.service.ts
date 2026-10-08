@@ -11,6 +11,11 @@ import {
 } from 'react-native-agora';
 import { IRtcEngine, RtcJoinChannelOptions } from './rtc.interface';
 import { requestCallingPermissions } from '../../utils/call-permissions';
+import {
+  logAudioDiagnostics,
+  AgoraDiagnosticsSnapshot,
+  testNativeAndroidSpeaker,
+} from '../../utils/audio-diagnostics';
 
 export type AppAudioRoute = 'SPEAKER' | 'EARPIECE' | 'HEADSET' | 'BLUETOOTH';
 
@@ -45,6 +50,25 @@ export class AgoraRtcService implements IRtcEngine {
   private _bluetoothProfile: 'HFP' | 'A2DP' | null = null;
   // Track currently active ringtone so routing changes can rebind the playback stream immediately
   private currentRingtoneType: 'outgoing' | 'incoming' | null = null;
+
+  // Diagnostic tracking return codes
+  private lastRawRoutingCallback: number | null = null;
+  private lastSetDefaultRouteCode: number | null = null;
+  private lastSetEnableSpeakerphoneCode: number | null = null;
+  private lastSetRouteInCommunicationModeCode: number | null = null;
+
+  getDiagnosticsSnapshot(): AgoraDiagnosticsSnapshot {
+    return {
+      currentRoute: this.currentRoute,
+      targetRoute: this.targetRoute,
+      confirmedRoute: this.confirmedRoute,
+      rawRoutingCallback: this.lastRawRoutingCallback,
+      isSpeakerphoneEnabled: this.isSpeakerphoneEnabled(),
+      lastSetDefaultRouteCode: this.lastSetDefaultRouteCode,
+      lastSetEnableSpeakerphoneCode: this.lastSetEnableSpeakerphoneCode,
+      lastSetRouteInCommunicationModeCode: this.lastSetRouteInCommunicationModeCode,
+    };
+  }
 
   private userJoinedCallbacks = new Set<(uid: number) => void>();
   private userOfflineCallbacks = new Set<(uid: number) => void>();
@@ -100,6 +124,7 @@ export class AgoraRtcService implements IRtcEngine {
           this.connectionStateCallbacks.forEach((cb) => cb(String(state)));
         },
         onAudioRoutingChanged: (routing) => {
+          this.lastRawRoutingCallback = routing;
           const mappedRoute = this.getAudioRouteFromAgora(routing);
           const prevConfirmed = this.confirmedRoute;
           this.confirmedRoute = mappedRoute;
@@ -136,6 +161,7 @@ export class AgoraRtcService implements IRtcEngine {
           );
 
           this.audioRoutingCallbacks.forEach((cb) => cb(routing));
+          logAudioDiagnostics(`ON_AUDIO_ROUTING_CHANGED_RAW_${routing}`, this.getDiagnosticsSnapshot());
         },
         onError: (err, msg) => {
           console.warn(`[AGORA_RTC_ERROR] Code: ${err}, Message: ${msg}`);
@@ -322,18 +348,19 @@ export class AgoraRtcService implements IRtcEngine {
   setDefaultRoute(toSpeaker: boolean): void {
     if (!this.engine || !this.isAvailable) return;
     try {
-      this.engine.setDefaultAudioRouteToSpeakerphone(toSpeaker);
+      this.lastSetDefaultRouteCode = this.engine.setDefaultAudioRouteToSpeakerphone(toSpeaker);
       if (Platform.OS === 'android') {
         if (this._isBluetoothAvailable) {
-          this.engine.setRouteInCommunicationMode(
+          this.lastSetRouteInCommunicationModeCode = this.engine.setRouteInCommunicationMode(
             toSpeaker ? AudioRoute.RouteSpeakerphone : AudioRoute.RouteDefault
           );
         } else {
-          this.engine.setEnableSpeakerphone(toSpeaker);
+          this.lastSetEnableSpeakerphoneCode = this.engine.setEnableSpeakerphone(toSpeaker);
         }
       } else {
-        this.engine.setEnableSpeakerphone(toSpeaker);
+        this.lastSetEnableSpeakerphoneCode = this.engine.setEnableSpeakerphone(toSpeaker);
       }
+      logAudioDiagnostics(`SET_DEFAULT_ROUTE_${toSpeaker ? 'SPEAKER' : 'DEFAULT'}`, this.getDiagnosticsSnapshot());
     } catch (err: any) {
       console.warn('[AGORA_RTC] setDefaultRoute warning:', err?.message);
     }
@@ -376,7 +403,7 @@ export class AgoraRtcService implements IRtcEngine {
       const isSpeaker = route === 'SPEAKER';
 
       // 1. Configure default audio route preference
-      this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
+      this.lastSetDefaultRouteCode = this.engine.setDefaultAudioRouteToSpeakerphone(isSpeaker);
 
       // 2. Hardware routing control:
       if (Platform.OS === 'android') {
@@ -394,24 +421,26 @@ export class AgoraRtcService implements IRtcEngine {
           } else if (route === 'EARPIECE') {
             targetCode = AudioRoute.RouteEarpiece; // 1
           }
-          const res = this.engine.setRouteInCommunicationMode(targetCode);
-          console.log(`[AUDIO_ROUTE] setRouteInCommunicationMode(${targetCode}) returned: ${res}`);
+          this.lastSetRouteInCommunicationModeCode = this.engine.setRouteInCommunicationMode(targetCode);
+          console.log(`[AUDIO_ROUTE] setRouteInCommunicationMode(${targetCode}) returned: ${this.lastSetRouteInCommunicationModeCode}`);
         } else {
           if (route === 'BLUETOOTH') {
             console.warn('[AUDIO_ROUTE] Cannot route to Bluetooth: no Bluetooth device connected.');
             return;
           }
           if (route === 'HEADSET' && this._isHeadsetAvailable) {
-            this.engine.setRouteInCommunicationMode(AudioRoute.RouteHeadset);
+            this.lastSetRouteInCommunicationModeCode = this.engine.setRouteInCommunicationMode(AudioRoute.RouteHeadset);
           } else {
-            const res = this.engine.setEnableSpeakerphone(isSpeaker);
-            console.log(`[AUDIO_ROUTE] setEnableSpeakerphone(${isSpeaker}) returned: ${res}`);
+            this.lastSetEnableSpeakerphoneCode = this.engine.setEnableSpeakerphone(isSpeaker);
+            console.log(`[AUDIO_ROUTE] setEnableSpeakerphone(${isSpeaker}) returned: ${this.lastSetEnableSpeakerphoneCode}`);
           }
         }
       } else {
-        const res = this.engine.setEnableSpeakerphone(isSpeaker);
-        console.log(`[AUDIO_ROUTE] iOS setEnableSpeakerphone(${isSpeaker}) returned: ${res}`);
+        this.lastSetEnableSpeakerphoneCode = this.engine.setEnableSpeakerphone(isSpeaker);
+        console.log(`[AUDIO_ROUTE] iOS setEnableSpeakerphone(${isSpeaker}) returned: ${this.lastSetEnableSpeakerphoneCode}`);
       }
+
+      logAudioDiagnostics(`SET_AUDIO_ROUTE_${route}`, this.getDiagnosticsSnapshot());
 
       // 3. Ringtone AudioTrack migration:
       if (this.currentRingtoneType) {
@@ -529,6 +558,7 @@ export class AgoraRtcService implements IRtcEngine {
         publishCameraTrack: isVideo,
       });
 
+      logAudioDiagnostics(`JOIN_CHANNEL_RES_${result}`, this.getDiagnosticsSnapshot());
       return result === 0;
     } catch (error: any) {
       console.error(`[AGORA_RTC] Failed to join channel: ${error.message}`);
@@ -547,9 +577,61 @@ export class AgoraRtcService implements IRtcEngine {
     try {
       this.engine.stopPreview();
       this.engine.leaveChannel();
+      logAudioDiagnostics('LEAVE_CHANNEL', this.getDiagnosticsSnapshot());
     } catch (error: any) {
       console.warn(`[AGORA_RTC] Error leaving channel: ${error.message}`);
     }
+  }
+
+  /**
+   * Automated diagnostic routine for user sequence verification:
+   * A/B/C: Baseline output devices & Agora route
+   * D/E: Request Speaker and log Android state immediately
+   * F/G: Request Earpiece and log Android state immediately
+   * H/I: Request Bluetooth and log Android state immediately
+   * Also tests native Android AudioManager speakerphone toggle to isolate Agora vs Android OS
+   */
+  async runDiagnosticSequence(): Promise<void> {
+    console.log('\n>>>> STARTING AUTOMATED AUDIO ROUTING DIAGNOSTIC SEQUENCE <<<<');
+
+    // A/B/C Baseline
+    await logAudioDiagnostics('SEQ_A_BASELINE', this.getDiagnosticsSnapshot());
+
+    // D/E Speaker
+    console.log('>>>> [SEQ STEP D/E] Requesting SPEAKER <<<<');
+    await this.setAudioRoute('SPEAKER');
+    await new Promise((r) => setTimeout(r, 1200));
+    await logAudioDiagnostics('SEQ_E_AFTER_SPEAKER', this.getDiagnosticsSnapshot());
+
+    // F/G Earpiece
+    console.log('>>>> [SEQ STEP F/G] Requesting EARPIECE <<<<');
+    await this.setAudioRoute('EARPIECE');
+    await new Promise((r) => setTimeout(r, 1200));
+    await logAudioDiagnostics('SEQ_G_AFTER_EARPIECE', this.getDiagnosticsSnapshot());
+
+    // H/I Bluetooth
+    console.log('>>>> [SEQ STEP H/I] Requesting BLUETOOTH <<<<');
+    if (this._isBluetoothAvailable) {
+      await this.setAudioRoute('BLUETOOTH');
+      await new Promise((r) => setTimeout(r, 1200));
+      await logAudioDiagnostics('SEQ_I_AFTER_BLUETOOTH', this.getDiagnosticsSnapshot());
+    } else {
+      console.log('>>>> [SEQ STEP H/I] Bluetooth not flagged as available by Agora; logging baseline state <<<<');
+      await logAudioDiagnostics('SEQ_I_NO_BLUETOOTH_FLAG', this.getDiagnosticsSnapshot());
+    }
+
+    // Native Speaker Bypass Test
+    console.log('>>>> [SEQ TEST] Directly invoking Native Android AudioManager.setSpeakerphoneOn(true) <<<<');
+    const nativeRes = await testNativeAndroidSpeaker(true);
+    console.log('>>>> Native AudioManager.setSpeakerphoneOn(true) result:', nativeRes);
+    await new Promise((r) => setTimeout(r, 800));
+    await logAudioDiagnostics('SEQ_AFTER_NATIVE_SPEAKER_ON', this.getDiagnosticsSnapshot());
+
+    console.log('>>>> [SEQ TEST] Restoring Native Android AudioManager.setSpeakerphoneOn(false) <<<<');
+    await testNativeAndroidSpeaker(false);
+    await logAudioDiagnostics('SEQ_AFTER_NATIVE_SPEAKER_OFF', this.getDiagnosticsSnapshot());
+
+    console.log('>>>> COMPLETED AUTOMATED AUDIO ROUTING DIAGNOSTIC SEQUENCE <<<<\n');
   }
 
   /**

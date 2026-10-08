@@ -249,6 +249,15 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
             uid: myUid,
             isVideo,
           });
+
+          // Schedule automated diagnostic sequence during active call to inspect real Android routing behavior
+          setTimeout(() => {
+            if (get().callState === 'CONNECTED') {
+              agoraRtcService.runDiagnosticSequence().catch((e) => {
+                console.warn('[AUDIO_DIAGNOSTICS] Error in diagnostic sequence:', e);
+              });
+            }
+          }, 3500);
         }
       } catch (err: any) {
         console.warn('[CALL_STORE] Failed to initialize Agora RTC channel:', err?.message);
@@ -647,4 +656,9 @@ export const useCallStore = create<CallStoreState>((set, get) => ({
     });
   },
 }));
+
+if (typeof globalThis !== 'undefined') {
+  (globalThis as any).runAudioDiagnostics = () => agoraRtcService.runDiagnosticSequence();
+}
+
 
