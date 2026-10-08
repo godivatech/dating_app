@@ -1,151 +1,770 @@
-# TrueLove App: App Store Payment Policy, Fee Structure & Launch Guide
+TRUELOVE APP
+Payment, App Store Fees and Launch Compliance Guide
 
-**Document Purpose:** Executive Client Guide on Payment Processing, Store Fees, Creator Payouts & Launch Compliance  
-**Applicable Platforms:** Google Play Store (Android) & Apple App Store (iOS)  
-**Target Market:** India (INR ₹) & Global  
-**Date:** October 2026  
+Purpose:
+This document explains how payments, app store fees, subscriptions, virtual coins, creator earnings, withdrawals and launch requirements will work for the TrueLove application.
 
----
+Platforms:
+Google Play Store and Apple App Store
 
-## 1. Executive Summary
+Target Market:
+India and Global
 
-Mobile platforms enforce strict guidelines regarding how in-app digital items (such as virtual coins, gifts, and VIP subscriptions) are purchased. To ensure **guaranteed store approval and zero risk of account suspension**, the application uses a dual payment architecture:
+Date:
+October 2026
 
-1. **Incoming User Payments (In-App Purchases / IAP)**: Handled directly by **Google Play Billing** (Android) and **Apple App Store** (iOS).
-   - Covers: Truelove Coins, Plus Subscriptions, Gold VIP Subscriptions, Profile Boosts, and Call Minute Passes.
-   - Fee: **15%** for eligible small businesses and new developer accounts (reduced from 30%).
-2. **Outgoing Creator Withdrawals (Payouts)**: Handled via **Cashfree Payments / Direct UPI IMPS**.
-   - Covers: Cash withdrawals when verified users/creators redeem earnings received from virtual gifts.
-   - Store stores do not participate in or restrict creator payouts.
 
----
+1. PAYMENT SYSTEM OVERVIEW
 
-## 2. Google Play Store Fee Structure
+TrueLove will use the official payment systems provided by Google and Apple for digital products purchased inside the mobile application.
 
-### The 15% Google Play Service Fee Tier
-Google charges developers a fee on digital goods sold inside Android apps. Under Google's **15% Service Fee Tier**:
-* Every developer account qualifies for a **15% fee on the first $1,000,000 USD (~₹8.3 Crores INR)** of gross revenue earned each calendar year.
-* Enrolling is a **1-click free registration** inside the Google Play Console.
-* Only after gross earnings cross ₹8.3 Crores within a single year does the fee adjust to 30% for earnings exceeding that threshold.
-* **Auto-renewing subscriptions** (Monthly and Quarterly VIP plans) are charged at **15% from Day 1**.
+The main digital products may include:
 
-### What Does the 15% Fee Include?
-Unlike traditional web payment gateways where the merchant pays 2% but must build fraud detection, manage disputed chargebacks, handle foreign exchange, and implement manual refund workflows, Google's 15% fee includes:
-* **All Indian Payment Methods**: Google Pay, UPI, RuPay / Visa / Mastercard credit & debit cards, Netbanking, and Carrier Billing.
-* **Zero Extra Gateway Fees**: You do not pay any separate gateway charges to Razorpay, Cashfree, or card networks for in-app transactions.
-* **Automated Fraud & Chargeback Protection**: Google absorbs and resolves stolen card claims and bank disputes.
-* **Subscription Engine**: Google manages recurring billing cycles, renewal attempts, payment retries for failed cards, and cancellation processing.
-* **Direct Bank Settlements**: Google deposits net earnings directly into your registered Indian bank account on the 15th of every month.
+- TrueLove Coins
+- Plus Subscription
+- Gold VIP Subscription
+- Profile Boosts
+- Call Minute Passes
+- Other digital features or virtual items
 
----
+Android:
+Google Play Billing
 
-## 3. Apple App Store Fee Structure (iOS Launch)
+iOS:
+Apple In-App Purchase
 
-When expanding to the Apple App Store, Apple operates the **App Store Small Business Program**:
-* Reduces Apple's standard 30% commission down to **15%** for all developers earning under $1,000,000 USD per year.
-* The fee and settlement mechanism on iOS mirror Google Play, maintaining uniform 85% revenue retention across both platforms.
+Using the official store billing systems for in-app digital purchases is the recommended approach for maintaining compliance with the respective app store payment policies.
 
----
 
-## 4. Revenue Realization Table (India - INR ₹)
+2. GOOGLE PLAY SERVICE FEES
 
-The table below illustrates what you actually receive in your bank account for each plan in the app:
+Google Play charges a service fee on eligible digital transactions processed through Google Play Billing.
 
-| Product / Plan | Retail Price (User Pays) | Google Store Fee (15%) | TDS (1% u/s 194O)* | Net Settlement to Your Bank | Your Margin |
-|---|---|---|---|---|---|
-| **Starter Pack (100 Coins)** | ₹99.00 | ₹14.85 | ₹0.99 | **₹83.16** | 84.0% |
-| **Popular Bundle (250 Coins)** | ₹199.00 | ₹29.85 | ₹1.99 | **₹167.16** | 84.0% |
-| **Best Value Bundle (700 Coins)** | ₹499.00 | ₹74.85 | ₹4.99 | **₹419.16** | 84.0% |
-| **Truelove Plus (1 Month)** | ₹299.00 | ₹44.85 | ₹2.99 | **₹251.16** | 84.0% |
-| **Truelove Plus (3 Months)** | ₹699.00 | ₹104.85 | ₹6.99 | **₹587.16** | 84.0% |
-| **Truelove Gold VIP (1 Month)** | ₹499.00 | ₹74.85 | ₹4.99 | **₹419.16** | 84.0% |
-| **Truelove Gold VIP (3 Months)** | ₹1,199.00 | ₹179.85 | ₹11.99 | **₹1,007.16** | 84.0% |
+For developers enrolled in Google's applicable 15% service-fee tier, the service fee is generally:
 
-*\*Tax Note: The 1% Tax Deducted at Source (TDS) under Section 194O of the Indian Income Tax Act is deposited by Google directly to your PAN card. You can claim this 1% back or adjust it against your tax liability during your annual income tax filing.*
+- 15% on the first USD 1 million of annual revenue
+- 30% on revenue above the applicable USD 1 million threshold
 
----
+Auto-renewing subscriptions can also qualify for the 15% service-fee rate under Google's applicable subscription rules.
 
-## 5. Creator Earnings & Payouts (Cash Withdrawals)
+The exact fee can depend on the developer's program enrollment, country, transaction type and applicable Google Play billing program.
 
-When creators receive gifts from other users, they accumulate a redeemable balance in their **Creator Wallet**.
+Therefore, the 15% rate should be treated as the expected rate for eligible TrueLove transactions in India, rather than a universal rate for every country and every transaction.
 
-### How Payouts Are Processed
-1. **Google/Apple Rules**: Google and Apple policies apply strictly to *incoming purchases of digital goods*. They do not handle or restrict outgoing cash payouts to content creators or influencers.
-2. **Launch Phase (Manual Payouts - Recommended)**:
-   - When a creator taps *"Request Withdrawal"* in the app, their request (Amount, UPI ID, PAN Card) is securely recorded in the backend admin panel.
-   - The administrator verifies the request and transfers the funds directly using UPI (Google Pay, PhonePe, or Netbanking).
-   - The admin updates the transaction status to *"Completed"*, which updates the user's in-app passbook.
-   - **Advantage**: Requires zero third-party payout API approvals on Day 1.
-3. **Scaling Phase (Automated Payouts via Cashfree)**:
-   - As transaction volume grows, **Cashfree Payouts** can be enabled to disburse money via IMPS/UPI API in under 2 seconds.
 
----
+3. GOOGLE PLAY PAYMENT PROCESSING
 
-## 6. Business Registration for Solo Founders
+When a user purchases a digital product through Google Play Billing, Google manages the store payment process.
 
-You do **not** need to incorporate an expensive Private Limited company or LLP to launch.
+Depending on the user's country and available payment methods, Google Play may support methods such as:
 
-### Recommended Path: Sole Proprietorship via Udyam (MSME)
-* **Cost**: **100% Free** (Official Government Portal).
-* **Setup Time**: 15 minutes online at `udyamregistration.gov.in`.
-* **Requirements**: Founder's Aadhaar and PAN Card.
-* **Trade Name**: Register under your preferred name (e.g., *Godiva Technologies* or *TrueLove Digital*).
-* **Benefits**:
-  1. Instantly provides an official Government Registration Certificate with a QR code.
-  2. Enables opening a **Business Current Account** with any bank (HDFC, ICICI, SBI, Kotak).
-  3. Qualifies your business for fast-track verification on Google Play Console and payment aggregators.
+- UPI
+- Credit and debit cards
+- Google Pay or supported local payment methods
+- Other payment methods made available by Google
 
----
+Payment methods can change by country and over time.
 
-## 7. Mandatory Google Play Policy: The 20-Tester Rule ⚠️
+For India, Netbanking should not be listed as an available Google Play payment method because Google discontinued Netbanking payments in India from October 2025.
 
-For all **new Personal Google Play Developer accounts** created after November 2023, Google enforces a mandatory verification requirement:
+Google also handles important parts of the billing infrastructure such as:
 
-* **What is required**: Before production release to the public Play Store, your app must be tested by at least **20 opted-in testers for 14 continuous days** in a closed test track.
-* **How it works**:
-  1. We upload the release build to the Google Play Console Closed Testing track.
-  2. You invite 20 friends, team members, or community testers via email or link.
-  3. Testers install the app and keep it on their devices for 14 days.
-  4. Google reviews the testing data and unlocks the public production release button.
-* *(Note: If you register Google Play as an **Organization** instead of Personal, this rule does not apply. However, an organization account requires an official D-U-N-S number, which takes 2–4 weeks to obtain).*
+- Payment processing
+- Subscription renewals
+- Billing retries
+- Purchase records
+- Refund mechanisms
+- Store-level payment infrastructure
 
----
+Actual financial settlement can still be affected by applicable taxes, refunds, chargebacks, withholding and other adjustments.
 
-## 8. Profit Optimization: The Hybrid Web Top-Up Strategy
 
-Leading social and dating applications (including Tinder, Bumble, Shaadi, and Spotify) maximize profit margins using a **Hybrid Strategy**:
+4. APPLE APP STORE FEES
 
-```
-┌────────────────────────────────────────────────────────┐
-│                   IN-APP CHECKOUT                      │
-│  • Google Play Billing (Android)                       │
-│  • Fee: 15%                                            │
-│  • Margin: ~84%                                        │
-│  • 100% Google Play Policy Compliant                   │
-└────────────────────────────────────────────────────────┘
-                            ▲
-                            │ Both channels sync to the
-                            │ same user Truelove Coin balance
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│               OFFICIAL WEBSITE RECHARGE                │
-│  • URL: trueloveapp.in/recharge                        │
-│  • Cashfree / Razorpay Gateway                         │
-│  • Fee: ~2%                                            │
-│  • Margin: ~98%                                        │
-│  • Offer user incentive: "Get 15% extra coins on Web"  │
-└────────────────────────────────────────────────────────┘
-```
+For iOS, Apple provides the App Store Small Business Program for eligible developers.
 
-1. **Inside the App**: Offer standard coin packs and VIP plans via Google Play Billing at the normal price.
-2. **On the Web**: Provide a web recharge portal using Cashfree or Razorpay where users log in and purchase coins. Because the gateway fee is only ~2%, you can offer users bonus coins (e.g., 10% extra) while still retaining **98% of gross revenue**.
+Under the Small Business Program, eligible developers can receive a 15% commission rate on qualifying App Store transactions.
 
----
+The program has eligibility requirements, including the applicable USD 1 million proceeds threshold.
 
-## 9. Launch Action Checklist
+Apple's exact commission, tax treatment and payment terms depend on the developer's account, country and applicable Apple programs.
 
-- [ ] **Step 1**: Register a free **Sole Proprietorship MSME Certificate** at `udyamregistration.gov.in` (15 mins).
-- [ ] **Step 2**: Create a **Google Play Developer Account** at `play.google.com/console/signup` ($25 one-time fee).
-- [ ] **Step 3**: Set up your **Google Payments Merchant Profile** inside the Play Console to link your bank account for monthly payouts.
-- [ ] **Step 4**: Create a Closed Testing Track on Google Play and recruit 20 testers for the 14-day testing period.
-- [ ] **Step 5**: Integrate production in-app purchasing SDK (`react-native-purchases` / RevenueCat) to connect the app with the Google Play billing catalog.
+Therefore, Apple and Google should be treated as separate payment systems even though both can provide a 15% rate for eligible transactions.
+
+
+5. SIMPLE REVENUE EXAMPLE
+
+The following is a simplified example showing how a 15% store fee works.
+
+Example:
+
+Product:
+100 Coins
+
+Customer Price:
+Rs. 99
+
+15% Store Fee:
+Rs. 14.85
+
+Amount Remaining:
+Approximately Rs. 84.15
+
+This is only a simplified calculation.
+
+The actual amount received by the business can differ because of applicable taxes, refunds, chargebacks, withholding, currency conversion and other adjustments.
+
+Therefore, the amounts shown below should not be treated as guaranteed final bank settlements.
+
+
+6. EXAMPLE PRODUCT PRICING
+
+Starter Pack
+
+Product:
+100 Coins
+
+Customer Price:
+Rs. 99
+
+Illustrative 15% Store Fee:
+Rs. 14.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 84.15
+
+
+Popular Bundle
+
+Product:
+250 Coins
+
+Customer Price:
+Rs. 199
+
+Illustrative 15% Store Fee:
+Rs. 29.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 169.15
+
+
+Best Value Bundle
+
+Product:
+700 Coins
+
+Customer Price:
+Rs. 499
+
+Illustrative 15% Store Fee:
+Rs. 74.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 424.15
+
+
+TrueLove Plus
+
+Duration:
+1 Month
+
+Customer Price:
+Rs. 299
+
+Illustrative 15% Store Fee:
+Rs. 44.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 254.15
+
+
+TrueLove Plus
+
+Duration:
+3 Months
+
+Customer Price:
+Rs. 699
+
+Illustrative 15% Store Fee:
+Rs. 104.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 594.15
+
+
+TrueLove Gold VIP
+
+Duration:
+1 Month
+
+Customer Price:
+Rs. 499
+
+Illustrative 15% Store Fee:
+Rs. 74.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 424.15
+
+
+TrueLove Gold VIP
+
+Duration:
+3 Months
+
+Customer Price:
+Rs. 1,199
+
+Illustrative 15% Store Fee:
+Rs. 179.85
+
+Approximate Amount Before Other Applicable Adjustments:
+Rs. 1,019.15
+
+
+7. IMPORTANT TAX NOTE
+
+The previous calculation that automatically deducted 1% TDS from every transaction should not be used as a fixed calculation.
+
+The actual tax treatment depends on the business structure, transaction structure and applicable Indian tax rules.
+
+Google may also handle certain withholding and tax collection obligations where applicable.
+
+The final accounting and tax treatment should be confirmed with the company's Chartered Accountant.
+
+For this reason, the TrueLove financial model should maintain:
+
+- Gross customer payment
+- Store fee
+- Applicable taxes
+- Refunds
+- Chargebacks
+- Withholding or tax deductions where applicable
+- Net settlement
+
+
+8. CREATOR EARNINGS
+
+TrueLove can have a virtual gifting system.
+
+Example:
+
+User A purchases TrueLove Coins.
+
+User A uses the Coins to send a virtual gift to Creator B.
+
+Creator B receives the corresponding creator earnings in the TrueLove backend wallet.
+
+The creator wallet should maintain a proper transaction ledger showing:
+
+- Gifts received
+- Earnings generated
+- Pending balance
+- Available balance
+- Withdrawal requests
+- Completed payouts
+- Failed payouts
+- Adjustments or reversals
+
+
+9. CREATOR WITHDRAWAL SYSTEM
+
+Creators can request withdrawal of eligible earnings when they satisfy the conditions defined by TrueLove.
+
+The withdrawal process can be:
+
+1. Creator selects "Request Withdrawal".
+
+2. The creator provides the required payout information.
+
+3. The system verifies the creator's account and eligibility.
+
+4. The withdrawal request is recorded in the admin panel.
+
+5. The administrator reviews the request.
+
+6. After approval, the payout is processed.
+
+7. The transaction is marked as completed.
+
+8. The creator's transaction history is updated.
+
+
+10. INITIAL MANUAL PAYOUT SYSTEM
+
+For the initial launch, manual payouts can be used to keep the system simple.
+
+The administrator can process approved withdrawals through an appropriate bank or UPI payout method.
+
+This avoids the need to build a fully automated payout system on the first day.
+
+However, manual payouts should still follow appropriate:
+
+- KYC requirements
+- Identity verification
+- Fraud prevention
+- Tax and accounting requirements
+- Transaction record keeping
+- Business payout policies
+
+
+11. AUTOMATED CREATOR PAYOUTS
+
+As the platform grows, TrueLove can integrate an automated payout provider such as Cashfree Payouts or another suitable provider.
+
+Possible payout methods can include:
+
+- UPI
+- IMPS
+- Bank transfer
+
+The automated system can:
+
+- Receive approved withdrawal requests
+- Verify payout details
+- Initiate payments
+- Track payout status
+- Handle failed transactions
+- Update the TrueLove wallet automatically
+
+
+12. IMPORTANT CREATOR PAYOUT COMPLIANCE
+
+Creator cash withdrawals should not be described as completely outside Google or Apple policies.
+
+The final creator earning and withdrawal model needs to be reviewed against the applicable app store policies and Indian legal, tax and payment requirements.
+
+This is especially important because TrueLove is a dating and social application that includes user-generated content, virtual gifts and potential cash withdrawals.
+
+Before production launch, the exact creator monetization model should be reviewed for:
+
+- App Store policy compliance
+- Google Play policy compliance
+- KYC requirements
+- Tax requirements
+- Fraud prevention
+- User safety
+- Payment regulations
+- Terms and conditions
+
+
+13. BUSINESS REGISTRATION
+
+A Private Limited Company is not necessarily required just to start the business.
+
+For a solo founder, a Sole Proprietorship can be considered as an initial business structure.
+
+The business can also obtain Udyam MSME registration through the official Government of India portal.
+
+Udyam registration is:
+
+- Free
+- Online
+- Paperless
+- Provided with a registration number
+- Provided with an online certificate
+- Provided with a QR code
+
+However, Udyam registration does not automatically guarantee:
+
+- Bank account approval
+- Payment gateway approval
+- Google Play approval
+- Apple App Store approval
+- Tax exemptions
+
+The final business structure should be confirmed with a Chartered Accountant or legal professional based on the company's expected revenue and operations.
+
+
+14. GOOGLE PLAY DEVELOPER ACCOUNT
+
+A Google Play Developer account is required to publish the Android application.
+
+The general process is:
+
+1. Create the Google Play Developer account.
+
+2. Complete developer verification.
+
+3. Provide the required identity or organization information.
+
+4. Create the TrueLove application in Play Console.
+
+5. Set up the required payment and merchant information.
+
+6. Upload the application.
+
+7. Complete testing requirements where applicable.
+
+8. Apply for production access.
+
+9. Submit the application for Google Play review.
+
+
+15. GOOGLE PLAY TESTING REQUIREMENT
+
+For certain new Personal Google Play Developer accounts created after November 13, 2023, Google requires a closed testing period before the application can be released to production.
+
+The current requirement is:
+
+At least 12 opted-in testers
+
+Testing period:
+At least 14 continuous days
+
+The testers must remain opted in during the required period.
+
+After completing the requirement, the developer can apply for production access through Google Play Console.
+
+Google may request additional information about the testing and application before granting production access.
+
+The exact requirement should always be checked inside the Play Console at the time of launch because Google can change its policies.
+
+
+16. ORGANIZATION ACCOUNT
+
+If TrueLove is registered as an organization, an organization-type Google Play Developer account can be considered.
+
+Google requires additional organization verification, including a D-U-N-S number for organization accounts.
+
+The D-U-N-S process can take time, so this should be planned before the intended launch date.
+
+An organization account does not mean the application automatically receives production approval. The application must still satisfy Google's policies and review requirements.
+
+
+17. GOOGLE PLAY REGISTRATION FEE
+
+Google Play currently has a one-time developer registration fee of:
+
+USD 25
+
+The exact amount charged can vary depending on the payment method and currency conversion.
+
+This is separate from Google Play's service fee on application transactions.
+
+
+18. WEB RECHARGE OPTION
+
+A web-based recharge system can also be considered for TrueLove.
+
+Example:
+
+trueloveapp.in/recharge
+
+Users could log into their TrueLove account and purchase Coins through a web payment gateway such as Cashfree or Razorpay.
+
+However, the web recharge system must be designed carefully around the current Google Play and Apple App Store policies.
+
+The application should not simply instruct users to bypass Google Play or Apple billing for digital purchases.
+
+For Android users in India, Google currently provides an alternative billing program that allows eligible developers to offer an alternative billing system alongside Google Play Billing.
+
+This program has specific requirements, including enrollment, reporting, API integration and applicable Google service fees.
+
+
+19. GOOGLE ALTERNATIVE BILLING IN INDIA
+
+For India, Google allows eligible developers to offer an alternative billing system alongside Google Play Billing.
+
+Under the current program, the applicable Google Play service fee is reduced by 4 percentage points for transactions using the alternative billing system.
+
+For example, if the applicable standard service fee is 15%, the corresponding Google service fee under the alternative billing program would be 11%.
+
+The payment processor's own fee would then be separate.
+
+Therefore, the calculation is not simply:
+
+15% Google fee versus 2% web gateway fee.
+
+The actual cost depends on:
+
+- Google alternative billing service fee
+- Payment gateway fee
+- Applicable taxes
+- Refunds
+- Chargebacks
+- Other transaction costs
+
+
+20. WEB RECHARGE SHOULD BE TREATED AS A FUTURE OPTIMIZATION
+
+For the initial launch, the safest and simplest approach is to use:
+
+Android:
+Google Play Billing
+
+iOS:
+Apple In-App Purchase
+
+After the application is successfully launched and the business has transaction data, the company can evaluate:
+
+- Google alternative billing in India
+- Web recharge
+- Additional payment channels
+- International payment options
+- Promotional pricing
+- Bonus Coin packages
+
+Any web-based payment strategy should be implemented only after reviewing the current Google and Apple rules applicable to the exact user flow.
+
+
+21. TRUELOVE PAYMENT ARCHITECTURE
+
+Recommended initial architecture:
+
+
+                    TRUELOVE APP
+
+              Android       iOS
+                 |           |
+                 |           |
+                 v           v
+        Google Play       Apple IAP
+          Billing
+                 |           |
+                 +-----+-----+
+                       |
+                       v
+                TRUELOVE BACKEND
+                       |
+          +------------+------------+
+          |            |            |
+          v            v            v
+        Coins     Subscriptions   Gifts
+                                    |
+                                    v
+                             Creator Wallet
+                                    |
+                                    v
+                           Withdrawal Request
+                                    |
+                                    v
+                           KYC / Verification
+                                    |
+                                    v
+                         Manual Payout Initially
+                                    |
+                                    v
+                      Automated Payout Later
+
+
+22. TRUELOVE BACKEND WALLET
+
+The backend should be the source of truth for the user's TrueLove Coin balance.
+
+The application should not rely only on local device storage for balances.
+
+The backend should maintain records for:
+
+- Coin purchases
+- Coin credits
+- Coin usage
+- Gifts
+- Creator earnings
+- Withdrawals
+- Refunds
+- Chargebacks
+- Subscription status
+- Transaction history
+
+This provides better security and makes financial reconciliation easier.
+
+
+23. APP STORE COMPLIANCE
+
+Payment compliance is only one part of the TrueLove launch process.
+
+Because TrueLove is a dating and social application, additional requirements should be considered.
+
+The application should include appropriate:
+
+- User reporting
+- User blocking
+- Content moderation
+- Abuse reporting
+- Safety mechanisms
+- Privacy policy
+- Terms and conditions
+- Account deletion
+- Data safety disclosures
+- Child safety measures
+- User-generated-content moderation
+
+
+24. RECOMMENDED LAUNCH PLAN
+
+Phase 1:
+Business Setup
+
+- Decide the business structure
+- Obtain applicable business registrations
+- Set up the business bank account
+- Complete required tax registrations
+- Set up payment provider accounts where required
+
+
+Phase 2:
+Google Play
+
+- Create Google Play Developer account
+- Complete verification
+- Create TrueLove application
+- Configure billing
+- Create Coin products
+- Create subscription products
+- Upload application
+- Complete closed testing if applicable
+
+
+Phase 3:
+Apple
+
+- Create Apple Developer account
+- Configure App Store Connect
+- Create In-App Purchase products
+- Create subscription products
+- Configure App Store payment and tax information
+- Submit application for review
+
+
+Phase 4:
+Backend
+
+Implement:
+
+- User wallet
+- Coin ledger
+- Gift system
+- Creator earnings
+- Withdrawal requests
+- Admin approval
+- Transaction history
+- Refund handling
+- Fraud monitoring
+
+
+Phase 5:
+Creator Payouts
+
+Initial stage:
+
+Manual payout
+
+Later stage:
+
+Automated payout through an approved payout provider such as Cashfree or another suitable service.
+
+
+25. RECOMMENDED INITIAL APPROACH
+
+For the first production version, the recommended setup is:
+
+Android:
+Google Play Billing
+
+iOS:
+Apple In-App Purchase
+
+Coins:
+Store-managed digital purchases
+
+Subscriptions:
+Store-managed subscriptions
+
+Virtual Gifts:
+TrueLove backend system
+
+Creator Wallet:
+TrueLove backend ledger
+
+Creator Withdrawal:
+Manual payout initially
+
+Automated Payout:
+Add later after transaction volume increases
+
+Web Recharge:
+Consider as a future optimization after reviewing the applicable store policies and alternative billing requirements.
+
+
+26. IMPORTANT FINANCIAL PRINCIPLE
+
+The business should not calculate profit simply as:
+
+Customer Price minus Store Fee equals Final Profit.
+
+A more accurate calculation is:
+
+Customer Payment
+
+Minus Store Fee
+
+Minus Applicable Taxes
+
+Minus Payment Processing Costs
+
+Minus Refunds
+
+Minus Chargebacks
+
+Minus Creator Earnings
+
+Minus Other Business Costs
+
+Equals Actual Business Revenue or Margin
+
+
+27. FINAL RECOMMENDATION
+
+The safest initial strategy for TrueLove is to launch with the official Google and Apple payment systems for digital purchases.
+
+This keeps the initial payment architecture straightforward and reduces unnecessary compliance complexity.
+
+Once the application is live and transaction volume grows, the business can evaluate alternative billing, web recharge and automated creator payouts.
+
+No payment architecture can guarantee app store approval or guarantee that an account will never be suspended.
+
+The final production implementation should always be checked against the latest Google Play and Apple App Store policies at the time of submission because these policies can change.
+
+For tax, business registration, creator payouts and other regulatory matters, the final implementation should also be reviewed by the company's Chartered Accountant or legal advisor.
+
+
+FINAL SUMMARY
+
+Android Digital Purchases:
+Google Play Billing
+
+iOS Digital Purchases:
+Apple In-App Purchase
+
+Google India Alternative Billing:
+Available for eligible developers subject to Google's requirements
+
+Google Play Testing:
+12 opted-in testers for 14 continuous days for applicable new Personal Developer accounts
+
+Google Play Developer Registration:
+USD 25 one-time fee
+
+Apple Small Business Program:
+15% for eligible developers
+
+Google 15% Service Fee Tier:
+Available to eligible developers subject to Google's applicable program rules
+
+Business Registration:
+Sole Proprietorship can be considered for a solo founder
+
+Udyam Registration:
+Free government MSME registration
+
+Creator Wallet:
+Managed by TrueLove backend
+
+Creator Payout:
+Manual initially, automated later
+
+Web Recharge:
+Possible as a future option, but must be implemented according to the applicable Google and Apple rules
