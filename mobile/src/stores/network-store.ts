@@ -21,35 +21,75 @@ export const useNetworkStore = create<NetworkState>((set, get) => ({
   },
 
   checkConnection: async () => {
+    if (get().isChecking) return get().isConnected;
     set({ isChecking: true });
-    try {
-      // Direct quick ping to backend health check or lightweight public ping
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      // Extract root host from API_BASE_URL for fast ping
-      const pingUrl = `${API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/api/v1/health`;
-      
-      const response = await fetch(pingUrl, {
-        method: 'HEAD',
+    // 1. Primary Check: Direct public internet reachability (Google 204)
+    try {
+      const googleController = new AbortController();
+      const googleTimeout = setTimeout(() => googleController.abort(), 5000);
+
+      const googleRes = await fetch('https://www.google.com/generate_204', {
+        method: 'GET',
         headers: { 'Cache-Control': 'no-cache' },
-        signal: controller.signal,
-      }).catch(async () => {
-        // Fallback internet reachability check
-        return await fetch('https://clients3.google.com/generate_204', {
-          method: 'HEAD',
-          headers: { 'Cache-Control': 'no-cache' },
-          signal: controller.signal,
-        });
+        signal: googleController.signal,
       });
 
-      clearTimeout(timeoutId);
-      const isOnline = !!response && (response.status >= 200 && response.status < 400 || response.status === 204);
-      set({ isConnected: isOnline, isChecking: false, lastCheckedAt: Date.now() });
-      return isOnline;
+      clearTimeout(googleTimeout);
+
+      if (googleRes && (googleRes.status === 204 || (googleRes.status >= 200 && googleRes.status < 400))) {
+        set({ isConnected: true, isChecking: false, lastCheckedAt: Date.now() });
+        return true;
+      }
     } catch {
-      set({ isConnected: false, isChecking: false, lastCheckedAt: Date.now() });
-      return false;
+      // Continue to secondary check if Google ping failed
     }
+
+    // 2. Secondary Check: Cloudflare DNS / CDN Trace
+    try {
+      const cfController = new AbortController();
+      const cfTimeout = setTimeout(() => cfController.abort(), 5000);
+
+      const cfRes = await fetch('https://1.1.1.1/cdn-cgi/trace', {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' },
+        signal: cfController.signal,
+      });
+
+      clearTimeout(cfTimeout);
+
+      if (cfRes && cfRes.status >= 200 && cfRes.status < 400) {
+        set({ isConnected: true, isChecking: false, lastCheckedAt: Date.now() });
+        return true;
+      }
+    } catch {
+      // Continue to backend health check
+    }
+
+    // 3. Tertiary Check: Backend Health Check
+    try {
+      const backendController = new AbortController();
+      const backendTimeout = setTimeout(() => backendController.abort(), 6000);
+      const pingUrl = `${API_BASE_URL.replace(/\/api\/v1\/?$/, '')}/api/v1/health`;
+
+      const backendRes = await fetch(pingUrl, {
+        method: 'GET',
+        headers: { 'Cache-Control': 'no-cache' },
+        signal: backendController.signal,
+      });
+
+      clearTimeout(backendTimeout);
+
+      if (backendRes && backendRes.status >= 200 && backendRes.status < 400) {
+        set({ isConnected: true, isChecking: false, lastCheckedAt: Date.now() });
+        return true;
+      }
+    } catch {
+      // Backend check failed
+    }
+
+    // Only if all three global & backend checks fail is the device truly offline
+    set({ isConnected: false, isChecking: false, lastCheckedAt: Date.now() });
+    return false;
   },
 }));
