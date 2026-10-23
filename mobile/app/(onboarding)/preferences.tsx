@@ -240,7 +240,7 @@ export default function PreferencesScreen() {
                 <Text style={styles.passportCardSub}>
                   {targetCity
                     ? `Exploring singles living in ${targetCity}${targetRegion ? `, ${targetRegion}` : ''}`
-                    : 'Explore singles in another city (Chennai, Bengaluru, Mumbai, Dubai, etc.)'}
+                    : 'Explore singles in another city (Chennai, Bengaluru, Mumbai, Hyderabad, etc.)'}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />

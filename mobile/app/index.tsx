@@ -26,6 +26,7 @@ import { BottomTabBar } from '../src/components/BottomTabBar';
 import { ProfileCompletionCard } from '../src/components/ProfileCompletionCard';
 import { ProfileDetailModal, ProfileDetailData } from '../src/components/ProfileDetailModal';
 import { SendNoteModal } from '../src/components/SendNoteModal';
+import { CityPassportModal } from '../src/components/CityPassportModal';
 import { WelcomeScreen } from '../src/components/WelcomeScreen';
 import { BrandedSplashScreen } from '../src/components/BrandedSplashScreen';
 import { ActionType, DiscoveryCandidate, Gender, RelationshipIntent, InterestStatus, PhotoStatus } from '../../shared/src/types';
@@ -250,7 +251,7 @@ export default function IndexScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { status: authStatus, user } = useAuthStore();
-  const { profile, completion, fetchProfile, isLoading: isProfileLoading } = useProfileStore();
+  const { profile, completion, fetchProfile, savePreferences, isLoading: isProfileLoading } = useProfileStore();
   const { candidates, fetchDiscoveryFeed, recordAction, isLoading: isDiscoveryLoading } = useDiscoveryStore();
   const { unreadCount, fetchUnreadCount } = useNotificationsStore();
   const { fetchBillingStatus, openPaywall } = useBillingStore();
@@ -259,6 +260,7 @@ export default function IndexScreen() {
   const [noteCandidate, setNoteCandidate] = useState<DiscoveryCandidate | null>(null);
   const [dismissedProfileIds, setDismissedProfileIds] = useState<Set<string>>(new Set());
   const [isPullRefreshing, setIsPullRefreshing] = useState(false);
+  const [isCityModalVisible, setIsCityModalVisible] = useState(false);
 
   // Toast confirmation pill
   const [toastPill, setToastPill] = useState<{ visible: boolean; text: string }>({ visible: false, text: '' });
@@ -400,6 +402,56 @@ export default function IndexScreen() {
     setNoteCandidate(candidate);
   };
 
+  // Switch Active Exploration City
+  const handleSelectCity = async (city: string, region?: string) => {
+    try {
+      const success = await savePreferences({
+        preferredGenderMode:
+          profile?.preferences?.preferredGenderMode || ('SELECTED' as any),
+        preferredGenders: profile?.preferences?.preferredGenders || [],
+        minAge: profile?.preferences?.minAge ?? 18,
+        maxAge: profile?.preferences?.maxAge ?? 35,
+        relationshipIntent:
+          profile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
+        globalMode: false,
+        targetCity: city,
+        targetRegion: region || null,
+      });
+      if (success) {
+        showPill(`📍 Exploring: ${city}`);
+        setDismissedProfileIds(new Set());
+        fetchDiscoveryFeed(true);
+      }
+    } catch {
+      toast.error('Could not switch location.');
+    }
+  };
+
+  // Reset to Local GPS Location
+  const handleResetCity = async () => {
+    try {
+      const success = await savePreferences({
+        preferredGenderMode:
+          profile?.preferences?.preferredGenderMode || ('SELECTED' as any),
+        preferredGenders: profile?.preferences?.preferredGenders || [],
+        minAge: profile?.preferences?.minAge ?? 18,
+        maxAge: profile?.preferences?.maxAge ?? 35,
+        relationshipIntent:
+          profile?.preferences?.relationshipIntent || ('LONG_TERM' as any),
+        globalMode: false,
+        targetCity: null,
+        targetRegion: null,
+      });
+      if (success) {
+        showPill('📍 Reset to local feed');
+        setDismissedProfileIds(new Set());
+        fetchDiscoveryFeed(true);
+      }
+    } catch {
+      toast.error('Could not reset location.');
+    }
+  };
+
   // Open Full Profile Detail Modal
   const handleOpenDetails = (candidate: DiscoveryCandidate) => {
     setSelectedProfileForModal({
@@ -449,6 +501,13 @@ export default function IndexScreen() {
     profile?.photos?.[0]?.mediumUrl ||
     profile?.photos?.[0]?.thumbnailUrl ||
     null;
+
+  const targetCity = profile?.preferences?.targetCity;
+  const isTargetCityActive = !!targetCity;
+  const displayedCity = targetCity || profile?.locationCity || 'Chennai';
+  const displayedRegion = isTargetCityActive
+    ? profile?.preferences?.targetRegion || 'India'
+    : profile?.locationRegion || 'Tamil Nadu';
 
   // Build the pool of candidates for the vertical feed
   const candidatePool: DiscoveryCandidate[] =
@@ -527,14 +586,28 @@ export default function IndexScreen() {
       >
         {/* Location & Title */}
         <View style={styles.headlineSection}>
-          <View style={styles.locationRow}>
-            <Ionicons name="location-sharp" size={14} color={Colors.primary} />
-            <Text style={styles.locationText}>
-              {profile?.locationCity
-                ? `${profile.locationCity}, ${profile.locationRegion || 'Tamil Nadu'}`
-                : 'Tamil Nadu, India'}
+          <TouchableOpacity
+            style={[styles.locationPill, isTargetCityActive && styles.locationPillActive]}
+            onPress={() => setIsCityModalVisible(true)}
+            activeOpacity={0.75}
+          >
+            <Ionicons
+              name={isTargetCityActive ? 'airplane' : 'location-sharp'}
+              size={14}
+              color={isTargetCityActive ? '#7C3AED' : Colors.primary}
+            />
+            <Text
+              style={[styles.locationText, isTargetCityActive && styles.locationTextActive]}
+              numberOfLines={1}
+            >
+              {isTargetCityActive ? `Passport: ${displayedCity}` : `${displayedCity}, ${displayedRegion}`}
             </Text>
-          </View>
+            <Ionicons
+              name="chevron-down"
+              size={12}
+              color={isTargetCityActive ? '#7C3AED' : Colors.textMuted}
+            />
+          </TouchableOpacity>
           <Text style={styles.mainTitle}>Find the one for you</Text>
         </View>
 
@@ -673,6 +746,16 @@ export default function IndexScreen() {
           }}
         />
       )}
+
+      {/* City Location Picker Modal */}
+      <CityPassportModal
+        visible={isCityModalVisible}
+        currentCity={targetCity}
+        homeCity={profile?.locationCity || 'Chennai'}
+        onClose={() => setIsCityModalVisible(false)}
+        onSelectCity={handleSelectCity}
+        onResetLocation={handleResetCity}
+      />
 
       {/* Floating Confirmation Pill Toast */}
       {toastPill.visible && (
@@ -970,16 +1053,30 @@ const styles = StyleSheet.create({
     marginTop: 14,
     marginBottom: 12,
   },
-  locationRow: {
+  locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
+  locationPillActive: {
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
   },
   locationText: {
     fontSize: 12.5,
-    color: Colors.textMuted,
-    fontWeight: '600',
+    color: Colors.textPrimary,
+    fontWeight: '700',
+  },
+  locationTextActive: {
+    color: '#7C3AED',
   },
   mainTitle: {
     fontSize: 24,

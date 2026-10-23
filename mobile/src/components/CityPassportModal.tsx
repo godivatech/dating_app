@@ -32,11 +32,17 @@ const POPULAR_DESTINATIONS = [
   { city: 'Delhi NCR', region: 'Delhi', flag: '🕌' },
   { city: 'Pune', region: 'Maharashtra', flag: '🎓' },
   { city: 'Kochi', region: 'Kerala', flag: '🌴' },
+  { city: 'Tiruchirappalli', region: 'Tamil Nadu', flag: '🛕' },
+  { city: 'Salem', region: 'Tamil Nadu', flag: '🥭' },
   { city: 'Goa', region: 'Goa', flag: '🏖️' },
   { city: 'Kolkata', region: 'West Bengal', flag: '🎨' },
-  { city: 'Dubai', region: 'UAE', flag: '🏙️' },
-  { city: 'Singapore', region: 'Singapore', flag: '🦁' },
-  { city: 'London', region: 'UK', flag: '🎡' },
+  { city: 'Ahmedabad', region: 'Gujarat', flag: '🪁' },
+  { city: 'Jaipur', region: 'Rajasthan', flag: '🏰' },
+  { city: 'Chandigarh', region: 'Punjab', flag: '🌹' },
+  { city: 'Lucknow', region: 'Uttar Pradesh', flag: '👑' },
+  { city: 'Mysuru', region: 'Karnataka', flag: '🏛️' },
+  { city: 'Visakhapatnam', region: 'Andhra Pradesh', flag: '⚓' },
+  { city: 'Thiruvananthapuram', region: 'Kerala', flag: '🥥' },
 ];
 
 export const CityPassportModal: React.FC<CityPassportModalProps> = ({
@@ -99,11 +105,11 @@ export const CityPassportModal: React.FC<CityPassportModalProps> = ({
           <View style={styles.headerRow}>
             <View style={{ flex: 1 }}>
               <View style={styles.titleRow}>
-                <Ionicons name="airplane" size={20} color={Colors.primary} />
-                <Text style={styles.title}>Travel Passport</Text>
+                <Ionicons name="location-sharp" size={20} color={Colors.primary} />
+                <Text style={styles.title}>Explore Cities</Text>
               </View>
               <Text style={styles.subtitle}>
-                Teleport your discovery radar to date in any city worldwide.
+                Explore and connect with singles across Indian cities.
               </Text>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose} activeOpacity={0.7}>
@@ -121,7 +127,7 @@ export const CityPassportModal: React.FC<CityPassportModalProps> = ({
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Type any city (e.g. Bengaluru, Paris)..."
+              placeholder="Type any city (e.g. Bengaluru, Mumbai)..."
               placeholderTextColor={Colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}

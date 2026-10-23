@@ -70,9 +70,10 @@ const POPULAR_LANGUAGES = [
   'Kannada',
   'Marathi',
   'Bengali',
-  'French',
-  'German',
-  'Spanish',
+  'Gujarati',
+  'Punjabi',
+  'Urdu',
+  'Odia',
 ];
 
 export default function AboutLocationScreen() {

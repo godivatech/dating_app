@@ -592,8 +592,14 @@ export class LegalController {
     <h2>4. Termination & Deletion</h2>
     <p>Violations will result in immediate suspension or permanent banning. You may delete your account at any time within the app or at <a href="/delete-account">our deletion portal</a>.</p>
 
-    <h2>5. Contact Us</h2>
-    <p>For questions or support, contact <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a>.</p>
+    <h2>5. Governing Law & Jurisdiction</h2>
+    <p>These Terms of Service, your use of ${APP_CONFIG.appName}, and any disputes arising hereunder shall be governed by and construed in accordance with the laws of the Republic of India. The competent courts in Chennai, Tamil Nadu, India shall have exclusive jurisdiction over all claims and proceedings.</p>
+
+    <h2>6. Grievance Redressal Mechanism</h2>
+    <p>In compliance with Rule 3(2) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021, any user grievance, safety concern, or violation report submitted to <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a> will be acknowledged within 24 hours and redressed within 15 days.</p>
+
+    <h2>7. Contact Us</h2>
+    <p>For questions, partnerships, or support, contact <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a>.</p>
 
     <div class="footer">
       <p>&copy; 2026 ${APP_CONFIG.companyName}. All rights reserved.</p>
