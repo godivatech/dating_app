@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 interface ScreenshotBlockedModalProps {
   visible: boolean;
@@ -35,14 +36,14 @@ export const ScreenshotBlockedModal: React.FC<ScreenshotBlockedModalProps> = ({
           <Text style={styles.title}>Screenshots Restricted</Text>
 
           <Text style={styles.body}>
-            To protect our members’ privacy and photo security, taking screenshots or screen recordings is not permitted on Truelove.
+            To protect our members’ privacy and photo security, taking screenshots or screen recordings is not permitted on {APP_CONFIG.appName}.
           </Text>
 
           {/* Reassurance Banner */}
           <View style={styles.reassuranceBox}>
             <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
             <Text style={styles.reassuranceText}>
-              Your photos and personal conversations are strictly protected by Truelove.
+              Your photos and personal conversations are strictly protected by {APP_CONFIG.appName}.
             </Text>
           </View>
 

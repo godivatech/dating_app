@@ -17,6 +17,7 @@ import {
   SafeUserSubscription,
   BillingStatusResponse,
 } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 
 export const DAILY_FREE_LIKES_LIMIT = 25;
 
@@ -100,7 +101,7 @@ export class SubscriptionService implements OnModuleInit {
         // Subscriptions
         {
           productKey: 'TRUELOVE_PLUS_1M',
-          displayName: 'Truelove Plus (1 Month)',
+          displayName: `${APP_CONFIG.tiers.plus} (1 Month)`,
           description: 'Unlimited likes, rewind passes, 5 daily direct notes, and 5 super likes.',
           tier: SubscriptionTier.PLUS,
           platform: DevicePlatform.IOS,
@@ -116,8 +117,8 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'TRUELOVE_PLUS_3M',
-          displayName: 'Truelove Plus (3 Months)',
-          description: 'Save 22% on Truelove Plus with 3-month access.',
+          displayName: `${APP_CONFIG.tiers.plus} (3 Months)`,
+          description: `Save 22% on ${APP_CONFIG.tiers.plus} with 3-month access.`,
           tier: SubscriptionTier.PLUS,
           platform: DevicePlatform.IOS,
           storeProductId: 'com.truelove.plus.3m',
@@ -132,7 +133,7 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'TRUELOVE_GOLD_1M',
-          displayName: 'Truelove Gold (1 Month)',
+          displayName: `${APP_CONFIG.tiers.gold} (1 Month)`,
           description: 'See who liked you, unlimited direct notes, rewinds, and VIP video calling.',
           tier: SubscriptionTier.GOLD,
           platform: DevicePlatform.IOS,
@@ -148,7 +149,7 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'TRUELOVE_GOLD_3M',
-          displayName: 'Truelove Gold (3 Months)',
+          displayName: `${APP_CONFIG.tiers.gold} (3 Months)`,
           description: 'Ultimate dating experience with full access to see who liked you and unlimited notes.',
           tier: SubscriptionTier.GOLD,
           platform: DevicePlatform.IOS,
@@ -165,7 +166,7 @@ export class SubscriptionService implements OnModuleInit {
         // Backward-compatibility keys
         {
           productKey: 'SPARK_PLUS_1M',
-          displayName: 'Truelove Plus (1 Month)',
+          displayName: `${APP_CONFIG.tiers.plus} (1 Month)`,
           description: 'Unlimited likes, rewind passes, and 5 daily direct notes.',
           tier: SubscriptionTier.PLUS,
           platform: DevicePlatform.IOS,
@@ -178,8 +179,8 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'SPARK_PLUS_3M',
-          displayName: 'Truelove Plus (3 Months)',
-          description: 'Save 22% on Truelove Plus.',
+          displayName: `${APP_CONFIG.tiers.plus} (3 Months)`,
+          description: `Save 22% on ${APP_CONFIG.tiers.plus}.`,
           tier: SubscriptionTier.PLUS,
           platform: DevicePlatform.IOS,
           storeProductId: 'com.sparkdating.plus.3m',
@@ -191,7 +192,7 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'SPARK_GOLD_1M',
-          displayName: 'Truelove Gold (1 Month)',
+          displayName: `${APP_CONFIG.tiers.gold} (1 Month)`,
           description: 'See who liked you, unlimited direct notes, rewinds.',
           tier: SubscriptionTier.GOLD,
           platform: DevicePlatform.IOS,
@@ -204,7 +205,7 @@ export class SubscriptionService implements OnModuleInit {
         },
         {
           productKey: 'SPARK_GOLD_3M',
-          displayName: 'Truelove Gold (3 Months)',
+          displayName: `${APP_CONFIG.tiers.gold} (3 Months)`,
           description: 'Ultimate dating experience.',
           tier: SubscriptionTier.GOLD,
           platform: DevicePlatform.IOS,

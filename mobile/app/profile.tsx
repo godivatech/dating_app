@@ -27,6 +27,7 @@ import { CreatorWalletModal } from '../src/components/gifts/CreatorWalletModal';
 import { toast } from '../src/stores/toast-store';
 import { Colors } from '../src/theme/colors';
 import { ProfileVisibility } from '../../shared/src/types';
+import { APP_CONFIG } from '../../shared/src/config';
 import { registerForPushNotificationsAsync } from '../src/services/push-notification.service';
 import { setLocale, getLocale, Locale } from '../src/i18n/strings';
 
@@ -138,7 +139,7 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out of Truelove?', [
+    Alert.alert('Log Out', `Are you sure you want to log out of ${APP_CONFIG.appName}?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Log Out',
@@ -165,7 +166,7 @@ export default function ProfileScreen() {
             try {
               setShowSettingsModal(false);
               await deleteAccount();
-              toast.success('Your Truelove account and personal data have been permanently deleted.');
+              toast.success(`Your ${APP_CONFIG.appName} account and personal data have been permanently deleted.`);
               router.replace('/(auth)/login');
             } catch {
               await logout();
@@ -331,7 +332,7 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.menuRightValue}>
                 <Text style={styles.tierBadgeText}>
-                  {isGoldMember ? 'Truelove Gold' : 'Free Tier'}
+                  {isGoldMember ? APP_CONFIG.tiers.gold : 'Free Tier'}
                 </Text>
                 <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
               </View>
@@ -373,7 +374,7 @@ export default function ProfileScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.coinWalletTitle}>Truelove Coin Wallet</Text>
+                  <Text style={styles.coinWalletTitle}>{APP_CONFIG.tiers.coinWallet}</Text>
                   <View style={styles.prepaidPill}>
                     <Text style={styles.prepaidPillText}>PREPAID</Text>
                   </View>
@@ -575,7 +576,7 @@ export default function ProfileScreen() {
               <View style={styles.settingsCard}>
                 <View style={styles.settingRow}>
                   <View style={styles.settingTextCol}>
-                    <Text style={styles.settingLabel}>Show me on Truelove</Text>
+                    <Text style={styles.settingLabel}>Show me on {APP_CONFIG.appName}</Text>
                     <Text style={styles.settingDesc}>
                       {isProfileVisible
                         ? 'Your profile is active and discoverable by new singles.'
@@ -804,11 +805,11 @@ export default function ProfileScreen() {
               {showLegalModal === 'TERMS' ? (
                 <View>
                   <Text style={styles.legalParagraph}>
-                    Welcome to Truelove. By creating an account, you agree to treat all members with respect, honesty, and dignity.
+                    Welcome to {APP_CONFIG.appName}. By creating an account, you agree to treat all members with respect, honesty, and dignity.
                   </Text>
                   <Text style={styles.legalHeading}>1. Eligibility</Text>
                   <Text style={styles.legalParagraph}>
-                    You must be at least 18 years of age to register or use Truelove. Accounts impersonating others or misrepresenting age are permanently banned.
+                    You must be at least 18 years of age to register or use {APP_CONFIG.appName}. Accounts impersonating others or misrepresenting age are permanently banned.
                   </Text>
                   <Text style={styles.legalHeading}>2. Community Standards</Text>
                   <Text style={styles.legalParagraph}>
@@ -818,7 +819,7 @@ export default function ProfileScreen() {
               ) : (
                 <View>
                   <Text style={styles.legalParagraph}>
-                    Your privacy is our priority. Truelove is built with privacy-by-design architecture.
+                    Your privacy is our priority. {APP_CONFIG.appName} is built with privacy-by-design architecture.
                   </Text>
                   <Text style={styles.legalHeading}>1. Data Protection</Text>
                   <Text style={styles.legalParagraph}>
@@ -837,8 +838,8 @@ export default function ProfileScreen() {
               onPress={() => {
                 const url =
                   showLegalModal === 'TERMS'
-                    ? 'https://dating-app-idvk.onrender.com/terms'
-                    : 'https://dating-app-idvk.onrender.com/privacy';
+                    ? APP_CONFIG.urls.terms
+                    : APP_CONFIG.urls.privacy;
                 Linking.openURL(url);
               }}
               activeOpacity={0.8}

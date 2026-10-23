@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 export type ToastType = 'success' | 'error' | 'info' | 'message' | 'like' | 'match';
 
@@ -51,7 +52,7 @@ export const toast = {
   info: (message: string, title?: string, route?: string) =>
     useToastStore.getState().showToast({
       type: 'info',
-      title: title || 'Truelove',
+      title: title || APP_CONFIG.appName,
       message,
       route,
     }),

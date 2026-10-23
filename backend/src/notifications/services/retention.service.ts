@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from './notifications.service';
 import { ActionType, UserStatus } from '@prisma/client';
 import { NotificationType } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 
 export interface RetentionRunResult {
   scannedUsers: number;
@@ -168,7 +169,7 @@ export class RetentionService {
               type: NotificationType.SYSTEM,
               referenceId: 'matches',
               title,
-              body: 'Open TrueLove to see who wants to connect with you today.',
+              body: `Open ${APP_CONFIG.appName} to see who wants to connect with you today.`,
               metadata: {
                 screen: '/matches',
                 campaign: 'PENDING_LIKES',

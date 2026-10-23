@@ -22,6 +22,7 @@ import {
   CreatorPayoutRequestDto,
   NotificationType,
 } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 import { CoinTransactionType, Prisma } from '@prisma/client';
 
 export const GIFT_CATALOG: Record<
@@ -85,7 +86,7 @@ export const GIFT_CATALOG: Record<
     displayEarningsInr: '₹150.00',
     iconName: 'crown',
     iconFamily: 'MaterialCommunityIcons',
-    description: 'The highest honor in Truelove—treat her like royalty.',
+    description: `The highest honor in ${APP_CONFIG.appName}—treat her like royalty.`,
   },
 };
 

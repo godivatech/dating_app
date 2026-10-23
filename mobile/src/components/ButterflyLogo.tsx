@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 interface ButterflyLogoProps {
   size?: number;
@@ -30,7 +31,7 @@ export const ButterflyLogo: React.FC<ButterflyLogoProps> = ({
       </View>
       {showText && (
         <Text style={[styles.text, { color: textColor, fontSize: textSize }]}>
-          Truelove
+          {APP_CONFIG.appName}
         </Text>
       )}
     </View>

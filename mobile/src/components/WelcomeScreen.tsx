@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -52,8 +53,8 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           {/* Top Brand Header: TRUELOVE (TRUE in white, LOVE in coral-pink) + Verified Pill */}
           <View style={styles.topHeader}>
             <View style={styles.brandTitleRow}>
-              <Text style={styles.brandTitleTrue}>TRUE</Text>
-              <Text style={styles.brandTitleLove}>LOVE</Text>
+              <Text style={styles.brandTitleTrue}>{APP_CONFIG.brandFirst}</Text>
+              <Text style={styles.brandTitleLove}>{APP_CONFIG.brandSecond}</Text>
             </View>
 
             <View style={styles.verifiedCapsule}>

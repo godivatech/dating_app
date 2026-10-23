@@ -34,6 +34,7 @@ import {
   ProfileCompletionResult,
   ViewableProfileDto,
 } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 import {
   calculateRelativeDistance,
   isValidCoordinate,
@@ -849,7 +850,7 @@ export class ProfileService {
 
     return {
       success: true,
-      message: 'Your Truelove account and personal data have been permanently deleted.',
+      message: `Your ${APP_CONFIG.appName} account and personal data have been permanently deleted.`,
     };
   }
 }

@@ -120,7 +120,7 @@ export const OverviewView: React.FC<OverviewViewProps> = ({ onNavigate }) => {
                 Monetization &amp; Coin Economy Performance
               </h2>
               <div className="text-xs sm:text-sm text-slate-500 mt-0.5 sm:mt-1">
-                Truelove Plus (₹299) • Truelove Gold (₹499) • Coin Wallet (₹99 / ₹199 / ₹499)
+                Genzdate Plus (₹299) • Genzdate Gold (₹499) • Coin Wallet (₹99 / ₹199 / ₹499)
               </div>
             </div>
             <button

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { useProfileStore } from '../../src/stores/profile-store';
 import { Colors } from '../../src/theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 export default function ReadyScreen() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function ReadyScreen() {
           </View>
           <Text style={styles.title}>You are All Set!</Text>
           <Text style={styles.subtitle}>
-            Your Truelove profile is ready. Start discovering matches near you.
+            {`Your ${APP_CONFIG.appName} profile is ready. Start discovering matches near you.`}
           </Text>
         </View>
 

@@ -14,6 +14,7 @@ import {
   CoinTransactionType,
 } from '@prisma/client';
 import { NotFoundException } from '@nestjs/common';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 describe('AdminService', () => {
   let service: AdminService;
@@ -100,7 +101,7 @@ describe('AdminService', () => {
             id: 'prod-gold',
             storeProductId: 'com.sparkdating.gold.1m',
             productKey: 'SPARK_GOLD_1M',
-            displayName: 'Truelove Gold Tier',
+            displayName: `${APP_CONFIG.tiers.gold} Tier`,
             tier: 'GOLD',
             priceAmount: 49900,
           },

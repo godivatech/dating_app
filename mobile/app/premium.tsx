@@ -17,6 +17,7 @@ import { useBillingStore } from '../src/stores/billing-store';
 import { WalletPassbookModal } from '../src/components/WalletPassbookModal';
 import { t } from '../src/i18n/strings';
 import { SubscriptionTier } from '../../shared/src/types';
+import { APP_CONFIG } from '../../shared/src/config';
 import { Colors } from '../src/theme/colors';
 import { toast } from '../src/stores/toast-store';
 
@@ -174,7 +175,7 @@ export default function PremiumScreen() {
                   </View>
                   <View style={styles.coinVaultTitleColumn}>
                     <View style={styles.coinVaultTitleRow}>
-                      <Text style={styles.coinVaultTitle}>Truelove Coin Wallet</Text>
+                      <Text style={styles.coinVaultTitle}>{APP_CONFIG.tiers.coinWallet}</Text>
                       <View style={styles.prepaidBadge}>
                         <Text style={styles.prepaidBadgeText}>PREPAID</Text>
                       </View>
@@ -319,7 +320,7 @@ export default function PremiumScreen() {
                       <Ionicons name="card-outline" size={20} color={Colors.primary} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.actionCardTitle}>Explore Truelove Plus & Gold Plans</Text>
+                      <Text style={styles.actionCardTitle}>Explore {APP_CONFIG.tiers.plus} & Gold Plans</Text>
                       <Text style={styles.actionCardSub}>
                         Plans start from ₹299/month with regional pricing
                       </Text>

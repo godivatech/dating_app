@@ -85,7 +85,7 @@ export const App: React.FC = () => {
       case 'revenue':
         return {
           title: 'Revenue, Tiers & Packs',
-          subtitle: 'Truelove Plus, Truelove Gold, Direct Notes micro-pack purchase logs',
+          subtitle: 'Genzdate Plus, Genzdate Gold, Direct Notes micro-pack purchase logs',
         };
       case 'audit':
         return {

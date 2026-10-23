@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -130,7 +131,7 @@ export const BrandedSplashScreen: React.FC<BrandedSplashScreenProps> = ({
           </Animated.View>
 
           {/* Bold Brand Wordmark */}
-          <Text style={styles.brandTitle}>truelove</Text>
+          <Text style={styles.brandTitle}>{APP_CONFIG.brandNameLower}</Text>
 
           {/* Glowing Hairline Divider (like Zomato) */}
           <View style={styles.divider} />

@@ -38,6 +38,7 @@ import {
   SafeProfilePhoto,
   NotificationType,
 } from '../../../shared/src/types';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 const STRIKE_WINDOW_DAYS = 30;
 
@@ -833,7 +834,7 @@ export class AdminService {
       0,
     );
 
-    // 4. Aggregate Truelove Coin Wallet Recharges (1-tap micro-transactions)
+    // 4. Aggregate Coin Wallet Recharges (1-tap micro-transactions)
     const coinTx = await this.prisma.purchaseTransaction.findMany({
       where: {
         status: 'COMPLETED',
@@ -888,7 +889,7 @@ export class AdminService {
       {
         id: 'coin-wallet-recharge',
         tier: 'COIN' as const,
-        name: 'Truelove Coin Wallet Recharges',
+        name: `${APP_CONFIG.tiers.coinWallet} Recharges`,
         priceDisplay: '₹99 (100c) • ₹199 (250c) • ₹499 (700c)',
         description:
           '1-Tap UPI prepaid micro-recharges for direct notes, boosts, calls, and rewinds',
@@ -898,7 +899,7 @@ export class AdminService {
       {
         id: 'truelove-gold',
         tier: 'GOLD' as const,
-        name: 'Truelove Gold Tier',
+        name: `${APP_CONFIG.tiers.gold} Tier`,
         priceDisplay: '₹499 / mo',
         description:
           'See Who Liked You, 5 Direct Notes/wk, 1 Boost/wk, Incognito Mode',
@@ -908,7 +909,7 @@ export class AdminService {
       {
         id: 'truelove-plus',
         tier: 'PLUS' as const,
-        name: 'Truelove Plus Tier',
+        name: `${APP_CONFIG.tiers.plus} Tier`,
         priceDisplay: '₹299 / mo',
         description: 'Unlimited Swipes, Rewind Pass, Passport location travel',
         activeUnits: plusUnits,

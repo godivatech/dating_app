@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Truelove",
+    "name": "Genzdate",
     "slug": "dating-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,8 +16,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.godivatech.dating-app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Truelove requires camera access for in-app video calling with your matches.",
-        "NSMicrophoneUsageDescription": "Truelove requires microphone access for audio and video calling with your matches."
+        "NSCameraUsageDescription": "Genzdate requires camera access for in-app video calling with your matches.",
+        "NSMicrophoneUsageDescription": "Genzdate requires microphone access for audio and video calling with your matches."
       }
     },
     "android": {

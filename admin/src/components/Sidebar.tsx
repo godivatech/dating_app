@@ -85,7 +85,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div>
               <div className="font-heading text-[17px] font-bold tracking-tight text-slate-900 flex items-center gap-1.5">
-                TRUELOVE
+                GENZDATE
                 <span className="text-[11px] text-slate-500 font-semibold px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">
                   ADMIN
                 </span>

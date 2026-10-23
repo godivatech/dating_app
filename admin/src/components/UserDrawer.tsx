@@ -406,7 +406,7 @@ export const UserDrawer: React.FC<UserDrawerProps> = ({
                 {/* Inline Coin Grant Form */}
                 {showGrantModal && (
                   <div className="mt-3 p-3 bg-amber-50/80 border border-amber-200 rounded-lg animate-fade-in">
-                    <div className="text-xs font-bold text-amber-900 mb-2">Grant Truelove Coins</div>
+                    <div className="text-xs font-bold text-amber-900 mb-2">Grant Genzdate Coins</div>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
                         <input

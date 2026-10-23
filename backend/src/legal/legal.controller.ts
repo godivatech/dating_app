@@ -14,6 +14,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { UserStatus } from '@prisma/client';
 import * as crypto from 'crypto';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 @Controller()
 export class LegalController {
@@ -114,7 +115,7 @@ export class LegalController {
 
     return {
       success: true,
-      message: 'Your Truelove account and associated personal data have been permanently deactivated and scheduled for purge.',
+      message: `Your ${APP_CONFIG.appName} account and associated personal data have been permanently deactivated and scheduled for purge.`,
     };
   }
 
@@ -136,7 +137,7 @@ export class LegalController {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy Policy — Truelove Dating</title>
+  <title>Privacy Policy — ${APP_CONFIG.legalName}</title>
   <style>
     :root {
       --primary: #FD5D65;
@@ -218,7 +219,7 @@ export class LegalController {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">❤️ Truelove</div>
+      <div class="logo">❤️ ${APP_CONFIG.appName}</div>
       <div class="badge">Official Privacy Policy & Child Safety Standards</div>
       <h1>Privacy Policy</h1>
       <p>Effective Date: October 2026 | Last Updated: October 2026</p>
@@ -230,19 +231,19 @@ export class LegalController {
 
     <div class="alert-box">
       <h3>Strict 18+ Adult-Only Application</h3>
-      <p>Truelove is exclusively designed for consenting adults aged <strong>18 years or older</strong>. We enforce zero tolerance for underage registration, child exploitation, and abusive conduct.</p>
+      <p>${APP_CONFIG.appName} is exclusively designed for consenting adults aged <strong>18 years or older</strong>. We enforce zero tolerance for underage registration, child exploitation, and abusive conduct.</p>
     </div>
 
     <h2>1. Introduction</h2>
-    <p>Truelove (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), developed and operated by <strong>Godiva Tech Private Limited</strong>, is committed to safeguarding your personal data and digital privacy. This Privacy Policy explains how we collect, process, store, and protect your information when you use the Truelove mobile application (Android package: <code>com.godivatech.datingapp</code>) and related backend services.</p>
-    <p>By using Truelove, you acknowledge the terms outlined in this Privacy Policy, in accordance with the <strong>Digital Personal Data Protection Act (DPDP Act 2023)</strong> and the <strong>Information Technology Act, 2000</strong> of India.</p>
+    <p>${APP_CONFIG.appName} (&ldquo;we&rdquo;, &ldquo;our&rdquo;, or &ldquo;us&rdquo;), developed and operated by <strong>${APP_CONFIG.companyName}</strong>, is committed to safeguarding your personal data and digital privacy. This Privacy Policy explains how we collect, process, store, and protect your information when you use the ${APP_CONFIG.appName} mobile application (Android package: <code>${APP_CONFIG.androidPackage}</code>) and related backend services.</p>
+    <p>By using ${APP_CONFIG.appName}, you acknowledge the terms outlined in this Privacy Policy, in accordance with the <strong>Digital Personal Data Protection Act (DPDP Act 2023)</strong> and the <strong>Information Technology Act, 2000</strong> of India.</p>
 
     <h2>2. Information We Collect</h2>
     <ul>
       <li><strong>Account Identification:</strong> Mobile telephone number (used for account creation and session authentication) and an optional 4-digit security PIN (hashed with cryptographic salt; plaintext PIN is never stored).</li>
       <li><strong>Profile Information:</strong> Display name, date of birth (used strictly for 18+ age verification and display age), gender, dating preferences, biography, and interest tags.</li>
       <li><strong>Media & Photos:</strong> Photos uploaded to your dating profile. All photos are securely stored in encrypted cloud object storage (Cloudflare R2) and subject to automated and human safety moderation.</li>
-      <li><strong>Location & Distance:</strong> City, region/state, and approximate GPS location coordinates. To protect user safety and prevent stalking, Truelove applies <em>anti-stalking distance fuzzing</em>—your exact latitude/longitude coordinates are never exposed to other members.</li>
+      <li><strong>Location & Distance:</strong> City, region/state, and approximate GPS location coordinates. To protect user safety and prevent stalking, ${APP_CONFIG.appName} applies <em>anti-stalking distance fuzzing</em>—your exact latitude/longitude coordinates are never exposed to other members.</li>
       <li><strong>Direct In-App Messages:</strong> Private, 1-to-1 real-time messages exchanged between mutually matched members.</li>
       <li><strong>Audio & Video Calling Metadata:</strong> Connection timestamps, call duration, and call status. <em>We do not record, store, or monitor your private voice or video call streams.</em></li>
       <li><strong>Device & Safety Telemetry:</strong> Push notification tokens (Firebase Cloud Messaging / Expo Notifications) for message/match alerts, IP address, device model, and safety reports.</li>
@@ -259,17 +260,17 @@ export class LegalController {
     </ul>
 
     <h2>4. Google Play Dating App Child Safety Standards (CSAE Zero-Tolerance Policy)</h2>
-    <p>Truelove fully complies with Google Play&rsquo;s Dating App Child Safety Standards and Child Sexual Abuse and Exploitation (CSAE) policies:</p>
+    <p>${APP_CONFIG.appName} fully complies with Google Play&rsquo;s Dating App Child Safety Standards and Child Sexual Abuse and Exploitation (CSAE) policies:</p>
     <ul>
       <li><strong>Strict Zero Tolerance:</strong> We maintain a zero-tolerance policy against Child Sexual Abuse Material (CSAM) and Child Sexual Exploitation and Abuse (CSAE).</li>
       <li><strong>Age Restriction:</strong> Persons under 18 years of age are strictly prohibited from creating accounts. Any detected underage profile is immediately and permanently terminated.</li>
       <li><strong>In-App Reporting:</strong> Every profile, chat conversation, and photo includes an immediate, accessible <strong>Report</strong> tool with a dedicated <code>Minor Safety</code> category.</li>
       <li><strong>Law Enforcement Referral:</strong> Confirmed CSAE violations are immediately escalated and reported to Indian Law Enforcement authorities (National Cyber Crime Reporting Portal at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>) and the National Center for Missing & Exploited Children (NCMEC).</li>
-      <li><strong>Designated Child Safety Contact:</strong> For inquiries or immediate escalation regarding child protection, contact our Child Safety Officer at <a href="mailto:safety@godivatech.com">safety@godivatech.com</a>.</li>
+      <li><strong>Designated Child Safety Contact:</strong> For inquiries or immediate escalation regarding child protection, contact our Child Safety Officer at <a href="mailto:${APP_CONFIG.safetyEmail}">${APP_CONFIG.safetyEmail}</a>.</li>
     </ul>
 
     <h2>5. Screen Capture & Anti-Harassment Safeguards</h2>
-    <p>To protect women&rsquo;s safety and member privacy, Truelove employs proactive technical safeguards:</p>
+    <p>To protect women&rsquo;s safety and member privacy, ${APP_CONFIG.appName} employs proactive technical safeguards:</p>
     <ul>
       <li><strong>Screen Capture Prevention:</strong> In-app screenshot and screen recording blocking is active across private chat conversations, full profile displays, and active video calls.</li>
       <li><strong>Block & Report Tools:</strong> Users can block or report any abusive user at any time. Blocked users are immediately silenced, severed from mutual matches, and prevented from future discovery.</li>
@@ -280,22 +281,22 @@ export class LegalController {
     <p>You have full ownership and control over your personal data:</p>
     <ul>
       <li><strong>In-App Deletion:</strong> You can delete your account permanently directly inside the app: go to <strong>Profile &gt; Settings &gt; Delete Account</strong> and confirm.</li>
-      <li><strong>Web Deletion Portal:</strong> In accordance with Google Play&rsquo;s external deletion mandate, you can submit an account and data deletion request on our public web portal at <a href="/delete-account">https://dating-app-idvk.onrender.com/delete-account</a>.</li>
+      <li><strong>Web Deletion Portal:</strong> In accordance with Google Play&rsquo;s external deletion mandate, you can submit an account and data deletion request on our public web portal at <a href="/delete-account">${APP_CONFIG.urls.deleteAccount}</a>.</li>
       <li><strong>Data Purge Policy:</strong> Upon deletion, your active session is immediately revoked, your dating profile is removed from discovery, and your uploaded media is scheduled for permanent deletion from Cloudflare R2 object storage. Financial transaction logs (if applicable) are retained only as required by Indian tax and payment laws.</li>
     </ul>
 
     <h2>7. Grievance Officer & Contact Information</h2>
     <p>In accordance with Rule 3(2) of the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021:</p>
     <ul>
-      <li><strong>Company:</strong> Godiva Tech Private Limited</li>
-      <li><strong>App Name:</strong> Truelove Dating</li>
+      <li><strong>Company:</strong> ${APP_CONFIG.companyName}</li>
+      <li><strong>App Name:</strong> ${APP_CONFIG.legalName}</li>
       <li><strong>Grievance & Privacy Officer:</strong> Legal & Compliance Department</li>
-      <li><strong>Email:</strong> <a href="mailto:grievance@godivatech.com">grievance@godivatech.com</a></li>
-      <li><strong>Support Email:</strong> <a href="mailto:support@godivatech.com">support@godivatech.com</a></li>
+      <li><strong>Email:</strong> <a href="mailto:${APP_CONFIG.grievanceEmail}">${APP_CONFIG.grievanceEmail}</a></li>
+      <li><strong>Support Email:</strong> <a href="mailto:${APP_CONFIG.supportEmail}">${APP_CONFIG.supportEmail}</a></li>
     </ul>
 
     <div class="footer">
-      <p>&copy; 2026 Godiva Tech Private Limited. All rights reserved.</p>
+      <p>&copy; 2026 ${APP_CONFIG.companyName}. All rights reserved.</p>
       <div class="nav-links">
         <a href="/privacy">Privacy Policy</a> &bull;
         <a href="/terms">Terms of Service</a> &bull;
@@ -313,7 +314,7 @@ export class LegalController {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Account & Data Deletion — Truelove Dating</title>
+  <title>Account & Data Deletion — ${APP_CONFIG.legalName}</title>
   <style>
     :root {
       --primary: #FD5D65;
@@ -395,14 +396,14 @@ export class LegalController {
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">❤️ Truelove</div>
+      <div class="logo">❤️ ${APP_CONFIG.appName}</div>
       <h1>Account & Data Deletion Portal</h1>
       <p>Official Google Play Account Deletion Web Resource</p>
     </div>
 
     <div class="method-box">
       <h4>Method 1: Instant In-App Deletion (Recommended)</h4>
-      <p>If you have the Truelove Android app installed: Open <strong>Profile &gt; Settings (Gear Icon) &gt; Tap &ldquo;Delete Account&rdquo;</strong> to immediately purge your account and photos.</p>
+      <p>If you have the ${APP_CONFIG.appName} Android app installed: Open <strong>Profile &gt; Settings (Gear Icon) &gt; Tap &ldquo;Delete Account&rdquo;</strong> to immediately purge your account and photos.</p>
     </div>
 
     <div class="warning-box">
@@ -424,7 +425,7 @@ export class LegalController {
       <div class="form-group">
         <label for="reason">Reason for deletion (optional):</label>
         <select id="reason" name="reason">
-          <option value="FOUND_MATCH">Found someone on Truelove</option>
+          <option value="FOUND_MATCH">Found someone on ${APP_CONFIG.appName}</option>
           <option value="TAKING_BREAK">Taking a break from dating apps</option>
           <option value="PRIVACY_CONCERN">Privacy concerns</option>
           <option value="OTHER">Other reason</option>
@@ -437,7 +438,7 @@ export class LegalController {
 
     <div class="footer">
       <p><a href="/privacy">Privacy Policy</a> &bull; <a href="/terms">Terms of Service</a></p>
-      <p style="margin-top: 6px;">&copy; 2026 Godiva Tech Private Limited. All rights reserved.</p>
+      <p style="margin-top: 6px;">&copy; 2026 ${APP_CONFIG.companyName}. All rights reserved.</p>
     </div>
   </div>
 
@@ -490,7 +491,7 @@ export class LegalController {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terms of Service — Truelove Dating</title>
+  <title>Terms of Service — ${APP_CONFIG.legalName}</title>
   <style>
     :root {
       --primary: #FD5D65;
@@ -526,18 +527,18 @@ export class LegalController {
 </head>
 <body>
   <div class="container">
-    <div class="logo">❤️ Truelove</div>
+    <div class="logo">❤️ ${APP_CONFIG.appName}</div>
     <h1>Terms of Service</h1>
     <p>Last Updated: October 2026</p>
 
     <h2>1. Acceptance of Terms</h2>
-    <p>By creating an account or accessing Truelove, you agree to comply with and be bound by these Terms of Service provided by Godiva Tech Private Limited.</p>
+    <p>By creating an account or accessing ${APP_CONFIG.appName}, you agree to comply with and be bound by these Terms of Service provided by ${APP_CONFIG.companyName}.</p>
 
     <h2>2. Eligibility (Strict 18+ Rule)</h2>
-    <p>You must be at least 18 years of age to use Truelove. By registering, you warrant that you are an adult under the laws of India and possess legal capacity to enter into this agreement.</p>
+    <p>You must be at least 18 years of age to use ${APP_CONFIG.appName}. By registering, you warrant that you are an adult under the laws of India and possess legal capacity to enter into this agreement.</p>
 
     <h2>3. Community Code of Conduct</h2>
-    <p>Truelove is built on mutual respect and dignity. You agree NOT to:</p>
+    <p>${APP_CONFIG.appName} is built on mutual respect and dignity. You agree NOT to:</p>
     <ul>
       <li>Harass, stalk, intimidate, or threaten any member.</li>
       <li>Upload or transmit sexually explicit media, non-consensual content, or Child Sexual Abuse Material (CSAM).</li>
@@ -550,7 +551,7 @@ export class LegalController {
     <p>Violations will result in immediate suspension or permanent banning. You may delete your account at any time within the app or at <a href="/delete-account">our deletion portal</a>.</p>
 
     <h2>5. Contact Us</h2>
-    <p>For legal inquiries, contact <a href="mailto:grievance@godivatech.com">grievance@godivatech.com</a>.</p>
+    <p>For legal inquiries, contact <a href="mailto:${APP_CONFIG.grievanceEmail}">${APP_CONFIG.grievanceEmail}</a>.</p>
   </div>
 </body>
 </html>`;

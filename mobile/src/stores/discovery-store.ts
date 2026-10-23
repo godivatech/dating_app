@@ -10,6 +10,7 @@ import {
   RecordActionResponse,
   SafeMatch,
 } from '../../../shared/src/types';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 interface DiscoveryState {
   candidates: DiscoveryCandidate[];
@@ -256,7 +257,7 @@ export const useDiscoveryStore = create<DiscoveryState>((set, get) => ({
       const errorMsg =
         err.response?.data?.message ||
         err.message ||
-        'Rewind is a Truelove Plus perk.';
+        `Rewind is a ${APP_CONFIG.tiers.plus} perk.`;
       return {
         success: false,
         error: Array.isArray(errorMsg) ? errorMsg[0] : errorMsg,

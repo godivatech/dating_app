@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useChatStore } from '../src/stores/chat-store';
 import { SafeConversationSummary } from '../../shared/src/types';
+import { APP_CONFIG } from '../../shared/src/config';
 import { BottomTabBar } from '../src/components/BottomTabBar';
 import { Colors } from '../src/theme/colors';
 import { useScreenCapturePrevention } from '../src/hooks/useScreenCapturePrevention';
@@ -209,7 +210,7 @@ export default function ConversationsScreen() {
               </View>
               <Text style={styles.emptyTitle}>No messages yet</Text>
               <Text style={styles.emptySubtitle}>
-                When you match with someone on Truelove, your chats will appear here.
+                {`When you match with someone on ${APP_CONFIG.appName}, your chats will appear here.`}
               </Text>
               <TouchableOpacity
                 style={styles.discoverBtn}

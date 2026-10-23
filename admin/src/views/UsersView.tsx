@@ -96,7 +96,7 @@ export const UsersView: React.FC = () => {
     link.setAttribute('href', encodedUri);
     link.setAttribute(
       'download',
-      `truelove_members_${new Date().toISOString().split('T')[0]}.csv`,
+      `genzdate_members_${new Date().toISOString().split('T')[0]}.csv`,
     );
     document.body.appendChild(link);
     link.click();

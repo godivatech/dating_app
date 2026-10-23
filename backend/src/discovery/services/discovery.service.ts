@@ -312,7 +312,7 @@ export class DiscoveryService {
       );
     }
 
-    // Atomically deduct 1 boost credit or 30 Truelove Coins
+    // Atomically deduct 1 boost credit or 30 Coins
     let deducted = await this.creditService.deductBoost(userId);
     if (!deducted) {
       const balance = await this.creditService.getUserCreditDto(userId);

@@ -18,6 +18,7 @@ import { Gender } from '../../../shared/src/types';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { StepperHeader } from '../../src/components/StepperHeader';
 import { Colors } from '../../src/theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 /**
  * Normalizes user input into YYYY-MM-DD.
@@ -154,7 +155,7 @@ function validateDateParts(
   }
 
   if (age < 18) {
-    return { normalized, age, error: 'You must be at least 18 years old to join Truelove' };
+    return { normalized, age, error: `You must be at least 18 years old to join ${APP_CONFIG.appName}` };
   }
 
   if (age > 100) {

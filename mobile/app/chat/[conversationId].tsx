@@ -24,6 +24,7 @@ import { useAuthStore } from '../../src/stores/auth-store';
 import { chatSocket } from '../../src/services/chat-socket.service';
 import { useScreenCapturePrevention } from '../../src/hooks/useScreenCapturePrevention';
 import { SafeMessage, ReportTargetType, CallType, MessageDeliveryStatus } from '../../../shared/src/types';
+import { APP_CONFIG } from '../../../shared/src/config';
 import { ReportModal } from '../../src/components/ReportModal';
 import { GiftPickerModal } from '../../src/components/gifts/GiftPickerModal';
 import { GiftAnimationOverlay } from '../../src/components/gifts/GiftAnimationOverlay';
@@ -726,7 +727,7 @@ export default function ChatScreen() {
             <View style={styles.safetyReminderBox}>
               <Ionicons name="heart" size={14} color={Colors.primary} />
               <Text style={styles.safetyReminderText}>
-                Truelove is dedicated to kind, safe, and respectful connections.
+                {`${APP_CONFIG.appName} is dedicated to kind, safe, and respectful connections.`}
               </Text>
             </View>
 

@@ -10,6 +10,7 @@ import {
   ContentViolationDetail,
   ContentFilterResultDto,
 } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 
 export interface ScanOptions {
   context?: 'CHAT' | 'DIRECT_NOTE' | 'PROFILE';
@@ -93,7 +94,7 @@ export class ContentFilterService implements OnModuleInit {
 
       if (primaryViolation.category === ContentViolationCategory.PROFANITY) {
         userMessage =
-          'Your message contains abusive, vulgar, or inappropriate language that is prohibited on Truelove.';
+          `Your message contains abusive, vulgar, or inappropriate language that is prohibited on ${APP_CONFIG.appName}.`;
       } else if (primaryViolation.category === ContentViolationCategory.CONTACT_INFO) {
         userMessage =
           'Sharing phone numbers or off-platform contact handles is restricted to protect member privacy and prevent spam.';

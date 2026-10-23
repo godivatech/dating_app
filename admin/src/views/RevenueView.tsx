@@ -140,7 +140,7 @@ export const RevenueView: React.FC = () => {
     link.setAttribute('href', encodedUri);
     link.setAttribute(
       'download',
-      `truelove_revenue_ledger_${new Date().toISOString().split('T')[0]}.csv`,
+      `genzdate_revenue_ledger_${new Date().toISOString().split('T')[0]}.csv`,
     );
     document.body.appendChild(link);
     link.click();
@@ -245,7 +245,7 @@ export const RevenueView: React.FC = () => {
         </div>
       </div>
 
-      {/* Truelove Coin Economy Pulse Widget */}
+      {/* Genzdate Coin Economy Pulse Widget */}
       {overview?.coinMetrics && (
         <div className="glass-card p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3.5">
@@ -577,8 +577,8 @@ export const RevenueView: React.FC = () => {
                           (tx.productId.includes('coins.100') ? '100 Coins Starter Pack' :
                           tx.productId.includes('coins.250') ? '250 Coins Popular Pack' :
                           tx.productId.includes('coins.700') ? '700 Coins Best Value Pack' :
-                          tx.productId.includes('gold') ? 'Truelove Gold (1 Month)' :
-                          tx.productId.includes('plus') ? 'Truelove Plus (1 Month)' :
+                          tx.productId.includes('gold') ? 'Genzdate Gold (1 Month)' :
+                          tx.productId.includes('plus') ? 'Genzdate Plus (1 Month)' :
                           tx.productId.includes('notes.5') ? '5 Direct Notes Pack' :
                           tx.productId.includes('notes.15') ? '15 Direct Notes Pack' :
                           tx.productId.includes('notes.30') ? '30 Direct Notes Pack' :

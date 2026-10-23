@@ -112,3 +112,6 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
 });
+
+export type AppHeaderProps = TrueloveHeaderProps;
+export const AppHeader = TrueloveHeader;

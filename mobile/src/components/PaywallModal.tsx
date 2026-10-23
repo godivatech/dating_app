@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useBillingStore, IS_FREE_LAUNCH_MODE } from '../stores/billing-store';
 import { t } from '../i18n/strings';
 import { SubscriptionTier, SafeSubscriptionProduct } from '../../../shared/src/types';
+import { APP_CONFIG } from '../../../shared/src/config';
 import { Colors } from '../theme/colors';
 
 export const PaywallModal: React.FC = () => {
@@ -92,7 +93,7 @@ export const PaywallModal: React.FC = () => {
         id: 'fallback-plus-1m',
         storeProductId: 'com.truelove.plus.1m',
         productKey: 'TRUELOVE_PLUS_1M',
-        displayName: 'Truelove Plus',
+        displayName: APP_CONFIG.tiers.plus,
         displayPrice: '₹299',
         priceAmount: 299,
         currency: 'INR',
@@ -113,7 +114,7 @@ export const PaywallModal: React.FC = () => {
         id: 'fallback-plus-3m',
         storeProductId: 'com.truelove.plus.3m',
         productKey: 'TRUELOVE_PLUS_3M',
-        displayName: 'Truelove Plus (3 Months)',
+        displayName: `${APP_CONFIG.tiers.plus} (3 Months)`,
         displayPrice: '₹699',
         priceAmount: 699,
         currency: 'INR',
@@ -134,7 +135,7 @@ export const PaywallModal: React.FC = () => {
         id: 'fallback-gold-1m',
         storeProductId: 'com.truelove.gold.1m',
         productKey: 'TRUELOVE_GOLD_1M',
-        displayName: 'Truelove Gold VIP',
+        displayName: APP_CONFIG.tiers.goldVip,
         displayPrice: '₹499',
         priceAmount: 499,
         currency: 'INR',
@@ -155,7 +156,7 @@ export const PaywallModal: React.FC = () => {
         id: 'fallback-gold-3m',
         storeProductId: 'com.truelove.gold.3m',
         productKey: 'TRUELOVE_GOLD_3M',
-        displayName: 'Truelove Gold VIP (3 Months)',
+        displayName: `${APP_CONFIG.tiers.goldVip} (3 Months)`,
         displayPrice: '₹1,199',
         priceAmount: 1199,
         currency: 'INR',
@@ -180,7 +181,7 @@ export const PaywallModal: React.FC = () => {
         id: 'cp-100',
         storeProductId: 'com.truelove.coins.100',
         productKey: 'COIN_PACK_100',
-        displayName: '100 Truelove Coins',
+        displayName: `100 ${APP_CONFIG.tiers.coins}`,
         displayPrice: '₹99',
         priceAmount: 99,
         currency: 'INR',
@@ -194,7 +195,7 @@ export const PaywallModal: React.FC = () => {
         id: 'cp-250',
         storeProductId: 'com.truelove.coins.250',
         productKey: 'COIN_PACK_250',
-        displayName: '250 Truelove Coins',
+        displayName: `250 ${APP_CONFIG.tiers.coins}`,
         displayPrice: '₹199',
         priceAmount: 199,
         currency: 'INR',
@@ -208,7 +209,7 @@ export const PaywallModal: React.FC = () => {
         id: 'cp-700',
         storeProductId: 'com.truelove.coins.700',
         productKey: 'COIN_PACK_700',
-        displayName: '700 Truelove Coins',
+        displayName: `700 ${APP_CONFIG.tiers.coins}`,
         displayPrice: '₹499',
         priceAmount: 499,
         currency: 'INR',
@@ -431,10 +432,10 @@ export const PaywallModal: React.FC = () => {
                     : isBoostTrigger
                       ? 'Be the #1 profile in your city for 30 minutes during peak swipe hours.'
                       : isRewindTrigger
-                        ? 'Changed your mind? Go back to that profile with just 5 Coins or Truelove Plus.'
+                        ? `Changed your mind? Go back to that profile with just 5 Coins or ${APP_CONFIG.tiers.plus}.`
                         : isPassportTrigger
                           ? 'Passport Mode lets you explore, match, and date in any city worldwide.'
-                          : 'Grab a Call Pass or unlock Unlimited VIP Calling with Truelove Gold.'}
+                          : `Grab a Call Pass or unlock Unlimited VIP Calling with ${APP_CONFIG.tiers.gold}.`}
                 </Text>
               </View>
 
@@ -461,7 +462,7 @@ export const PaywallModal: React.FC = () => {
 
               {/* Context Pack Cards */}
               <Text style={styles.sectionHeading}>
-                Recharge Truelove Coin Wallet
+                Recharge {APP_CONFIG.tiers.coinWallet}
               </Text>
 
               <View style={styles.packsList}>
@@ -553,7 +554,7 @@ export const PaywallModal: React.FC = () => {
                   <View style={styles.goldUpsellBody}>
                     <View style={styles.goldUpsellHeader}>
                       <View style={{ flex: 1 }}>
-                        <Text style={styles.goldUpsellTitle}>Truelove Gold VIP</Text>
+                        <Text style={styles.goldUpsellTitle}>{APP_CONFIG.tiers.goldVip}</Text>
                         <Text style={styles.goldUpsellPerks}>
                           {isDirectNoteTrigger
                             ? '• Unlimited Direct Notes (Never spend coins on notes)\n• See Who Liked You + Weekly Free Boosts'
@@ -597,7 +598,7 @@ export const PaywallModal: React.FC = () => {
                 <View style={styles.headerIconCircle}>
                   <Ionicons name="sparkles" size={28} color={Colors.primary} />
                 </View>
-                <Text style={styles.brandTitle}>Truelove Premium</Text>
+                <Text style={styles.brandTitle}>{APP_CONFIG.tiers.premium}</Text>
                 <Text style={styles.brandSubtitle}>
                   Unlock verified visibility, direct notes, and VIP calls
                 </Text>
@@ -849,7 +850,7 @@ export const PaywallModal: React.FC = () => {
                           <View style={styles.membershipCardBody}>
                             <View style={styles.membershipCardTop}>
                               <View>
-                                <Text style={styles.membershipTitleGold}>Truelove Gold VIP</Text>
+                                <Text style={styles.membershipTitleGold}>{APP_CONFIG.tiers.goldVip}</Text>
                                 <Text style={styles.membershipSubtext}>The ultimate all-inclusive experience</Text>
                               </View>
                               <View style={styles.membershipPriceBox}>
@@ -920,7 +921,7 @@ export const PaywallModal: React.FC = () => {
                           <View style={styles.membershipCardBody}>
                             <View style={styles.membershipCardTop}>
                               <View>
-                                <Text style={styles.membershipTitle}>Truelove Plus</Text>
+                                <Text style={styles.membershipTitle}>{APP_CONFIG.tiers.plus}</Text>
                                 <Text style={styles.membershipSubtext}>Core dating essentials</Text>
                               </View>
                               <View style={styles.membershipPriceBox}>
@@ -1056,7 +1057,7 @@ export const PaywallModal: React.FC = () => {
           {/* Legal / Launch Guarantee */}
           {IS_FREE_LAUNCH_MODE ? (
             <Text style={[styles.legalNotice, { color: Colors.primary, fontWeight: '700' }]}>
-              ✨ Truelove Launch Celebration: All VIP perks and coin features are 100% free during our community launch!
+              ✨ {APP_CONFIG.appName} Launch Celebration: All VIP perks and coin features are 100% free during our community launch!
             </Text>
           ) : (
             <Text style={styles.legalNotice}>

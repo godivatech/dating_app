@@ -27,6 +27,7 @@ import {
   SafeProfilePhoto,
   NotificationType,
 } from '../../../../shared/src/types';
+import { APP_CONFIG } from '../../../../shared/src/config';
 import {
   UserStatus,
   ProfileStatus,
@@ -181,7 +182,7 @@ export class ActionsService {
 
           if (currentLikes >= DAILY_FREE_LIKES_LIMIT) {
             throw new BadRequestException(
-              `Daily free like limit reached (${DAILY_FREE_LIKES_LIMIT}/day). Upgrade to Truelove Plus for unlimited likes.`,
+              `Daily free like limit reached (${DAILY_FREE_LIKES_LIMIT}/day). Upgrade to ${APP_CONFIG.tiers.plus} for unlimited likes.`,
             );
           }
 
@@ -225,7 +226,7 @@ export class ActionsService {
         throw filterError;
       }
 
-      // Tier 1: Truelove Gold members hold UNLIMITED_DIRECT_NOTES
+      // Tier 1: Gold members hold UNLIMITED_DIRECT_NOTES
       const hasUnlimitedNotes = await this.entitlementService.hasEntitlement(
         userId,
         EntitlementKey.UNLIMITED_DIRECT_NOTES,
@@ -236,7 +237,7 @@ export class ActionsService {
       if (hasUnlimitedNotes) {
         allowedToSendNote = true;
       } else {
-        // Tier 2: Truelove Plus members get 5 Direct Notes daily
+        // Tier 2: Plus members get 5 Direct Notes daily
         const hasPlus = await this.entitlementService.hasEntitlement(
           userId,
           EntitlementKey.REWIND_PASS,
@@ -301,7 +302,7 @@ export class ActionsService {
         // Tier 6: All quotas exhausted -> Trigger paywall
         if (!allowedToSendNote) {
           throw new BadRequestException(
-            'You have used all free direct notes. Recharge your Truelove Coin Wallet (15 coins) or upgrade to Gold to send direct messages.',
+            `You have used all free direct notes. Recharge your ${APP_CONFIG.tiers.coinWallet} (15 coins) or upgrade to Gold to send direct messages.`,
           );
         }
       }
@@ -510,7 +511,7 @@ export class ActionsService {
                 : 'Someone liked your profile',
               body: hasSeeLikes
                 ? `Check out ${actorName}'s profile in your likes`
-                : 'Open TrueLove to see your new admirer',
+                : `Open ${APP_CONFIG.appName} to see your new admirer`,
               metadata: {
                 type: 'LIKE_RECEIVED',
                 actorProfileId: requesterProfile.id,
@@ -638,7 +639,7 @@ export class ActionsService {
 
     if (!authorized) {
       throw new ForbiddenException(
-        'Rewinding passes requires the Rewind Pass entitlement or 5 Truelove Coins.',
+        `Rewinding passes requires the Rewind Pass entitlement or 5 ${APP_CONFIG.tiers.coins}.`,
       );
     }
 

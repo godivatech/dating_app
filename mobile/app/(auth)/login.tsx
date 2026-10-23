@@ -15,6 +15,7 @@ import { validateAndFormatPhone } from '../../src/utils/phone.util';
 import { TrueloveHeader } from '../../src/components/TrueloveHeader';
 import { NumericKeypad } from '../../src/components/NumericKeypad';
 import { Colors } from '../../src/theme/colors';
+import { APP_CONFIG } from '../../../shared/src/config';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function LoginScreen() {
         <View style={styles.titleSection}>
           <Text style={styles.title}>Enter your number</Text>
           <Text style={styles.subtitle}>
-            Enter your mobile number to sign in or create your Truelove profile
+            {`Enter your mobile number to sign in or create your ${APP_CONFIG.appName} profile`}
           </Text>
         </View>
 

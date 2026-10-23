@@ -1,13 +1,11 @@
-/**
- * Localization strings foundation (English active, Tamil supported)
- */
+import { APP_CONFIG } from '../../../shared/src/config';
 
 export type Locale = 'en' | 'ta';
 
 export const strings = {
   en: {
     // App & Common
-    appName: 'Truelove',
+    appName: APP_CONFIG.appName,
     loading: 'Loading...',
     save: 'Save',
     cancel: 'Cancel',
@@ -91,10 +89,10 @@ export const strings = {
     underAgeError: 'You must be at least 18 years old to use this app.',
     invalidDobFormat: 'Please enter a valid date of birth (YYYY-MM-DD).',
     // Monetization & Entitlements
-    navPremium: 'Truelove Premium',
+    navPremium: `${APP_CONFIG.appName} Premium`,
     navPremiumSubtitle: 'Subscriptions, perks & capabilities',
-    upgradeToPlus: 'Upgrade to Truelove Plus',
-    upgradeToGold: 'Upgrade to Truelove Gold',
+    upgradeToPlus: `Upgrade to ${APP_CONFIG.tiers.plus}`,
+    upgradeToGold: `Upgrade to ${APP_CONFIG.tiers.gold}`,
     unlimitedLikes: 'Unlimited Likes',
     unlimitedLikesDesc: 'Swipe and like as many profiles as you want every day',
     seeWhoLikedYou: 'See Who Liked You',
@@ -105,7 +103,7 @@ export const strings = {
     profileBoostDesc: 'Get up to 10x more visibility in your city',
     dailyLikesLeft: '{count} likes left today',
     unlimitedLikesActive: 'Unlimited likes active',
-    unlockWithGold: 'Unlock with Truelove Gold',
+    unlockWithGold: `Unlock with ${APP_CONFIG.tiers.gold}`,
     whoLikedYouTitle: 'Who Liked You',
     whoLikedYouSubtitle: '{count} people liked your profile',
     restorePurchases: 'Restore Purchases',
@@ -115,17 +113,17 @@ export const strings = {
     cancelSubscriptionDesc: 'Keep your perks until the end of your billing cycle',
     subscribedUntil: 'Active until {date}',
     freeTier: 'Free Member',
-    plusTier: 'Truelove Plus',
-    goldTier: 'Truelove Gold',
+    plusTier: APP_CONFIG.tiers.plus,
+    goldTier: APP_CONFIG.tiers.gold,
     rewindSuccess: 'Pass undone!',
     outOfLikesTitle: 'Out of Daily Likes!',
-    outOfLikesDesc: 'Free users get 25 likes every 24 hours. Upgrade to Truelove Plus for unlimited daily likes.',
+    outOfLikesDesc: `Free users get 25 likes every 24 hours. Upgrade to ${APP_CONFIG.tiers.plus} for unlimited daily likes.`,
     rewindLockTitle: 'Rewind is a Premium Perk',
-    rewindLockDesc: 'Accidentally swiped left? Truelove Plus lets you rewind your last pass instantly.',
+    rewindLockDesc: `Accidentally swiped left? ${APP_CONFIG.tiers.plus} lets you rewind your last pass instantly.`,
   },
   ta: {
     // App & Common
-    appName: 'ட்ரூலவ்',
+    appName: APP_CONFIG.appName,
     loading: 'ஏற்றுகிறது...',
     save: 'சேமி',
     cancel: 'ரத்துசெய்',
