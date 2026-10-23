@@ -13,9 +13,9 @@ export const APP_CONFIG = {
   tagline: 'Connect Authentically',
   androidPackage: 'com.godivatech.datingapp',
   iosBundleId: 'com.godivatech.dating-app',
-  supportEmail: 'support@godivatech.com',
-  grievanceEmail: 'grievance@godivatech.com',
-  safetyEmail: 'safety@godivatech.com',
+  contactEmail: 'infogodivatech@gmail.com',
+  supportEmail: 'infogodivatech@gmail.com',
+  grievanceEmail: 'infogodivatech@gmail.com',
   urls: {
     base: 'https://dating-app-idvk.onrender.com',
     privacy: 'https://dating-app-idvk.onrender.com/privacy',

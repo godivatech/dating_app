@@ -266,7 +266,6 @@ export class LegalController {
       <li><strong>Age Restriction:</strong> Persons under 18 years of age are strictly prohibited from creating accounts. Any detected underage profile is immediately and permanently terminated.</li>
       <li><strong>In-App Reporting:</strong> Every profile, chat conversation, and photo includes an immediate, accessible <strong>Report</strong> tool with a dedicated <code>Minor Safety</code> category.</li>
       <li><strong>Law Enforcement Referral:</strong> Confirmed CSAE violations are immediately escalated and reported to Indian Law Enforcement authorities (National Cyber Crime Reporting Portal at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a>) and the National Center for Missing & Exploited Children (NCMEC).</li>
-      <li><strong>Designated Child Safety Contact:</strong> For inquiries or immediate escalation regarding child protection, contact our Child Safety Officer at <a href="mailto:${APP_CONFIG.safetyEmail}">${APP_CONFIG.safetyEmail}</a>.</li>
     </ul>
 
     <h2>5. Screen Capture & Anti-Harassment Safeguards</h2>
@@ -290,9 +289,7 @@ export class LegalController {
     <ul>
       <li><strong>Company:</strong> ${APP_CONFIG.companyName}</li>
       <li><strong>App Name:</strong> ${APP_CONFIG.legalName}</li>
-      <li><strong>Grievance & Privacy Officer:</strong> Legal & Compliance Department</li>
-      <li><strong>Email:</strong> <a href="mailto:${APP_CONFIG.grievanceEmail}">${APP_CONFIG.grievanceEmail}</a></li>
-      <li><strong>Support Email:</strong> <a href="mailto:${APP_CONFIG.supportEmail}">${APP_CONFIG.supportEmail}</a></li>
+      <li><strong>Email:</strong> <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a></li>
     </ul>
 
     <div class="footer">
@@ -474,7 +471,7 @@ export class LegalController {
       } catch (err) {
         statusBox.style.display = 'block';
         statusBox.className = 'status-msg status-error';
-        statusBox.textContent = 'Network error. Please try again or email support@godivatech.com';
+        statusBox.textContent = 'Network error. Please try again or email ${APP_CONFIG.contactEmail}';
       } finally {
         btn.disabled = false;
         btn.textContent = 'Permanently Delete My Account';
@@ -551,7 +548,7 @@ export class LegalController {
     <p>Violations will result in immediate suspension or permanent banning. You may delete your account at any time within the app or at <a href="/delete-account">our deletion portal</a>.</p>
 
     <h2>5. Contact Us</h2>
-    <p>For legal inquiries, contact <a href="mailto:${APP_CONFIG.grievanceEmail}">${APP_CONFIG.grievanceEmail}</a>.</p>
+    <p>For questions or support, contact <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a>.</p>
   </div>
 </body>
 </html>`;
