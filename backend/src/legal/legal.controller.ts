@@ -142,11 +142,13 @@ export class LegalController {
     :root {
       --primary: #FD5D65;
       --primary-dark: #E04850;
-      --bg: #0F172A;
-      --card-bg: #1E293B;
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-      --border: #334155;
+      --primary-soft: #FFF1F2;
+      --primary-border: #FECDD3;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -154,16 +156,16 @@ export class LegalController {
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 24px 16px;
+      padding: 32px 16px;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
       background: var(--card-bg);
-      border-radius: 16px;
+      border-radius: 20px;
       border: 1px solid var(--border);
-      padding: 32px 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      padding: 36px 32px;
+      box-shadow: 0 4px 25px -4px rgba(15, 23, 42, 0.06), 0 2px 10px -2px rgba(15, 23, 42, 0.03);
     }
     .header {
       text-align: center;
@@ -182,37 +184,40 @@ export class LegalController {
     }
     .badge {
       display: inline-block;
-      background: rgba(253, 93, 101, 0.15);
+      background: var(--primary-soft);
       color: var(--primary);
+      border: 1px solid var(--primary-border);
       font-size: 13px;
       font-weight: 600;
-      padding: 4px 12px;
+      padding: 5px 14px;
       border-radius: 999px;
-      margin-top: 8px;
+      margin-top: 10px;
     }
-    h1 { font-size: 26px; font-weight: 700; margin: 12px 0 6px; }
-    h2 { font-size: 18px; font-weight: 600; color: #FFFFFF; margin: 24px 0 10px; border-left: 3px solid var(--primary); padding-left: 10px; }
+    h1 { font-size: 26px; font-weight: 800; color: var(--text); margin: 14px 0 6px; }
+    h2 { font-size: 18px; font-weight: 700; color: var(--text); margin: 26px 0 10px; border-left: 3px solid var(--primary); padding-left: 12px; }
     p, li { font-size: 14.5px; color: var(--text-muted); margin-bottom: 10px; }
     ul { padding-left: 20px; margin-bottom: 14px; }
-    strong { color: var(--text); }
+    strong { color: var(--text); font-weight: 600; }
+    code { background: #F1F5F9; color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; }
     .alert-box {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      background: var(--primary-soft);
+      border: 1px solid var(--primary-border);
       border-radius: 12px;
-      padding: 16px;
+      padding: 16px 20px;
       margin: 20px 0;
     }
-    .alert-box h3 { color: #F87171; font-size: 16px; margin-bottom: 6px; }
+    .alert-box h3 { color: #BE123C; font-size: 16px; margin-bottom: 6px; font-weight: 700; }
+    .alert-box p { color: #881337; margin-bottom: 0; }
     .footer {
       border-top: 1px solid var(--border);
-      padding-top: 20px;
+      padding-top: 24px;
       margin-top: 32px;
       font-size: 13px;
       text-align: center;
       color: var(--text-muted);
     }
-    a { color: var(--primary); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; color: var(--primary-dark); }
     .nav-links { display: flex; justify-content: center; gap: 16px; margin-top: 16px; font-size: 13.5px; }
   </style>
 </head>
@@ -315,11 +320,14 @@ export class LegalController {
   <style>
     :root {
       --primary: #FD5D65;
-      --bg: #0F172A;
-      --card-bg: #1E293B;
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-      --border: #334155;
+      --primary-dark: #E04850;
+      --primary-soft: #FFF1F2;
+      --primary-border: #FECDD3;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -327,67 +335,77 @@ export class LegalController {
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 24px 16px;
+      padding: 32px 16px;
     }
     .container {
       max-width: 650px;
       margin: 0 auto;
       background: var(--card-bg);
-      border-radius: 16px;
+      border-radius: 20px;
       border: 1px solid var(--border);
-      padding: 32px 24px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      padding: 36px 32px;
+      box-shadow: 0 4px 25px -4px rgba(15, 23, 42, 0.06), 0 2px 10px -2px rgba(15, 23, 42, 0.03);
     }
     .header { text-align: center; margin-bottom: 24px; }
-    .logo { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .logo { font-size: 30px; font-weight: 800; color: var(--primary); margin-bottom: 8px; }
+    h1 { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 6px; }
     p { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
     .warning-box {
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      border-radius: 10px;
-      padding: 14px;
-      margin: 16px 0;
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-radius: 12px;
+      padding: 16px;
+      margin: 18px 0;
     }
-    .warning-box h3 { color: #F87171; font-size: 14.5px; margin-bottom: 4px; }
+    .warning-box h3 { color: #B45309; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+    .warning-box p { color: #92400E; font-size: 13.5px; margin-bottom: 0; }
     .form-group { margin-bottom: 18px; }
     label { display: block; font-size: 13.5px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
     input, select, textarea {
       width: 100%;
       padding: 12px 14px;
-      background: #0F172A;
-      border: 1px solid var(--border);
+      background: #FFFFFF;
+      border: 1.5px solid var(--border);
       border-radius: 8px;
-      color: #FFFFFF;
+      color: var(--text);
       font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
-    input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(253, 93, 101, 0.15);
+    }
     .btn {
       width: 100%;
-      padding: 13px;
-      background: var(--primary);
+      padding: 14px;
+      background: linear-gradient(135deg, #FD5D65 0%, #E04850 100%);
       color: #FFFFFF;
       font-size: 15px;
       font-weight: 700;
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 14px rgba(253, 93, 101, 0.35);
     }
-    .btn:hover { background: #E04850; }
-    .status-msg { display: none; padding: 12px; border-radius: 8px; margin-top: 16px; font-size: 14px; text-align: center; }
-    .status-success { background: rgba(34, 197, 94, 0.15); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ADE80; }
-    .status-error { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); color: #F87171; }
+    .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .status-msg { display: none; padding: 14px; border-radius: 8px; margin-top: 16px; font-size: 14px; text-align: center; font-weight: 500; }
+    .status-success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
+    .status-error { background: #FEF2F2; border: 1px solid #FECACA; color: #991B1B; }
     .method-box {
-      background: #0F172A;
-      border-radius: 8px;
+      background: #F8FAFC;
+      border-radius: 12px;
       border: 1px solid var(--border);
-      padding: 14px;
+      padding: 16px;
       margin-bottom: 20px;
     }
-    .method-box h4 { font-size: 14px; color: #FFFFFF; margin-bottom: 4px; }
-    a { color: var(--primary); text-decoration: none; }
-    .footer { text-align: center; margin-top: 24px; font-size: 12.5px; color: var(--text-muted); }
+    .method-box h4 { font-size: 14.5px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .method-box p { color: var(--text-muted); font-size: 13.5px; margin-bottom: 0; }
+    a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; color: var(--primary-dark); }
+    .footer { text-align: center; margin-top: 28px; font-size: 13px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -492,11 +510,14 @@ export class LegalController {
   <style>
     :root {
       --primary: #FD5D65;
-      --bg: #0F172A;
-      --card-bg: #1E293B;
-      --text: #F8FAFC;
-      --text-muted: #94A3B8;
-      --border: #334155;
+      --primary-dark: #E04850;
+      --primary-soft: #FFF1F2;
+      --primary-border: #FECDD3;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -504,29 +525,53 @@ export class LegalController {
       background-color: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 24px 16px;
+      padding: 32px 16px;
     }
     .container {
       max-width: 800px;
       margin: 0 auto;
       background: var(--card-bg);
-      border-radius: 16px;
+      border-radius: 20px;
       border: 1px solid var(--border);
-      padding: 32px 24px;
+      padding: 36px 32px;
+      box-shadow: 0 4px 25px -4px rgba(15, 23, 42, 0.06), 0 2px 10px -2px rgba(15, 23, 42, 0.03);
     }
-    .logo { font-size: 28px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
-    h1 { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
-    h2 { font-size: 18px; font-weight: 600; color: #FFFFFF; margin: 24px 0 10px; border-left: 3px solid var(--primary); padding-left: 10px; }
+    .header {
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 24px;
+      margin-bottom: 28px;
+    }
+    .logo { font-size: 30px; font-weight: 800; color: var(--primary); margin-bottom: 6px; }
+    h1 { font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    h2 { font-size: 18px; font-weight: 700; color: var(--text); margin: 26px 0 10px; border-left: 3px solid var(--primary); padding-left: 12px; }
     p, li { font-size: 14.5px; color: var(--text-muted); margin-bottom: 10px; }
     ul { padding-left: 20px; margin-bottom: 14px; }
-    a { color: var(--primary); text-decoration: none; }
+    strong { color: var(--text); font-weight: 600; }
+    a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; color: var(--primary-dark); }
+    .footer {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 32px;
+      font-size: 13px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .nav-links { display: flex; justify-content: center; gap: 16px; margin-top: 16px; font-size: 13.5px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="logo">❤️ ${APP_CONFIG.appName}</div>
-    <h1>Terms of Service</h1>
-    <p>Last Updated: October 2026</p>
+    <div class="header">
+      <div class="logo">❤️ ${APP_CONFIG.appName}</div>
+      <h1>Terms of Service</h1>
+      <p>Last Updated: October 2026</p>
+      <div class="nav-links">
+        <a href="/privacy">Privacy Policy</a> &bull;
+        <a href="/delete-account">Account & Data Deletion Portal</a>
+      </div>
+    </div>
 
     <h2>1. Acceptance of Terms</h2>
     <p>By creating an account or accessing ${APP_CONFIG.appName}, you agree to comply with and be bound by these Terms of Service provided by ${APP_CONFIG.companyName}.</p>
@@ -549,6 +594,15 @@ export class LegalController {
 
     <h2>5. Contact Us</h2>
     <p>For questions or support, contact <a href="mailto:${APP_CONFIG.contactEmail}">${APP_CONFIG.contactEmail}</a>.</p>
+
+    <div class="footer">
+      <p>&copy; 2026 ${APP_CONFIG.companyName}. All rights reserved.</p>
+      <div class="nav-links">
+        <a href="/privacy">Privacy Policy</a> &bull;
+        <a href="/terms">Terms of Service</a> &bull;
+        <a href="/delete-account">Account Deletion</a>
+      </div>
+    </div>
   </div>
 </body>
 </html>`;
