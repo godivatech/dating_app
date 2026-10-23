@@ -517,7 +517,7 @@ export default function DiscoveryScreen() {
               numberOfLines={1}
             >
               {isTargetCityActive
-                ? `Passport: ${targetCity}`
+                ? `City: ${targetCity}`
                 : isGlobalMode
                 ? 'Worldwide Mode'
                 : `Nearby (${myProfile?.locationCity || 'Local'})`}
@@ -571,12 +571,12 @@ export default function DiscoveryScreen() {
           )}
         </View>
 
-        {/* Passport Mode Scope Indicator Banner */}
+        {/* City Scope Indicator Banner */}
         {isTargetCityActive && (
           <View style={styles.passportModeBanner}>
-            <Ionicons name="airplane" size={13} color="#8B5CF6" />
+            <Ionicons name="location-sharp" size={13} color="#8B5CF6" />
             <Text style={styles.passportModeBannerText} numberOfLines={1}>
-              Passport Active: Exploring singles in {targetCity}
+              Exploring singles in {targetCity}
             </Text>
             <TouchableOpacity onPress={handleResetTargetCity} activeOpacity={0.7}>
               <Text style={styles.switchModePassportText}>Reset</Text>

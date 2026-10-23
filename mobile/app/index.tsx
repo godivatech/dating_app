@@ -587,25 +587,25 @@ export default function IndexScreen() {
         {/* Location & Title */}
         <View style={styles.headlineSection}>
           <TouchableOpacity
-            style={[styles.locationPill, isTargetCityActive && styles.locationPillActive]}
+            style={styles.locationPill}
             onPress={() => setIsCityModalVisible(true)}
             activeOpacity={0.75}
           >
             <Ionicons
-              name={isTargetCityActive ? 'airplane' : 'location-sharp'}
+              name="location-sharp"
               size={14}
-              color={isTargetCityActive ? '#7C3AED' : Colors.primary}
+              color={Colors.primary}
             />
             <Text
-              style={[styles.locationText, isTargetCityActive && styles.locationTextActive]}
+              style={styles.locationText}
               numberOfLines={1}
             >
-              {isTargetCityActive ? `Passport: ${displayedCity}` : `${displayedCity}, ${displayedRegion}`}
+              {`${displayedCity}${displayedRegion ? `, ${displayedRegion}` : ''}`}
             </Text>
             <Ionicons
               name="chevron-down"
               size={12}
-              color={isTargetCityActive ? '#7C3AED' : Colors.textMuted}
+              color={Colors.textMuted}
             />
           </TouchableOpacity>
           <Text style={styles.mainTitle}>Find the one for you</Text>
