@@ -624,12 +624,7 @@ export default function IndexScreen() {
 
         {/* Vertical Profiles Feed Header */}
         <View style={styles.sectionHeader}>
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Near You</Text>
-            <View style={styles.liveCountBadge}>
-              <Text style={styles.liveCountText}>{activeFeedProfiles.length} active</Text>
-            </View>
-          </View>
+          <Text style={styles.sectionTitle}>Near You</Text>
           <TouchableOpacity
             onPress={() => router.push('/discovery' as any)}
             activeOpacity={0.7}
