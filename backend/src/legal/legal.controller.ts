@@ -20,7 +20,7 @@ import { APP_CONFIG } from '../../../shared/src/config';
 export class LegalController {
   private readonly logger = new Logger(LegalController.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   @Get('privacy')
   @Header('Content-Type', 'text/html; charset=utf-8')
