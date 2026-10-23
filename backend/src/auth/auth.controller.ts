@@ -18,6 +18,7 @@ import {
 import { RequestOtpDto } from './dto/request-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { CheckPhoneDto, PhonePinAuthDto } from './dto/pin-auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { AuthenticatedUser } from './guards/jwt.strategy';
@@ -25,6 +26,34 @@ import type { AuthenticatedUser } from './guards/jwt.strategy';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  /**
+   * Check if phone number exists and whether PIN is already established.
+   */
+  @Post('check-phone')
+  @HttpCode(HttpStatus.OK)
+  async checkPhone(
+    @Body() dto: CheckPhoneDto,
+  ): Promise<{ exists: boolean; hasPin: boolean }> {
+    return this.authService.checkPhone(dto.phoneNumber);
+  }
+
+  /**
+   * Phone + 4-digit Security PIN authentication and registration.
+   */
+  @Post('pin-login')
+  @HttpCode(HttpStatus.OK)
+  async loginWithPin(
+    @Body() dto: PhonePinAuthDto,
+    @Req() req: Request,
+    @Ip() ip: string,
+  ): Promise<AuthResponseDto> {
+    const userAgent = req?.headers ? req.headers['user-agent'] : undefined;
+    return this.authService.loginWithPin(dto.phoneNumber, dto.pin, {
+      userAgent,
+      ipAddress: ip,
+    });
+  }
 
   /**
    * Request OTP challenge for phone number.

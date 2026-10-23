@@ -5,9 +5,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Global API prefix — all routes will be prefixed with /api/v1
-  // Example: GET /api/v1/health
-  app.setGlobalPrefix('api/v1');
+  // Global API prefix — all routes will be prefixed with /api/v1 except public legal pages
+  app.setGlobalPrefix('api/v1', {
+    exclude: [
+      'privacy',
+      'privacy-policy',
+      'delete-account',
+      'delete-account/request',
+      'terms',
+    ],
+  });
 
   // Global validation pipe
   // Enforces class-validator decorators on all incoming DTOs.

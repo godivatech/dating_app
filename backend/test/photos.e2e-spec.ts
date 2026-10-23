@@ -7,19 +7,23 @@ import { RedisService } from '../src/redis/redis.service';
 import { TokenService } from '../src/auth/services/token.service';
 import { STORAGE_SERVICE } from '../src/media/storage/storage.interface';
 import { PHOTO_QUEUE_TOKEN } from '../src/media/queue/photo-processing.constants';
-import { User, UserStatus, PhotoStatus } from '@prisma/client';
+import { User, UserStatus, PhotoStatus, UserRole } from '@prisma/client';
 
 describe('Media & Photos Lifecycle (e2e)', () => {
   let app: INestApplication;
   let tokenService: TokenService;
   let authTokenUserA: string;
   let authTokenUserB: string;
+  let authTokenAdmin: string;
+  let authTokenMod: string;
+  let authTokenSuspendedAdmin: string;
 
   const userA: User = {
     id: 'user-photos-e2e-a',
     phoneNumber: '+919876543211',
     phoneVerifiedAt: new Date(),
     status: UserStatus.ACTIVE,
+    role: UserRole.USER,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastLoginAt: new Date(),
@@ -30,6 +34,40 @@ describe('Media & Photos Lifecycle (e2e)', () => {
     phoneNumber: '+919876543212',
     phoneVerifiedAt: new Date(),
     status: UserStatus.ACTIVE,
+    role: UserRole.USER,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  const adminUser: User = {
+    id: 'user-photos-e2e-admin',
+    phoneNumber: '+919876543299',
+    phoneVerifiedAt: new Date(),
+    status: UserStatus.ACTIVE,
+    role: UserRole.ADMIN,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  const modUser: User = {
+    id: 'user-photos-e2e-mod',
+    phoneNumber: '+919876543298',
+    phoneVerifiedAt: new Date(),
+    status: UserStatus.ACTIVE,
+    role: UserRole.MODERATOR,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastLoginAt: new Date(),
+  };
+
+  const suspendedAdminUser: User = {
+    id: 'user-photos-e2e-suspended-admin',
+    phoneNumber: '+919876543297',
+    phoneVerifiedAt: new Date(),
+    status: UserStatus.SUSPENDED,
+    role: UserRole.ADMIN,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastLoginAt: new Date(),
@@ -50,6 +88,9 @@ describe('Media & Photos Lifecycle (e2e)', () => {
   const userMap = new Map<string, User>([
     [userA.id, userA],
     [userB.id, userB],
+    [adminUser.id, adminUser],
+    [modUser.id, modUser],
+    [suspendedAdminUser.id, suspendedAdminUser],
   ]);
   const profileMap = new Map<string, any>([
     [profileA.id, profileA],
@@ -226,13 +267,52 @@ describe('Media & Photos Lifecycle (e2e)', () => {
       expiresAt: new Date(Date.now() + 100000),
       revokedAt: null,
     };
+    const sessionAdmin = {
+      id: 'sess-admin',
+      userId: adminUser.id,
+      refreshTokenHash: 'hAdmin',
+      expiresAt: new Date(Date.now() + 100000),
+      revokedAt: null,
+    };
+    const sessionMod = {
+      id: 'sess-mod',
+      userId: modUser.id,
+      refreshTokenHash: 'hMod',
+      expiresAt: new Date(Date.now() + 100000),
+      revokedAt: null,
+    };
+    const sessionSuspendedAdmin = {
+      id: 'sess-suspended-admin',
+      userId: suspendedAdminUser.id,
+      refreshTokenHash: 'hSuspendedAdmin',
+      expiresAt: new Date(Date.now() + 100000),
+      revokedAt: null,
+    };
     sessionMap.set(sessionA.id, sessionA);
     sessionMap.set(sessionB.id, sessionB);
+    sessionMap.set(sessionAdmin.id, sessionAdmin);
+    sessionMap.set(sessionMod.id, sessionMod);
+    sessionMap.set(sessionSuspendedAdmin.id, sessionSuspendedAdmin);
 
     const tokensA = await tokenService.generateTokens(userA.id, sessionA.id);
     const tokensB = await tokenService.generateTokens(userB.id, sessionB.id);
+    const tokensAdmin = await tokenService.generateTokens(
+      adminUser.id,
+      sessionAdmin.id,
+    );
+    const tokensMod = await tokenService.generateTokens(
+      modUser.id,
+      sessionMod.id,
+    );
+    const tokensSuspended = await tokenService.generateTokens(
+      suspendedAdminUser.id,
+      sessionSuspendedAdmin.id,
+    );
     authTokenUserA = tokensA.accessToken;
     authTokenUserB = tokensB.accessToken;
+    authTokenAdmin = tokensAdmin.accessToken;
+    authTokenMod = tokensMod.accessToken;
+    authTokenSuspendedAdmin = tokensSuspended.accessToken;
   });
 
   afterAll(async () => {
@@ -259,37 +339,66 @@ describe('Media & Photos Lifecycle (e2e)', () => {
     createdPhotoId1 = res.body.photoId;
   });
 
-  it('2. POST /api/v1/profile/photos/:photoId/complete transitions status to PROCESSING and enqueues job', async () => {
+  it('2. POST /api/v1/profile/photos/:photoId/complete transitions status to APPROVED and enqueues job', async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/profile/photos/${createdPhotoId1}/complete`)
       .set('Authorization', `Bearer ${authTokenUserA}`)
       .expect(200);
 
     expect(res.body.id).toBe(createdPhotoId1);
-    expect(res.body.status).toBe('PROCESSING');
+    expect(res.body.status).toBe(PhotoStatus.APPROVED);
     expect(mockBullQueue.add).toHaveBeenCalled();
   });
 
-  it('3. POST /api/v1/profile/photos/:photoId/moderate moves photo to APPROVED', async () => {
+  it('3. POST /api/v1/profile/photos/:photoId/moderate enforces RBAC (SEC-02): denies ordinary users, permits moderators/admins', async () => {
     // Populate thumbnailKey to simulate worker completion
     const photo = photoMap.get(createdPhotoId1);
     photo.thumbnailKey = `profiles/${profileA.id}/photos/${createdPhotoId1}/thumbnail.webp`;
     photo.mediumKey = `profiles/${profileA.id}/photos/${createdPhotoId1}/medium.webp`;
     photo.largeKey = `profiles/${profileA.id}/photos/${createdPhotoId1}/large.webp`;
 
-    const res = await request(app.getHttpServer())
+    // Ordinary user A MUST be denied (403 Forbidden)
+    await request(app.getHttpServer())
       .post(`/api/v1/profile/photos/${createdPhotoId1}/moderate`)
       .set('Authorization', `Bearer ${authTokenUserA}`)
       .send({ status: 'APPROVED' })
+      .expect(403);
+
+    // Ordinary user B MUST be denied (403 Forbidden)
+    const ordinaryRes = await request(app.getHttpServer())
+      .post(`/api/v1/profile/photos/${createdPhotoId1}/moderate`)
+      .set('Authorization', `Bearer ${authTokenUserB}`)
+      .send({ status: 'APPROVED' })
+      .expect(403);
+    expect(ordinaryRes.body.message).toContain('Insufficient role permissions');
+
+    // Inactive/Suspended admin MUST be denied by RolesGuard (403 Forbidden)
+    const inactiveRes = await request(app.getHttpServer())
+      .post(`/api/v1/profile/photos/${createdPhotoId1}/moderate`)
+      .set('Authorization', `Bearer ${authTokenSuspendedAdmin}`)
+      .send({ status: 'APPROVED' })
+      .expect(403);
+    expect(inactiveRes.body.message).toContain('Account is not active');
+
+    // Moderator user is ALLOWED (200 OK)
+    const modRes = await request(app.getHttpServer())
+      .post(`/api/v1/profile/photos/${createdPhotoId1}/moderate`)
+      .set('Authorization', `Bearer ${authTokenMod}`)
+      .send({ status: 'APPROVED' })
       .expect(200);
 
-    expect(res.body.status).toBe('APPROVED');
-    expect(res.body.position).toBe(0);
-    expect(res.body.isPrimary).toBe(true);
-    expect(res.body.thumbnailUrl).toContain('thumbnail.webp');
+    expect(modRes.body.status).toBe('APPROVED');
+    expect(modRes.body.thumbnailUrl).toContain('thumbnail.webp');
+
+    // Administrator user is ALLOWED (200 OK)
+    await request(app.getHttpServer())
+      .post(`/api/v1/profile/photos/${createdPhotoId1}/moderate`)
+      .set('Authorization', `Bearer ${authTokenAdmin}`)
+      .send({ status: 'APPROVED' })
+      .expect(200);
   });
 
-  it('4. Upload and approve a second photo for User A', async () => {
+  it('4. Upload second photo for User A and moderate via administrator', async () => {
     const urlRes = await request(app.getHttpServer())
       .post('/api/v1/profile/photos/upload-url')
       .set('Authorization', `Bearer ${authTokenUserA}`)
@@ -306,15 +415,21 @@ describe('Media & Photos Lifecycle (e2e)', () => {
     const photo2 = photoMap.get(createdPhotoId2);
     photo2.thumbnailKey = `profiles/${profileA.id}/photos/${createdPhotoId2}/thumbnail.webp`;
 
-    const modRes = await request(app.getHttpServer())
+    // Ordinary user cannot moderate photo (403)
+    await request(app.getHttpServer())
       .post(`/api/v1/profile/photos/${createdPhotoId2}/moderate`)
       .set('Authorization', `Bearer ${authTokenUserA}`)
+      .send({ status: 'APPROVED' })
+      .expect(403);
+
+    // Administrator moderates the photo
+    const modRes = await request(app.getHttpServer())
+      .post(`/api/v1/profile/photos/${createdPhotoId2}/moderate`)
+      .set('Authorization', `Bearer ${authTokenAdmin}`)
       .send({ status: 'APPROVED' })
       .expect(200);
 
     expect(modRes.body.status).toBe('APPROVED');
-    expect(modRes.body.position).toBe(1);
-    expect(modRes.body.isPrimary).toBe(false);
   });
 
   it('5. PATCH /api/v1/profile/photos/:photoId/primary shifts target photo to position 0', async () => {

@@ -25,11 +25,15 @@ interface AuthState {
   challengeId: string | null;
   pendingPhone: string | null;
   expiresIn: number | null;
+  isNewUser: boolean;
   isLoading: boolean;
   error: string | null;
 
   // Actions
   checkSession: () => Promise<void>;
+  checkPhone: (phoneNumber: string) => Promise<{ exists: boolean; hasPin: boolean }>;
+  loginWithPin: (phoneNumber: string, pin: string) => Promise<boolean>;
+  deleteAccount: (reason?: string) => Promise<boolean>;
   requestOtp: (phoneNumber: string) => Promise<boolean>;
   verifyOtp: (otp: string) => Promise<boolean>;
   quickLogin: (phoneNumber: string) => Promise<boolean>;
@@ -56,6 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     challengeId: null,
     pendingPhone: null,
     expiresIn: null,
+    isNewUser: false,
     isLoading: false,
     error: null,
 
@@ -106,6 +111,87 @@ export const useAuthStore = create<AuthState>((set, get) => {
           });
         }
       }
+    },
+
+    checkPhone: async (phoneNumber: string) => {
+      set({ isLoading: true, error: null });
+      try {
+        const response = await apiClient.post<{ exists: boolean; hasPin: boolean }>(
+          '/auth/check-phone',
+          { phoneNumber },
+        );
+        const isNew = !response.data.exists || !response.data.hasPin;
+        set({
+          pendingPhone: phoneNumber,
+          isNewUser: isNew,
+          isLoading: false,
+          error: null,
+        });
+        return response.data;
+      } catch (err: any) {
+        const message =
+          err.response?.data?.message ||
+          (err.message === 'Network Error' || err.code === 'ECONNABORTED'
+            ? `Unable to connect to server at ${API_BASE_URL}. Please check your connection.`
+            : 'Failed to verify phone number. Please try again.');
+        set({
+          error: typeof message === 'string' ? message : message[0],
+          isLoading: false,
+        });
+        throw err;
+      }
+    },
+
+    loginWithPin: async (phoneNumber: string, pin: string) => {
+      set({ isLoading: true, error: null });
+      try {
+        const response = await apiClient.post<{
+          user: SafeUser;
+          accessToken: string;
+          refreshToken: string;
+          expiresIn: number;
+        }>('/auth/pin-login', {
+          phoneNumber,
+          pin,
+        });
+
+        const { user, accessToken, refreshToken } = response.data;
+        await SecureStorage.setAccessToken(accessToken);
+        await SecureStorage.setRefreshToken(refreshToken);
+
+        set({
+          status: 'AUTHENTICATED',
+          user,
+          challengeId: null,
+          pendingPhone: null,
+          isLoading: false,
+          error: null,
+        });
+        return true;
+      } catch (err: any) {
+        const message =
+          err.response?.data?.message ||
+          (err.message === 'Network Error'
+            ? 'Unable to connect to server. Please check your internet connection.'
+            : 'Incorrect security PIN. Please try again.');
+        set({
+          error: typeof message === 'string' ? message : message[0],
+          isLoading: false,
+        });
+        return false;
+      }
+    },
+
+    deleteAccount: async (reason?: string) => {
+      set({ isLoading: true });
+      try {
+        await apiClient.delete('/profile/me', { data: { reason } });
+      } catch (err: any) {
+        console.warn('Backend deletion call warning:', err.message);
+      } finally {
+        await get().logout();
+      }
+      return true;
     },
 
     requestOtp: async (phoneNumber: string) => {

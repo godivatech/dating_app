@@ -12,12 +12,18 @@ interface MemoryRecord {
   expiresAt: number | null;
 }
 
+interface MemorySetRecord {
+  members: Set<string>;
+  expiresAt: number | null;
+}
+
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
   private isConnected = false;
   private readonly memoryStore = new Map<string, MemoryRecord>();
+  private readonly memorySets = new Map<string, MemorySetRecord>();
 
   constructor(private readonly configService: ConfigService) {}
 
@@ -26,6 +32,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
     const nodeEnv = this.configService.get<string>('NODE_ENV') || 'development';
     const isProduction = nodeEnv === 'production';
+
+    if (redisUrl === 'memory' || redisUrl === 'none') {
+      this.logger.log(`Using in-memory store for ${nodeEnv} environment (REDIS_URL=${redisUrl})`);
+      this.isConnected = false;
+      return;
+    }
 
     try {
       this.client = new Redis(redisUrl, {
@@ -62,7 +74,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         );
         this.isConnected = false;
         if (this.client) {
-          this.client.disconnect();
+          this.client.disconnect(false);
           this.client = null;
         }
       }
@@ -70,11 +82,22 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
-    if (this.client && this.isConnected) {
-      await this.client.quit();
-      this.logger.log('Disconnected from Redis');
+    if (this.client) {
+      if (this.isConnected) {
+        try {
+          await this.client.quit();
+          this.logger.log('Disconnected from Redis');
+        } catch {
+          this.client.disconnect(false);
+        }
+      } else {
+        this.client.disconnect(false);
+      }
+      this.client = null;
     }
+    this.isConnected = false;
     this.memoryStore.clear();
+    this.memorySets.clear();
   }
 
   /**
@@ -172,13 +195,169 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       await this.client.del(key);
     } else {
       this.memoryStore.delete(key);
+      this.memorySets.delete(key);
     }
+  }
+
+  async sadd(key: string, member: string): Promise<number> {
+    if (this.isConnected && this.client) {
+      return this.client.sadd(key, member);
+    }
+
+    this.cleanExpiredMemorySet(key);
+    let record = this.memorySets.get(key);
+    if (!record) {
+      record = { members: new Set<string>(), expiresAt: null };
+      this.memorySets.set(key, record);
+    }
+    const had = record.members.has(member);
+    record.members.add(member);
+    return had ? 0 : 1;
+  }
+
+  async srem(key: string, member: string): Promise<number> {
+    if (this.isConnected && this.client) {
+      return this.client.srem(key, member);
+    }
+
+    this.cleanExpiredMemorySet(key);
+    const record = this.memorySets.get(key);
+    if (!record) return 0;
+    const removed = record.members.delete(member);
+    if (record.members.size === 0) {
+      this.memorySets.delete(key);
+    }
+    return removed ? 1 : 0;
+  }
+
+  async scard(key: string): Promise<number> {
+    if (this.isConnected && this.client) {
+      return this.client.scard(key);
+    }
+
+    this.cleanExpiredMemorySet(key);
+    const record = this.memorySets.get(key);
+    return record ? record.members.size : 0;
+  }
+
+  async smembers(key: string): Promise<string[]> {
+    if (this.isConnected && this.client) {
+      return this.client.smembers(key);
+    }
+
+    this.cleanExpiredMemorySet(key);
+    const record = this.memorySets.get(key);
+    return record ? Array.from(record.members) : [];
+  }
+
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (this.isConnected && this.client) {
+      const res = await this.client.expire(key, seconds);
+      return res === 1;
+    }
+
+    this.cleanExpiredMemoryKey(key);
+    this.cleanExpiredMemorySet(key);
+
+    const valRecord = this.memoryStore.get(key);
+    if (valRecord) {
+      valRecord.expiresAt = Date.now() + seconds * 1000;
+      return true;
+    }
+    const setRecord = this.memorySets.get(key);
+    if (setRecord) {
+      setRecord.expiresAt = Date.now() + seconds * 1000;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Retrieves remaining TTL in seconds for a key.
+   * Returns -2 if key does not exist or expired, -1 if no expiry set.
+   */
+  async ttl(key: string): Promise<number> {
+    if (this.isConnected && this.client) {
+      return this.client.ttl(key);
+    }
+
+    this.cleanExpiredMemoryKey(key);
+    this.cleanExpiredMemorySet(key);
+
+    const valRecord = this.memoryStore.get(key);
+    if (valRecord) {
+      if (valRecord.expiresAt === null) return -1;
+      return Math.max(0, Math.ceil((valRecord.expiresAt - Date.now()) / 1000));
+    }
+    const setRecord = this.memorySets.get(key);
+    if (setRecord) {
+      if (setRecord.expiresAt === null) return -1;
+      return Math.max(0, Math.ceil((setRecord.expiresAt - Date.now()) / 1000));
+    }
+    return -2;
+  }
+
+  /**
+   * Refreshes the expiry on a batch of presence keys.
+   * Uses pipelined Redis operations when connected, or memory updates in fallback.
+   */
+  async refreshPresenceTtls(
+    userIds: string[],
+    expirySeconds: number,
+  ): Promise<{ refreshedCount: number; missingUserIds: string[] }> {
+    if (userIds.length === 0) {
+      return { refreshedCount: 0, missingUserIds: [] };
+    }
+
+    if (this.isConnected && this.client) {
+      const pipeline = this.client.pipeline();
+      for (const userId of userIds) {
+        pipeline.expire(`presence:sockets:${userId}`, expirySeconds);
+      }
+      const results = await pipeline.exec();
+      let refreshedCount = 0;
+      const missingUserIds: string[] = [];
+
+      if (results) {
+        results.forEach(([err, result], idx) => {
+          if (!err && result === 1) {
+            refreshedCount++;
+          } else {
+            missingUserIds.push(userIds[idx]);
+          }
+        });
+      }
+      return { refreshedCount, missingUserIds };
+    }
+
+    // In-memory fallback
+    let refreshedCount = 0;
+    const missingUserIds: string[] = [];
+    for (const userId of userIds) {
+      const refreshed = await this.expire(
+        `presence:sockets:${userId}`,
+        expirySeconds,
+      );
+      if (refreshed) {
+        refreshedCount++;
+      } else {
+        missingUserIds.push(userId);
+      }
+    }
+    return { refreshedCount, missingUserIds };
   }
 
   private cleanExpiredMemoryKey(key: string): void {
     const record = this.memoryStore.get(key);
     if (record && record.expiresAt && record.expiresAt <= Date.now()) {
       this.memoryStore.delete(key);
+    }
+  }
+
+  private cleanExpiredMemorySet(key: string): void {
+    const record = this.memorySets.get(key);
+    if (record && record.expiresAt && record.expiresAt <= Date.now()) {
+      this.memorySets.delete(key);
     }
   }
 }

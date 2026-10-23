@@ -25,6 +25,7 @@ model User {
   id                 String                         @id @default(uuid())
   phoneNumber        String                         @unique // Normalized canonical E.164 (e.g. +919876543210)
   phoneVerifiedAt    DateTime?
+  pinHash            String?                        // Salted scrypt hash (salt:hash) for secure 4-digit PIN authentication
   status             UserStatus                     @default(ACTIVE)
   role               UserRole                       @default(USER)
   createdAt          DateTime                       @default(now())
@@ -845,6 +846,7 @@ model VirtualGiftTransaction {
   creatorEarningPaise Int         // 50% in Paise (1 coin = 100 paise; e.g. 500, 1500, 3500, 7500, 15000 paise)
   conversationId      String?
   callId              String?
+  idempotencyKey      String?     @unique
   createdAt           DateTime    @default(now())
 
   @@index([senderUserId, createdAt])

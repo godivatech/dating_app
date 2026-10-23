@@ -10,9 +10,17 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AgoraTokenService } from './agora-token.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import type { StorageService } from '../../media/storage/storage.interface';
-import { STORAGE_SERVICE } from '../../media/storage/storage.interface';
-import { InitiateCallDto, AcceptCallDto, RejectCallDto, EndCallDto } from '../dto/call.dto';
+import {
+  STORAGE_SERVICE,
+  type StorageService,
+} from '../../media/storage/storage.interface';
+import {
+  InitiateCallDto,
+  AcceptCallDto,
+  RejectCallDto,
+  EndCallDto,
+  RefreshTokenDto,
+} from '../dto/call.dto';
 import {
   CallStatus,
   CallType,
@@ -50,7 +58,7 @@ export class CallService {
     @Inject(STORAGE_SERVICE)
     private readonly storageService: StorageService,
     private readonly creditService: CreditService,
-  ) {}
+  ) { }
 
   /**
    * Evaluates calling tier with strict caller authorization and anti-abuse vibe check quota.
@@ -78,7 +86,9 @@ export class CallService {
     const callerEntitlement = await this.prisma.userEntitlement.findFirst({
       where: {
         userId: callerUserId,
-        entitlementKey: { in: [requiredEntitlement, EntitlementKey.VIDEO_CALL] },
+        entitlementKey: {
+          in: [requiredEntitlement, EntitlementKey.VIDEO_CALL],
+        },
         isActive: true,
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
@@ -94,7 +104,8 @@ export class CallService {
       };
     }
 
-    const config = callType === CallType.AUDIO ? CALL_CONFIG.AUDIO : CALL_CONFIG.VIDEO;
+    const config =
+      callType === CallType.AUDIO ? CALL_CONFIG.AUDIO : CALL_CONFIG.VIDEO;
 
     // 2. If caller agreed to paid call or requested extended call
     if (agreedCoins !== undefined && agreedCoins >= config.coins) {
@@ -115,7 +126,9 @@ export class CallService {
 
     // 3. Free Vibe Check Check: Enforce strictly 1 free vibe check per matched pair per 24 hours
     const pairKey = [callerUserId, receiverUserId].sort().join(':');
-    const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    const istDate = new Date(Date.now() + 5.5 * 3600 * 1000)
+      .toISOString()
+      .slice(0, 10);
     const dailyVibeKey = `call:vibe_check:${pairKey}:${istDate}`;
 
     const alreadyUsed = await this.redisService.get(dailyVibeKey);
@@ -142,13 +155,14 @@ export class CallService {
     };
   }
 
-
   /**
    * Initiates an outgoing audio or video call.
    */
   async initiateCall(callerUserId: string, dto: InitiateCallDto) {
     if (callerUserId === dto.receiverUserId) {
-      throw new BadRequestException('You cannot initiate a call with yourself.');
+      throw new BadRequestException(
+        'You cannot initiate a call with yourself.',
+      );
     }
 
     // 0. Verify caller active status and safety restrictions
@@ -159,7 +173,9 @@ export class CallService {
       });
       if (caller) {
         if (caller.status !== UserStatus.ACTIVE) {
-          throw new ForbiddenException('Your account is not permitted to initiate calls.');
+          throw new ForbiddenException(
+            'Your account is not permitted to initiate calls.',
+          );
         }
         if (
           caller.messagingRestrictedUntil &&
@@ -173,11 +189,18 @@ export class CallService {
     }
 
     // 1. Check if caller already has an active call
-    const callerActiveCallId = await this.redisService.get(`user:call_state:${callerUserId}`);
+    const callerActiveCallId = await this.redisService.get(
+      `user:call_state:${callerUserId}`,
+    );
     if (callerActiveCallId) {
       const activeCall = await this.prisma.callLog.findUnique({
         where: { id: callerActiveCallId },
-        select: { id: true, status: true, callerUserId: true, receiverUserId: true },
+        select: {
+          id: true,
+          status: true,
+          callerUserId: true,
+          receiverUserId: true,
+        },
       });
       if (
         !activeCall ||
@@ -198,7 +221,10 @@ export class CallService {
           `[CALL_REPLACE] Caller ${callerUserId} initiating new call while prior call ${callerActiveCallId} active. Auto-terminating prior call.`,
         );
         try {
-          await this.endCall(callerUserId, { callId: callerActiveCallId, reason: CallEndReason.CALLER_HANGUP });
+          await this.endCall(callerUserId, {
+            callId: callerActiveCallId,
+            reason: CallEndReason.CALLER_HANGUP,
+          });
         } catch {
           await this.redisService.del(`user:call_state:${callerUserId}`);
         }
@@ -215,11 +241,16 @@ export class CallService {
     });
 
     if (!match || match.status !== MatchStatus.ACTIVE) {
-      throw new ForbiddenException('Calls are only permitted between actively matched profiles.');
+      throw new ForbiddenException(
+        'Calls are only permitted between actively matched profiles.',
+      );
     }
 
-    const isCallerInMatch = match.user1Id === callerUserId || match.user2Id === callerUserId;
-    const isReceiverInMatch = match.user1Id === dto.receiverUserId || match.user2Id === dto.receiverUserId;
+    const isCallerInMatch =
+      match.user1Id === callerUserId || match.user2Id === callerUserId;
+    const isReceiverInMatch =
+      match.user1Id === dto.receiverUserId ||
+      match.user2Id === dto.receiverUserId;
 
     if (!isCallerInMatch || !isReceiverInMatch) {
       throw new ForbiddenException('Invalid match participants for calling.');
@@ -240,11 +271,18 @@ export class CallService {
     }
 
     // 4. Check if receiver is already in an active call (Busy state)
-    const receiverActiveCallId = await this.redisService.get(`user:call_state:${dto.receiverUserId}`);
+    const receiverActiveCallId = await this.redisService.get(
+      `user:call_state:${dto.receiverUserId}`,
+    );
     if (receiverActiveCallId) {
       const activeCall = await this.prisma.callLog.findUnique({
         where: { id: receiverActiveCallId },
-        select: { id: true, status: true, callerUserId: true, receiverUserId: true },
+        select: {
+          id: true,
+          status: true,
+          callerUserId: true,
+          receiverUserId: true,
+        },
       });
       if (
         !activeCall ||
@@ -258,20 +296,27 @@ export class CallService {
         );
         await this.redisService.del(`user:call_state:${dto.receiverUserId}`);
       } else if (
-        (activeCall.callerUserId === callerUserId && activeCall.receiverUserId === dto.receiverUserId) ||
-        (activeCall.callerUserId === dto.receiverUserId && activeCall.receiverUserId === callerUserId)
+        (activeCall.callerUserId === callerUserId &&
+          activeCall.receiverUserId === dto.receiverUserId) ||
+        (activeCall.callerUserId === dto.receiverUserId &&
+          activeCall.receiverUserId === callerUserId)
       ) {
         // The receiver was in a prior call with the SAME caller (e.g. caller just hung up and is redialing/switching to video).
         this.logger.log(
           `[CALL_REPLACE] Receiver ${dto.receiverUserId} was in prior call ${receiverActiveCallId} with same caller ${callerUserId}. Auto-terminating prior call session.`,
         );
         try {
-          await this.endCall(callerUserId, { callId: receiverActiveCallId, reason: CallEndReason.CALLER_HANGUP });
+          await this.endCall(callerUserId, {
+            callId: receiverActiveCallId,
+            reason: CallEndReason.CALLER_HANGUP,
+          });
         } catch {
           await this.redisService.del(`user:call_state:${dto.receiverUserId}`);
         }
       } else {
-        this.logger.log(`[CALL_BUSY] Receiver ${dto.receiverUserId} is genuinely on call ${receiverActiveCallId}`);
+        this.logger.log(
+          `[CALL_BUSY] Receiver ${dto.receiverUserId} is genuinely on call ${receiverActiveCallId}`,
+        );
         const busyCall = await this.prisma.callLog.create({
           data: {
             matchId: dto.matchId,
@@ -293,9 +338,13 @@ export class CallService {
     }
 
     // 5. Glare Condition Check: Did receiver initiate a call to caller in last 10 seconds?
-    const glareCallId = await this.redisService.get(`call:glare:${dto.receiverUserId}:${callerUserId}`);
+    const glareCallId = await this.redisService.get(
+      `call:glare:${dto.receiverUserId}:${callerUserId}`,
+    );
     if (glareCallId) {
-      this.logger.log(`[CALL_GLARE_DETECTED] Merging simultaneous calls between ${callerUserId} and ${dto.receiverUserId}`);
+      this.logger.log(
+        `[CALL_GLARE_DETECTED] Merging simultaneous calls between ${callerUserId} and ${dto.receiverUserId}`,
+      );
       return this.acceptCall(callerUserId, { callId: glareCallId });
     }
 
@@ -336,7 +385,8 @@ export class CallService {
         callType,
         status: CallStatus.RINGING,
         channelName,
-        agreedCoins: callingTier.requiredCoins > 0 ? callingTier.requiredCoins : null,
+        agreedCoins:
+          callingTier.requiredCoins > 0 ? callingTier.requiredCoins : null,
         payerUserId: callingTier.payerUserId || null,
         isEscrowHeld,
       },
@@ -345,7 +395,11 @@ export class CallService {
           include: {
             profile: {
               include: {
-                photos: { where: { status: 'APPROVED' }, orderBy: { position: 'asc' }, take: 1 },
+                photos: {
+                  where: { status: 'APPROVED' },
+                  orderBy: { position: 'asc' },
+                  take: 1,
+                },
               },
             },
           },
@@ -353,17 +407,33 @@ export class CallService {
       },
     });
 
-
     // 7. Store call state in Redis (with 5 minute safety TTL)
-    await this.redisService.set(`user:call_state:${callerUserId}`, callLog.id, 300);
-    await this.redisService.set(`user:call_state:${dto.receiverUserId}`, callLog.id, 300);
-    await this.redisService.set(`call:glare:${callerUserId}:${dto.receiverUserId}`, callLog.id, 30);
+    await this.redisService.set(
+      `user:call_state:${callerUserId}`,
+      callLog.id,
+      300,
+    );
+    await this.redisService.set(
+      `user:call_state:${dto.receiverUserId}`,
+      callLog.id,
+      300,
+    );
+    await this.redisService.set(
+      `call:glare:${callerUserId}:${dto.receiverUserId}`,
+      callLog.id,
+      30,
+    );
 
     // 8. Dispatch Real-Time Push Notification to Receiver (Does NOT write a persistent row to Notification inbox)
     const callerProfile = callLog.callerUser.profile;
     const callerName = callerProfile?.displayName || 'Someone';
-    const callerPhotoKey = callerProfile?.photos?.[0]?.thumbnailKey || callerProfile?.photos?.[0]?.objectKey || null;
-    const callerAvatarUrl = callerPhotoKey ? this.storageService.getPublicUrl(callerPhotoKey) : null;
+    const callerPhotoKey =
+      callerProfile?.photos?.[0]?.thumbnailKey ||
+      callerProfile?.photos?.[0]?.objectKey ||
+      null;
+    const callerAvatarUrl = callerPhotoKey
+      ? this.storageService.getPublicUrl(callerPhotoKey)
+      : null;
 
     try {
       await this.notificationsService.sendPushOnly(dto.receiverUserId, {
@@ -385,7 +455,9 @@ export class CallService {
         },
       });
     } catch (err: any) {
-      this.logger.warn(`Push notification dispatch failed for call ${callLog.id}: ${err.message}`);
+      this.logger.warn(
+        `Push notification dispatch failed for call ${callLog.id}: ${err.message}`,
+      );
     }
 
     return {
@@ -420,19 +492,26 @@ export class CallService {
       throw new NotFoundException('Call session not found.');
     }
 
-    if (callLog.receiverUserId !== receiverUserId && callLog.callerUserId !== receiverUserId) {
+    if (
+      callLog.receiverUserId !== receiverUserId &&
+      callLog.callerUserId !== receiverUserId
+    ) {
       throw new ForbiddenException('You are not a participant of this call.');
     }
 
-    if (callLog.status !== CallStatus.INITIATED && callLog.status !== CallStatus.RINGING) {
-      throw new BadRequestException(`Call is no longer active (status: ${callLog.status}).`);
+    if (
+      callLog.status !== CallStatus.INITIATED &&
+      callLog.status !== CallStatus.RINGING
+    ) {
+      throw new BadRequestException(
+        `Call is no longer active (status: ${callLog.status}).`,
+      );
     }
 
     // Determine authorized duration:
     // If escrow was held, duration is 900s (15 mins). If free vibe check, 60s.
-    const maxDurationSeconds = callLog.isEscrowHeld || callLog.agreedCoins
-      ? 900
-      : 60;
+    const maxDurationSeconds =
+      callLog.isEscrowHeld || callLog.agreedCoins ? 900 : 60;
 
     // Deterministic UIDs: caller = 1001, receiver = 2002
     const callerUid = 1001;
@@ -464,8 +543,16 @@ export class CallService {
     });
 
     // Refresh Redis state TTL for active call
-    await this.redisService.set(`user:call_state:${callLog.callerUserId}`, callLog.id, maxDurationSeconds + 60);
-    await this.redisService.set(`user:call_state:${callLog.receiverUserId}`, callLog.id, maxDurationSeconds + 60);
+    await this.redisService.set(
+      `user:call_state:${callLog.callerUserId}`,
+      callLog.id,
+      maxDurationSeconds + 60,
+    );
+    await this.redisService.set(
+      `user:call_state:${callLog.receiverUserId}`,
+      callLog.id,
+      maxDurationSeconds + 60,
+    );
 
     return {
       callId: updated.id,
@@ -518,7 +605,9 @@ export class CallService {
     // Clean up Redis call state
     await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
-    await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
+    await this.redisService.del(
+      `call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`,
+    );
 
     // If caller had coins held in escrow, release them immediately
     if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
@@ -566,7 +655,9 @@ export class CallService {
 
     await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
-    await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
+    await this.redisService.del(
+      `call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`,
+    );
 
     // Release escrow
     if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
@@ -612,7 +703,10 @@ export class CallService {
     let durationSeconds = 0;
 
     if (callLog.connectedAt) {
-      durationSeconds = Math.max(0, Math.floor((now.getTime() - callLog.connectedAt.getTime()) / 1000));
+      durationSeconds = Math.max(
+        0,
+        Math.floor((now.getTime() - callLog.connectedAt.getTime()) / 1000),
+      );
     }
 
     const isCaller = callLog.callerUserId === userId;
@@ -637,7 +731,9 @@ export class CallService {
     // Clean up Redis
     await this.redisService.del(`user:call_state:${callLog.callerUserId}`);
     await this.redisService.del(`user:call_state:${callLog.receiverUserId}`);
-    await this.redisService.del(`call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`);
+    await this.redisService.del(
+      `call:glare:${callLog.callerUserId}:${callLog.receiverUserId}`,
+    );
 
     // 2-Phase Escrow Settlement:
     if (callLog.isEscrowHeld && callLog.agreedCoins && callLog.payerUserId) {
@@ -663,7 +759,12 @@ export class CallService {
         where: { id: callLog.id },
         data: { isEscrowHeld: false },
       });
-    } else if (!callLog.connectedAt && callLog.isEscrowHeld && callLog.payerUserId && callLog.agreedCoins) {
+    } else if (
+      !callLog.connectedAt &&
+      callLog.isEscrowHeld &&
+      callLog.payerUserId &&
+      callLog.agreedCoins
+    ) {
       await this.creditService.releaseCoins(
         callLog.payerUserId,
         callLog.agreedCoins,
@@ -678,19 +779,24 @@ export class CallService {
 
     // If it was a free vibe check, record into Redis to prevent repeated free calls in 24h
     if (!callLog.agreedCoins && durationSeconds >= 30) {
-      const pairKey = [callLog.callerUserId, callLog.receiverUserId].sort().join(':');
-      const istDate = new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+      const pairKey = [callLog.callerUserId, callLog.receiverUserId]
+        .sort()
+        .join(':');
+      const istDate = new Date(Date.now() + 5.5 * 3600 * 1000)
+        .toISOString()
+        .slice(0, 10);
       const dailyVibeKey = `call:vibe_check:${pairKey}:${istDate}`;
       await this.redisService.set(dailyVibeKey, '1', 86400);
     }
-
 
     // If call was never connected and caller hung up, record missed call for receiver
     if (!callLog.connectedAt && isCaller) {
       await this.dispatchMissedCallNotification(callLog);
     }
 
-    this.logger.log(`[CALL_ENDED] Call ${callLog.id} ended. Duration: ${durationSeconds}s. Reason: ${endReason}`);
+    this.logger.log(
+      `[CALL_ENDED] Call ${callLog.id} ended. Duration: ${durationSeconds}s. Reason: ${endReason}`,
+    );
 
     return {
       callId: updated.id,
@@ -712,7 +818,8 @@ export class CallService {
         select: { displayName: true },
       });
       const callerName = callerProfile?.displayName || 'Your match';
-      const callTypeLabel = callLog.callType === CallType.VIDEO ? 'video' : 'audio';
+      const callTypeLabel =
+        callLog.callType === CallType.VIDEO ? 'video' : 'audio';
 
       const conversation = await this.prisma.conversation.findFirst({
         where: { matchId: callLog.matchId },
@@ -738,7 +845,9 @@ export class CallService {
         `missed_call:${callLog.id}`,
       );
     } catch (notifErr: any) {
-      this.logger.warn(`Failed to dispatch missed call notification: ${notifErr.message}`);
+      this.logger.warn(
+        `Failed to dispatch missed call notification: ${notifErr.message}`,
+      );
     }
   }
 
@@ -790,4 +899,97 @@ export class CallService {
       };
     });
   }
+
+  /**
+   * Refreshes Agora RTC token for an active call participant.
+   * Resolves channel name and user UID from trusted server records.
+   */
+  async refreshToken(userId: string, dto: RefreshTokenDto) {
+    const callLog = await this.prisma.callLog.findUnique({
+      where: { id: dto.callId },
+    });
+
+    if (!callLog) {
+      throw new NotFoundException('Call session not found.');
+    }
+
+    const isCaller = callLog.callerUserId === userId;
+    const isReceiver = callLog.receiverUserId === userId;
+
+    if (!isCaller && !isReceiver) {
+      throw new ForbiddenException('You are not a participant in this call.');
+    }
+
+    const allowedStatuses: CallStatus[] = [
+      CallStatus.ACCEPTED,
+      CallStatus.RINGING,
+      CallStatus.INITIATED,
+    ];
+
+    if (!allowedStatuses.includes(callLog.status)) {
+      throw new ForbiddenException(
+        `Cannot refresh token for call with status ${callLog.status}.`,
+      );
+    }
+
+    const expectedUid = isCaller ? 1001 : 2002;
+
+    // Determine authorized duration and remaining TTL based on call economics
+    const isPaidOrVip =
+      callLog.isEscrowHeld ||
+      Boolean(callLog.agreedCoins) ||
+      Boolean(callLog.payerUserId);
+    const maxDurationSeconds = isPaidOrVip ? 900 : 60;
+
+    // For ACCEPTED calls, duration is bounded by maxDurationSeconds.
+    // For pre-connect calls (RINGING/INITIATED where connectedAt is null), duration is bounded
+    // by the ringing window (CALL_TIMEOUT_SECONDS + buffer = 60s) to prevent indefinite token refresh.
+    const isConnected = callLog.status === CallStatus.ACCEPTED;
+    const maxAllowedSeconds = isConnected
+      ? maxDurationSeconds
+      : Math.min(60, maxDurationSeconds);
+
+    const referenceStartTime =
+      callLog.connectedAt ?? (callLog as any).startedAt ?? (callLog as any).createdAt;
+
+    let remainingSeconds = maxAllowedSeconds;
+    if (referenceStartTime) {
+      const elapsedSeconds = Math.max(
+        0,
+        Math.floor((Date.now() - referenceStartTime.getTime()) / 1000),
+      );
+      if (elapsedSeconds >= maxAllowedSeconds) {
+        throw new ForbiddenException(
+          isConnected
+            ? 'Cannot refresh token: call duration limit has been reached.'
+            : 'Cannot refresh token: call ringing window has expired.',
+        );
+      }
+      remainingSeconds = maxAllowedSeconds - elapsedSeconds;
+    }
+
+    const tokenTtl = remainingSeconds + 30;
+
+    const tokenData = this.agoraTokenService.generateRtcToken(
+      callLog.channelName,
+      expectedUid,
+      undefined,
+      tokenTtl,
+    );
+
+    return {
+      callId: callLog.id,
+      channelName: callLog.channelName,
+      uid: expectedUid,
+      token: tokenData.token,
+      expiresAt: tokenData.expiresAt,
+    };
+  }
 }
+
+
+
+
+// second verification 
+
+

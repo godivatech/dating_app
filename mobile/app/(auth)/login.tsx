@@ -21,7 +21,7 @@ export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const { requestOtp, isLoading, error, clearError } = useAuthStore();
+  const { checkPhone, isLoading, error, clearError } = useAuthStore();
 
   // Validate in real time
   const phoneValidation = validateAndFormatPhone(phoneNumber, 'IN');
@@ -55,10 +55,11 @@ export default function LoginScreen() {
       return;
     }
 
-    // Standard production OTP flow
-    const success = await requestOtp(phoneValidation.e164);
-    if (success) {
+    try {
+      await checkPhone(phoneValidation.e164);
       router.push('/(auth)/verify-otp');
+    } catch {
+      // error handled by auth-store
     }
   };
 
@@ -75,7 +76,7 @@ export default function LoginScreen() {
         <View style={styles.titleSection}>
           <Text style={styles.title}>Enter your number</Text>
           <Text style={styles.subtitle}>
-            We will send you a 6-digit confirmation code to verify your account
+            Enter your mobile number to sign in or create your Truelove profile
           </Text>
         </View>
 
@@ -141,7 +142,7 @@ export default function LoginScreen() {
             {isLoading ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.continueButtonText}>Get OTP Code</Text>
+              <Text style={styles.continueButtonText}>Continue</Text>
             )}
           </TouchableOpacity>
         </View>

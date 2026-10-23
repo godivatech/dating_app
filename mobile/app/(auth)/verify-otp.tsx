@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,13 +18,12 @@ import { Colors } from '../../src/theme/colors';
 
 export default function VerifyOtpScreen() {
   const router = useRouter();
-  const [otp, setOtp] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(60);
+  const [pin, setPin] = useState('');
 
   const {
     pendingPhone,
-    verifyOtp,
-    requestOtp,
+    isNewUser,
+    loginWithPin,
     isLoading,
     error,
     clearError,
@@ -32,36 +31,35 @@ export default function VerifyOtpScreen() {
 
   const { fetchProfile } = useProfileStore();
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const interval = setInterval(() => {
-      setResendCooldown((prev) => prev - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [resendCooldown]);
-
   const handleDigitPress = (digit: string) => {
-    if (otp.length < 6) {
-      const nextOtp = otp + digit;
-      setOtp(nextOtp);
+    if (pin.length < 4) {
+      const nextPin = pin + digit;
+      setPin(nextPin);
       clearError();
+      if (nextPin.length === 4) {
+        handleVerify(nextPin);
+      }
     }
   };
 
   const handleBackspacePress = () => {
-    setOtp((prev) => prev.slice(0, -1));
+    setPin((prev) => prev.slice(0, -1));
     clearError();
   };
 
-  const handleVerify = async () => {
-    if (otp.length !== 6 || isLoading) return;
+  const handleVerify = async (candidatePin?: string) => {
+    const pinToSubmit = candidatePin || pin;
+    if (pinToSubmit.length !== 4 || isLoading || !pendingPhone) return;
     clearError();
 
-    const success = await verifyOtp(otp);
+    const success = await loginWithPin(pendingPhone, pinToSubmit);
     if (success) {
       try {
         const profile = await fetchProfile();
-        if (profile?.status === 'READY' || (profile?.displayName && profile?.status !== 'NOT_STARTED')) {
+        if (
+          profile?.status === 'READY' ||
+          (profile?.displayName && profile?.status !== 'NOT_STARTED')
+        ) {
           router.replace('/');
         } else {
           router.replace('/(onboarding)/identity');
@@ -69,18 +67,14 @@ export default function VerifyOtpScreen() {
       } catch {
         router.replace('/(onboarding)/identity');
       }
+    } else {
+      setPin('');
     }
   };
 
-  const handleResend = async () => {
-    if (resendCooldown > 0 || !pendingPhone || isLoading) return;
+  const handleChangeNumber = () => {
     clearError();
-
-    const success = await requestOtp(pendingPhone);
-    if (success) {
-      setResendCooldown(60);
-      setOtp('');
-    }
+    router.back();
   };
 
   return (
@@ -90,20 +84,28 @@ export default function VerifyOtpScreen() {
       <View style={styles.content}>
         {/* Header Info */}
         <View style={styles.headerSection}>
-          <Text style={styles.stepBadge}>VERIFICATION</Text>
-          <Text style={styles.title}>Enter 6-Digit Code</Text>
+          <Text style={styles.stepBadge}>
+            {isNewUser ? 'ACCOUNT SECURITY' : 'WELCOME BACK'}
+          </Text>
+          <Text style={styles.title}>
+            {isNewUser ? 'Create Security PIN' : 'Enter Security PIN'}
+          </Text>
           <Text style={styles.subtitle}>
-            We sent a verification code to{' '}
-            <Text style={styles.phoneHighlight}>{maskPhoneNumber(pendingPhone)}</Text>
+            {isNewUser
+              ? 'Choose a 4-digit PIN for '
+              : 'Enter your 4-digit security PIN for '}
+            <Text style={styles.phoneHighlight}>
+              {maskPhoneNumber(pendingPhone)}
+            </Text>
           </Text>
         </View>
 
-        {/* 6-Digit OTP Boxes */}
+        {/* 4-Digit PIN Boxes */}
         <View style={styles.otpBoxesContainer}>
-          {[0, 1, 2, 3, 4, 5].map((index) => {
-            const digit = otp[index] || '';
+          {[0, 1, 2, 3].map((index) => {
+            const digit = pin[index] || '';
             const isFilled = digit !== '';
-            const isCurrent = otp.length === index;
+            const isCurrent = pin.length === index;
 
             return (
               <View
@@ -114,7 +116,7 @@ export default function VerifyOtpScreen() {
                   isCurrent && styles.otpBoxCurrent,
                 ]}
               >
-                <Text style={styles.otpBoxText}>{digit}</Text>
+                <Text style={styles.otpBoxText}>{isFilled ? '●' : ''}</Text>
               </View>
             );
           })}
@@ -127,39 +129,35 @@ export default function VerifyOtpScreen() {
           </View>
         ) : null}
 
-        {/* Verify CTA */}
+        {/* Action Section */}
         <View style={styles.actionSection}>
           <TouchableOpacity
             style={[
               styles.verifyButton,
-              (otp.length !== 6 || isLoading) && styles.buttonDisabled,
+              (pin.length !== 4 || isLoading) && styles.buttonDisabled,
             ]}
-            onPress={handleVerify}
-            disabled={otp.length !== 6 || isLoading}
+            onPress={() => handleVerify()}
+            disabled={pin.length !== 4 || isLoading}
             activeOpacity={0.85}
           >
             {isLoading ? (
               <ActivityIndicator color={Colors.white} />
             ) : (
-              <Text style={styles.verifyButtonText}>Verify & Continue</Text>
+              <Text style={styles.verifyButtonText}>
+                {isNewUser ? 'Set PIN & Continue' : 'Sign In'}
+              </Text>
             )}
           </TouchableOpacity>
 
-          {/* Resend link */}
+          {/* Change phone number link */}
           <TouchableOpacity
-            style={styles.resendButton}
-            onPress={handleResend}
-            disabled={resendCooldown > 0 || isLoading}
+            style={styles.changeNumberButton}
+            onPress={handleChangeNumber}
+            disabled={isLoading}
+            activeOpacity={0.7}
           >
-            <Text
-              style={[
-                styles.resendText,
-                resendCooldown > 0 && styles.resendTextDisabled,
-              ]}
-            >
-              {resendCooldown > 0
-                ? `Resend code in ${resendCooldown}s`
-                : 'Resend code'}
+            <Text style={styles.changeNumberText}>
+              Wrong number? <Text style={styles.changeNumberHighlight}>Change number</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -220,16 +218,16 @@ const styles = StyleSheet.create({
   otpBoxesContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 8,
+    gap: 14,
     paddingHorizontal: 20,
     marginTop: 24,
   },
   otpBox: {
-    width: 48,
-    height: 56,
-    borderRadius: 14,
+    width: 58,
+    height: 64,
+    borderRadius: 16,
     backgroundColor: Colors.backgroundSecondary,
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
@@ -239,13 +237,13 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   otpBoxCurrent: {
-    borderColor: Colors.dark,
+    borderColor: Colors.primary,
     backgroundColor: Colors.white,
   },
   otpBoxText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: Colors.primary,
   },
   errorBox: {
     backgroundColor: Colors.primaryLight,
@@ -288,17 +286,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
   },
-  resendButton: {
+  changeNumberButton: {
     alignItems: 'center',
     paddingVertical: 12,
+    marginTop: 6,
   },
-  resendText: {
+  changeNumberText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
+    color: Colors.textSecondary,
   },
-  resendTextDisabled: {
-    color: Colors.textMuted,
+  changeNumberHighlight: {
+    color: Colors.primary,
+    fontWeight: '700',
   },
   keypadSection: {
     paddingBottom: Platform.OS === 'ios' ? 10 : 20,

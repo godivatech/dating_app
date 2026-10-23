@@ -21,6 +21,13 @@ import {
 export type PaywallTab = 'COINS' | 'SUBSCRIPTIONS';
 export type PaywallPackCategory = 'ALL' | 'DIRECT_NOTES' | 'BOOST' | 'CALL';
 
+/**
+ * Free Launch Mode: When enabled, all users receive 100% free VIP entitlements
+ * and free coin balances. No mock or real IAP billing calls are made, ensuring
+ * seamless compliance with Google Play Store review policies.
+ */
+export const IS_FREE_LAUNCH_MODE = true;
+
 interface BillingState {
   products: SafeSubscriptionProduct[];
   billingStatus: BillingStatusResponse | null;
@@ -86,16 +93,34 @@ export const useBillingStore = create<BillingState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const response = await apiClient.get<BillingStatusResponse>('/billing/status');
+      const baseCredit = response.data.creditBalance || get().creditBalance;
       set({
         billingStatus: response.data,
         entitlements: response.data.entitlements,
-        creditBalance: response.data.creditBalance || get().creditBalance,
+        creditBalance: IS_FREE_LAUNCH_MODE
+          ? {
+              coins: Math.max(baseCredit?.coins ?? 0, 500),
+              profileBoosts: Math.max(baseCredit?.profileBoosts ?? 0, 10),
+              directNotes: Math.max(baseCredit?.directNotes ?? 0, 50),
+              callPassMinutes: Math.max(baseCredit?.callPassMinutes ?? 0, 120),
+              boostExpiresAt: baseCredit?.boostExpiresAt ?? null,
+            }
+          : baseCredit,
         isLoading: false,
       });
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Failed to fetch billing status';
       set({
         error: Array.isArray(msg) ? msg[0] : msg,
+        creditBalance: IS_FREE_LAUNCH_MODE
+          ? {
+              coins: 500,
+              profileBoosts: 10,
+              directNotes: 50,
+              callPassMinutes: 120,
+              boostExpiresAt: null,
+            }
+          : get().creditBalance,
         isLoading: false,
       });
     }
@@ -104,8 +129,29 @@ export const useBillingStore = create<BillingState>((set, get) => ({
   fetchCreditBalance: async () => {
     try {
       const response = await apiClient.get<UserCreditBalanceDto>('/billing/credits');
-      set({ creditBalance: response.data });
+      set({
+        creditBalance: IS_FREE_LAUNCH_MODE
+          ? {
+              ...response.data,
+              coins: Math.max(response.data.coins, 500),
+              profileBoosts: Math.max(response.data.profileBoosts, 10),
+              directNotes: Math.max(response.data.directNotes, 50),
+              callPassMinutes: Math.max(response.data.callPassMinutes, 120),
+            }
+          : response.data,
+      });
     } catch (err: any) {
+      if (IS_FREE_LAUNCH_MODE) {
+        set({
+          creditBalance: {
+            coins: 500,
+            profileBoosts: 10,
+            directNotes: 50,
+            callPassMinutes: 120,
+            boostExpiresAt: null,
+          },
+        });
+      }
       console.warn('Failed to fetch credit balance:', err.message);
     }
   },
@@ -332,6 +378,9 @@ export const useBillingStore = create<BillingState>((set, get) => ({
   },
 
   hasEntitlement: (key: EntitlementKey): boolean => {
+    if (IS_FREE_LAUNCH_MODE) {
+      return true;
+    }
     const { entitlements } = get();
     const now = new Date();
     return entitlements.some(

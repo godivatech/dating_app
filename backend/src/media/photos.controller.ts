@@ -19,7 +19,10 @@ import { ModeratePhotoDto } from './dto/moderate-photo.dto';
 import {
   SafeProfilePhoto,
   RequestPhotoUploadResponse,
+  UserRole,
 } from '../../../shared/src/types';
+import { RolesGuard } from '../safety/guards/roles.guard';
+import { Roles } from '../safety/decorators/roles.decorator';
 
 @Controller('profile/photos')
 @UseGuards(JwtAuthGuard)
@@ -100,8 +103,11 @@ export class PhotosController {
 
   /**
    * Test/moderation helper endpoint to approve or reject a photo.
+   * Restricted strictly to administrators and moderators.
    */
   @Post(':photoId/moderate')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MODERATOR)
   @HttpCode(HttpStatus.OK)
   async moderatePhoto(
     @Param('photoId') photoId: string,

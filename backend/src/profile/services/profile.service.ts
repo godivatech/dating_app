@@ -53,7 +53,7 @@ export class ProfileService {
     private readonly safetyPolicyService: SafetyPolicyService,
     @Inject(forwardRef(() => ContentFilterService))
     private readonly contentFilterService: ContentFilterService,
-  ) {}
+  ) { }
 
   private mapToSafePhoto(photo: any): SafeProfilePhoto {
     const isApproved = photo.status === PhotoStatus.APPROVED;
@@ -139,22 +139,22 @@ export class ProfileService {
       completionScore: evaluation.completionScore,
       preferences: profile.preferences
         ? {
-            id: profile.preferences.id,
-            profileId: profile.preferences.profileId,
-            preferredGenderMode: profile.preferences.preferredGenderMode as any,
-            preferredGenders: profile.preferences.preferredGenders as any,
-            minAge: profile.preferences.minAge,
-            maxAge: profile.preferences.maxAge,
-            relationshipIntent: profile.preferences.relationshipIntent as any,
-            globalMode: profile.preferences.globalMode ?? false,
-            preferredLanguages: profile.preferences.preferredLanguages ?? [],
-            targetCity: profile.preferences.targetCity ?? null,
-            targetRegion: profile.preferences.targetRegion ?? null,
-            targetLatitude: profile.preferences.targetLatitude ?? null,
-            targetLongitude: profile.preferences.targetLongitude ?? null,
-            createdAt: profile.preferences.createdAt.toISOString(),
-            updatedAt: profile.preferences.updatedAt.toISOString(),
-          }
+          id: profile.preferences.id,
+          profileId: profile.preferences.profileId,
+          preferredGenderMode: profile.preferences.preferredGenderMode as any,
+          preferredGenders: profile.preferences.preferredGenders as any,
+          minAge: profile.preferences.minAge,
+          maxAge: profile.preferences.maxAge,
+          relationshipIntent: profile.preferences.relationshipIntent as any,
+          globalMode: profile.preferences.globalMode ?? false,
+          preferredLanguages: profile.preferences.preferredLanguages ?? [],
+          targetCity: profile.preferences.targetCity ?? null,
+          targetRegion: profile.preferences.targetRegion ?? null,
+          targetLatitude: profile.preferences.targetLatitude ?? null,
+          targetLongitude: profile.preferences.targetLongitude ?? null,
+          createdAt: profile.preferences.createdAt.toISOString(),
+          updatedAt: profile.preferences.updatedAt.toISOString(),
+        }
         : null,
       interests: interests.map((i) => ({
         id: i.id,
@@ -504,10 +504,10 @@ export class ProfileService {
             : {}),
           ...(hasCoordinates
             ? {
-                latitude: dto.latitude,
-                longitude: dto.longitude,
-                locationUpdatedAt: new Date(),
-              }
+              latitude: dto.latitude,
+              longitude: dto.longitude,
+              locationUpdatedAt: new Date(),
+            }
             : {}),
         },
       });
@@ -760,4 +760,97 @@ export class ProfileService {
       distanceDisplay,
     };
   }
+
+  /**
+   * Permanently deactivates and anonymizes a user account, purges photos from storage,
+   * revokes active sessions, and updates dating profile status.
+   * Fulfills Google Play User Data Policy & Account Deletion Requirement.
+   */
+  async deleteAccount(
+    userId: string,
+    reason?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        profile: {
+          include: { photos: true },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User account not found');
+    }
+
+    const now = Date.now();
+    const scrambledPhone = `deleted_${userId.slice(0, 8)}_${now}`;
+
+    // 1. Delete all user photos from Cloudflare R2 / storage
+    if (user.profile?.photos?.length) {
+      const keysToDelete: string[] = [];
+      for (const photo of user.profile.photos) {
+        if (photo.objectKey) keysToDelete.push(photo.objectKey);
+        if (photo.thumbnailKey) keysToDelete.push(photo.thumbnailKey);
+        if (photo.mediumKey) keysToDelete.push(photo.mediumKey);
+        if (photo.largeKey) keysToDelete.push(photo.largeKey);
+      }
+      if (keysToDelete.length > 0) {
+        try {
+          await this.storageService.deleteObjects(keysToDelete);
+        } catch (err: any) {
+          this.logger.warn(
+            `Failed to batch delete storage files for user ${userId}: ${err.message}`,
+          );
+        }
+      }
+    }
+
+    // 2. Transactionally update database records
+    await this.prisma.$transaction(async (tx) => {
+      // Deactivate user record & scramble phone
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          status: 'DEACTIVATED' as any,
+          phoneNumber: scrambledPhone,
+          pinHash: null,
+        },
+      });
+
+      // Revoke all active auth sessions
+      await tx.authSession.updateMany({
+        where: { userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      // Anonymize and hide dating profile
+      if (user.profile) {
+        await tx.datingProfile.update({
+          where: { userId },
+          data: {
+            displayName: 'Former Member',
+            bio: 'This account has been deleted.',
+            status: ProfileStatus.NOT_STARTED,
+            visibility: ProfileVisibility.HIDDEN,
+          },
+        });
+
+        // Delete photo records
+        await tx.profilePhoto.deleteMany({
+          where: { profileId: user.profile.id },
+        });
+      }
+    });
+
+    this.logger.log(
+      `[ACCOUNT_DELETED_IN_APP] User ${userId} permanently deleted account. Reason: ${reason || 'Not specified'}`,
+    );
+
+    return {
+      success: true,
+      message: 'Your Truelove account and personal data have been permanently deleted.',
+    };
+  }
 }
+

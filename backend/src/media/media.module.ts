@@ -14,6 +14,7 @@ import {
 } from './queue/photo-processing.constants';
 import { R2StorageService } from './storage/r2-storage.service';
 import { STORAGE_SERVICE } from './storage/storage.interface';
+import { RolesGuard } from '../safety/guards/roles.guard';
 
 @Module({
   imports: [PrismaModule, RedisModule, forwardRef(() => ProfileModule)],
@@ -48,7 +49,8 @@ import { STORAGE_SERVICE } from './storage/storage.interface';
         const isCloudWithoutRedis =
           !redisUrl ||
           (redisUrl.includes('localhost') &&
-            (Boolean(process.env.RENDER) || process.env.NODE_ENV === 'production'));
+            (Boolean(process.env.RENDER) ||
+              process.env.NODE_ENV === 'production'));
 
         if (isCloudWithoutRedis) {
           return {
@@ -92,6 +94,7 @@ import { STORAGE_SERVICE } from './storage/storage.interface';
       },
     },
     PhotosService,
+    RolesGuard,
   ],
   exports: [
     PhotosService,

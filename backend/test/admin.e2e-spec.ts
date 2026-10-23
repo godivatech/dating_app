@@ -215,6 +215,15 @@ describe('Admin Operations & Management Domain (e2e)', () => {
           },
         },
       ]),
+      count: jest.fn().mockResolvedValue(10),
+    },
+    notification: {
+      create: jest.fn().mockImplementation(({ data }) => ({
+        id: 'notif-admin-1',
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })),
     },
     userSafetyStrike: {
       create: jest.fn().mockResolvedValue({ id: 'strike-1' }),

@@ -226,15 +226,23 @@ export default function RootLayout() {
         useBillingStore.getState().fetchCreditBalance();
       });
 
-      // Listen for app coming to foreground (resuming from background / screen lock)
+      // Listen for app lifecycle changes (Foreground vs Background)
       const handleAppStateChange = (nextAppState: AppStateStatus) => {
         if (nextAppState === 'active') {
-          console.log('[APP_LIFECYCLE] App active: verifying call and chat sockets...');
+          console.log('[APP_LIFECYCLE] App active: resuming call and chat sockets...');
           callSocket.ensureConnected();
           chatSocket.ensureConnected();
           useBillingStore.getState().fetchBillingStatus();
           useBillingStore.getState().fetchCreditBalance();
           useCreatorStore.getState().fetchWallet();
+        } else if (nextAppState === 'background' || nextAppState === 'inactive') {
+          // Only disconnect if there is no active voice/video call ongoing
+          const isCallActive = !!useCallStore.getState().activeCall;
+          if (!isCallActive) {
+            console.log('[APP_LIFECYCLE] App backgrounded: disconnecting sockets to preserve battery & free hours...');
+            chatSocket.disconnect();
+            callSocket.disconnect();
+          }
         }
       };
       const appStateSub = AppState.addEventListener('change', handleAppStateChange);

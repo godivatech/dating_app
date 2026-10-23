@@ -4,8 +4,18 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { AgoraTokenService } from './agora-token.service';
 import { NotificationsService } from '../../notifications/services/notifications.service';
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { CallStatus, CallType, MatchStatus, CallEndReason, UserStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  CallStatus,
+  CallType,
+  MatchStatus,
+  CallEndReason,
+  UserStatus,
+} from '@prisma/client';
 import { STORAGE_SERVICE } from '../../media/storage/storage.interface';
 import { CreditService } from '../../billing/services/credit.service';
 
@@ -24,7 +34,9 @@ describe('CallService', () => {
   beforeEach(async () => {
     mockCreditService = {
       deductCallMinutes: jest.fn().mockResolvedValue(true),
-      getOrCreateBalance: jest.fn().mockResolvedValue({ coins: 100, coinsReserved: 0 }),
+      getOrCreateBalance: jest
+        .fn()
+        .mockResolvedValue({ coins: 100, coinsReserved: 0 }),
       reserveCoins: jest.fn().mockResolvedValue(true),
       releaseCoins: jest.fn().mockResolvedValue(true),
       captureCoins: jest.fn().mockResolvedValue(true),
@@ -82,7 +94,11 @@ describe('CallService', () => {
         { provide: NotificationsService, useValue: mockNotifications },
         {
           provide: STORAGE_SERVICE,
-          useValue: { getPublicUrl: jest.fn().mockReturnValue('https://example.com/photo.jpg') },
+          useValue: {
+            getPublicUrl: jest
+              .fn()
+              .mockReturnValue('https://example.com/photo.jpg'),
+          },
         },
         {
           provide: CreditService,
@@ -94,14 +110,17 @@ describe('CallService', () => {
     service = module.get<CallService>(CallService);
   });
 
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
   it('should fail if caller calls themselves', async () => {
     await expect(
-      service.initiateCall(callerId, { matchId, receiverUserId: callerId, callType: CallType.VIDEO }),
+      service.initiateCall(callerId, {
+        matchId,
+        receiverUserId: callerId,
+        callType: CallType.VIDEO,
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -168,7 +187,11 @@ describe('CallService', () => {
     });
 
     await expect(
-      service.initiateCall(callerId, { matchId, receiverUserId: receiverId, callType: CallType.VIDEO }),
+      service.initiateCall(callerId, {
+        matchId,
+        receiverUserId: receiverId,
+        callType: CallType.VIDEO,
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
@@ -176,7 +199,11 @@ describe('CallService', () => {
     mockPrisma.match.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.initiateCall(callerId, { matchId, receiverUserId: receiverId, callType: CallType.VIDEO }),
+      service.initiateCall(callerId, {
+        matchId,
+        receiverUserId: receiverId,
+        callType: CallType.VIDEO,
+      }),
     ).rejects.toThrow(ForbiddenException);
   });
 
@@ -417,13 +444,15 @@ describe('CallService', () => {
     );
   });
 
-
   it('should block repeated free vibe checks within 24 hours between same pair if caller has no coins', async () => {
     mockRedis.get.mockImplementation(async (key: string) => {
       if (key.includes('call:vibe_check:')) return '1';
       return null;
     });
-    mockCreditService.getOrCreateBalance.mockResolvedValueOnce({ coins: 0, coinsReserved: 0 });
+    mockCreditService.getOrCreateBalance.mockResolvedValueOnce({
+      coins: 0,
+      coinsReserved: 0,
+    });
 
     await expect(
       service.evaluateCallingTier(callerId, receiverId, CallType.VIDEO),
@@ -435,18 +464,220 @@ describe('CallService', () => {
       if (key.includes('call:vibe_check:')) return '1';
       return null;
     });
-    mockCreditService.getOrCreateBalance.mockResolvedValue({ coins: 50, coinsReserved: 0 });
+    mockCreditService.getOrCreateBalance.mockResolvedValue({
+      coins: 50,
+      coinsReserved: 0,
+    });
 
-    const audioTier = await service.evaluateCallingTier(callerId, receiverId, CallType.AUDIO);
+    const audioTier = await service.evaluateCallingTier(
+      callerId,
+      receiverId,
+      CallType.AUDIO,
+    );
     expect(audioTier.isVibeCheck).toBe(false);
     expect(audioTier.requiredCoins).toBe(15);
     expect(audioTier.payerUserId).toBe(callerId);
     expect(audioTier.maxDurationSeconds).toBe(900);
 
-    const videoTier = await service.evaluateCallingTier(callerId, receiverId, CallType.VIDEO);
+    const videoTier = await service.evaluateCallingTier(
+      callerId,
+      receiverId,
+      CallType.VIDEO,
+    );
     expect(videoTier.isVibeCheck).toBe(false);
     expect(videoTier.requiredCoins).toBe(50);
     expect(videoTier.payerUserId).toBe(callerId);
     expect(videoTier.maxDurationSeconds).toBe(900);
+  });
+
+  describe('refreshToken (SEC-01)', () => {
+    const activeCall = {
+      id: 'call-active-1',
+      matchId,
+      callerUserId: callerId,
+      receiverUserId: receiverId,
+      channelName: 'spark_call_active_channel',
+      status: CallStatus.ACCEPTED,
+      isEscrowHeld: true,
+      agreedCoins: 50,
+    };
+
+    it('should allow authorized caller in a valid active call to refresh token', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue(activeCall);
+
+      const result = await service.refreshToken(callerId, {
+        callId: 'call-active-1',
+      });
+
+      expect(result.callId).toBe('call-active-1');
+      expect(result.channelName).toBe('spark_call_active_channel');
+      expect(result.uid).toBe(1001);
+      expect(result.token).toBe('test_token_xyz');
+      expect(mockAgora.generateRtcToken).toHaveBeenCalledWith(
+        'spark_call_active_channel',
+        1001,
+        undefined,
+        930,
+      );
+    });
+
+    it('should allow authorized receiver in a valid active call to refresh token', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue(activeCall);
+
+      const result = await service.refreshToken(receiverId, {
+        callId: 'call-active-1',
+      });
+
+      expect(result.callId).toBe('call-active-1');
+      expect(result.channelName).toBe('spark_call_active_channel');
+      expect(result.uid).toBe(2002);
+      expect(result.token).toBe('test_token_xyz');
+      expect(mockAgora.generateRtcToken).toHaveBeenCalledWith(
+        'spark_call_active_channel',
+        2002,
+        undefined,
+        930,
+      );
+    });
+
+    it('should allow token refresh during RINGING and INITIATED call states', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue({
+        ...activeCall,
+        status: CallStatus.RINGING,
+      });
+
+      const ringingResult = await service.refreshToken(callerId, {
+        callId: 'call-active-1',
+      });
+      expect(ringingResult.uid).toBe(1001);
+
+      mockPrisma.callLog.findUnique.mockResolvedValue({
+        ...activeCall,
+        status: CallStatus.INITIATED,
+      });
+
+      const initiatedResult = await service.refreshToken(receiverId, {
+        callId: 'call-active-1',
+      });
+      expect(initiatedResult.uid).toBe(2002);
+    });
+
+    it('should deny a non-participant with ForbiddenException', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue(activeCall);
+
+      await expect(
+        service.refreshToken('unrelated-user-999', { callId: 'call-active-1' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should reject non-existent call with NotFoundException', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.refreshToken(callerId, { callId: 'non-existent-call' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should derive channel name and UID strictly from database records', async () => {
+      mockPrisma.callLog.findUnique.mockResolvedValue(activeCall);
+
+      const result = await service.refreshToken(callerId, {
+        callId: 'call-active-1',
+      });
+
+      expect(result.channelName).toBe('spark_call_active_channel');
+      expect(result.uid).toBe(1001);
+    });
+
+    it('should deny token refresh if call duration limit has been reached', async () => {
+      const expiredCall = {
+        ...activeCall,
+        connectedAt: new Date(Date.now() - 905 * 1000),
+      };
+      mockPrisma.callLog.findUnique.mockResolvedValue(expiredCall);
+
+      await expect(
+        service.refreshToken(callerId, { callId: 'call-active-1' }),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          'Cannot refresh token: call duration limit has been reached.',
+        ),
+      );
+    });
+
+    it('should deny token refresh when connectedAt is null but startedAt exceeds duration limit', async () => {
+      const unlinkedCall = {
+        ...activeCall,
+        connectedAt: null,
+        startedAt: new Date(Date.now() - 950 * 1000),
+      };
+      mockPrisma.callLog.findUnique.mockResolvedValue(unlinkedCall);
+
+      await expect(
+        service.refreshToken(callerId, { callId: 'call-active-1' }),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          'Cannot refresh token: call duration limit has been reached.',
+        ),
+      );
+    });
+
+    it('should deny token refresh when call is in RINGING state and ringing window has expired', async () => {
+      const expiredRingingCall = {
+        ...activeCall,
+        status: CallStatus.RINGING,
+        connectedAt: null,
+        startedAt: new Date(Date.now() - 70 * 1000), // 70s ago (> 60s limit)
+      };
+      mockPrisma.callLog.findUnique.mockResolvedValue(expiredRingingCall);
+
+      await expect(
+        service.refreshToken(callerId, { callId: 'call-active-1' }),
+      ).rejects.toThrow(
+        new ForbiddenException(
+          'Cannot refresh token: call ringing window has expired.',
+        ),
+      );
+    });
+
+    it('should calculate remaining token TTL based on elapsed call time plus 30s buffer', async () => {
+      const ongoingCall = {
+        ...activeCall,
+        connectedAt: new Date(Date.now() - 300 * 1000),
+      };
+      mockPrisma.callLog.findUnique.mockResolvedValue(ongoingCall);
+
+      await service.refreshToken(callerId, {
+        callId: 'call-active-1',
+      });
+
+      // 900s total - 300s elapsed = 600s remaining + 30s buffer = 630s
+      expect(mockAgora.generateRtcToken).toHaveBeenCalledWith(
+        'spark_call_active_channel',
+        1001,
+        undefined,
+        expect.any(Number),
+      );
+      const passedTtl = mockAgora.generateRtcToken.mock.calls.slice(-1)[0][3];
+      expect(passedTtl).toBeGreaterThanOrEqual(628);
+      expect(passedTtl).toBeLessThanOrEqual(632);
+    });
+
+    it.each([
+      CallStatus.ENDED,
+      CallStatus.REJECTED,
+      CallStatus.MISSED,
+      CallStatus.BUSY,
+      CallStatus.FAILED,
+    ])('should deny token refresh when call status is %s', async (status) => {
+      mockPrisma.callLog.findUnique.mockResolvedValue({
+        ...activeCall,
+        status,
+      });
+
+      await expect(
+        service.refreshToken(callerId, { callId: 'call-active-1' }),
+      ).rejects.toThrow(ForbiddenException);
+    });
   });
 });

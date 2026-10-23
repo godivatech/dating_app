@@ -19,11 +19,22 @@ export class MockPurchaseProvider implements PurchaseProvider {
       `[MOCK_IAP_VERIFY] Verifying receipt for ${storeProductId} on ${platform}`,
     );
 
-    // Production Security Guard: Mock purchase verification must NEVER be permitted in production.
+    // Production Security Guard: Mock purchase verification is disabled in production.
     if (process.env.NODE_ENV === 'production') {
-      throw new Error(
-        '[SECURITY_VIOLATION] MockPurchaseProvider invoked in production environment. Live store billing must be configured.',
+      this.logger.warn(
+        '[SECURITY_GUARD] Mock purchase attempted in production environment. Returning disabled status.',
       );
+      return {
+        isValid: false,
+        provider: PaymentProvider.MOCK,
+        platform,
+        providerTransactionId: transactionId || `mock_tx_disabled_${Date.now()}`,
+        storeProductId,
+        amount: 0,
+        currency: 'INR',
+        status: TransactionStatus.FAILED,
+        errorMessage: 'In-app purchases are disabled during Free Community Launch.',
+      };
     }
 
     if (receiptToken === 'invalid_token' || receiptToken === 'error_token') {

@@ -7,6 +7,6 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "transformIgnorePatterns": [
-    "node_modules/(?!(@nestjs/passport|@nestjs/jwt|@nestjs/config)/)"
+    "node_modules/(?!(@nestjs/passport|@nestjs/jwt|@nestjs/config|@nestjs/schedule)/)"
   ]
 }

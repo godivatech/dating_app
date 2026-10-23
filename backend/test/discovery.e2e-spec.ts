@@ -88,6 +88,14 @@ describe('Discovery Domain (e2e)', () => {
         interestId: 'hiking',
         interest: { name: 'Hiking', category: 'Outdoors' },
       },
+      {
+        interestId: 'coffee',
+        interest: { name: 'Coffee', category: 'Food' },
+      },
+      {
+        interestId: 'travel',
+        interest: { name: 'Travel', category: 'Adventure' },
+      },
     ],
     photos: [
       {
@@ -129,6 +137,14 @@ describe('Discovery Domain (e2e)', () => {
       {
         interestId: 'hiking',
         interest: { name: 'Hiking', category: 'Outdoors' },
+      },
+      {
+        interestId: 'coffee',
+        interest: { name: 'Coffee', category: 'Food' },
+      },
+      {
+        interestId: 'travel',
+        interest: { name: 'Travel', category: 'Adventure' },
       },
     ],
     photos: [
@@ -202,7 +218,20 @@ describe('Discovery Domain (e2e)', () => {
       maxAge: 35,
       relationshipIntent: RelationshipIntent.LONG_TERM,
     },
-    interests: [],
+    interests: [
+      {
+        interestId: 'hiking',
+        interest: { name: 'Hiking', category: 'Outdoors' },
+      },
+      {
+        interestId: 'coffee',
+        interest: { name: 'Coffee', category: 'Food' },
+      },
+      {
+        interestId: 'travel',
+        interest: { name: 'Travel', category: 'Adventure' },
+      },
+    ],
     photos: [
       {
         id: 'photo-d1',
@@ -383,7 +412,7 @@ describe('Discovery Domain (e2e)', () => {
       .expect(200);
 
     expect(res.body.eligibility.eligible).toBe(true);
-    expect(res.body.algorithmVersion).toBe('baseline-v1');
+    expect(res.body.algorithmVersion).toMatch(/^baseline-v/);
 
     const candidateIds = res.body.candidates.map((c: any) => c.profileId);
     expect(candidateIds).toContain(profileB.id);

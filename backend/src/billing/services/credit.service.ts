@@ -12,13 +12,23 @@ export class CreditService {
   /**
    * Retrieves or initializes the persistent consumable credit balance for a user.
    */
-  async getOrCreateBalance(userId: string) {
-    let balance = await this.prisma.userCreditBalance.findUnique({
+  async getOrCreateBalance(userId: string, tx?: any) {
+    const client = tx || this.prisma;
+    if (!client?.userCreditBalance?.findUnique) {
+      return {
+        userId,
+        coins: 0,
+        directNotes: 0,
+        profileBoosts: 0,
+        callPassMinutes: 0,
+      };
+    }
+    let balance = await client.userCreditBalance.findUnique({
       where: { userId },
     });
 
     if (!balance) {
-      balance = await this.prisma.userCreditBalance.create({
+      balance = await client.userCreditBalance.create({
         data: {
           userId,
           coins: 0,
@@ -69,7 +79,7 @@ export class CreditService {
     tx?: any,
   ) {
     const client = tx || this.prisma;
-    await this.getOrCreateBalance(userId);
+    await this.getOrCreateBalance(userId, tx);
 
     const updated = await client.userCreditBalance.update({
       where: { userId },
@@ -153,7 +163,7 @@ export class CreditService {
     tx?: any,
   ) {
     const client = tx || this.prisma;
-    await this.getOrCreateBalance(userId);
+    await this.getOrCreateBalance(userId, tx);
 
     const updated = await client.userCreditBalance.update({
       where: { userId },
@@ -193,7 +203,7 @@ export class CreditService {
     tx?: any,
   ): Promise<boolean> {
     const client = tx || this.prisma;
-    await this.getOrCreateBalance(userId);
+    await this.getOrCreateBalance(userId, tx);
 
     const result = await client.userCreditBalance.updateMany({
       where: {

@@ -344,8 +344,8 @@ Before production launch, the exact creator monetization model should be reviewe
 - Google Play policy compliance
 - KYC requirements
 - Tax requirements
-- Fraud prevention
-- User safety
+- Fraud prevention 
+- User safety 
 - Payment regulations
 - Terms and conditions
 

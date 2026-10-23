@@ -29,7 +29,7 @@ const getApiBaseUrl = (): string => {
     }
   }
   // Fallback to cloud production backend
-  return 'https://dating-app-ez5c.onrender.com/api/v1';
+  return 'https://dating-app-idvk.onrender.com/api/v1';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

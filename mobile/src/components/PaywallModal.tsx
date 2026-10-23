@@ -13,7 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
-import { useBillingStore } from '../stores/billing-store';
+import { useBillingStore, IS_FREE_LAUNCH_MODE } from '../stores/billing-store';
 import { t } from '../i18n/strings';
 import { SubscriptionTier, SafeSubscriptionProduct } from '../../../shared/src/types';
 import { Colors } from '../theme/colors';
@@ -293,6 +293,10 @@ export const PaywallModal: React.FC = () => {
   const selectedProduct = allProducts.find((p) => p.storeProductId === selectedProductId);
 
   const handlePurchase = async () => {
+    if (IS_FREE_LAUNCH_MODE) {
+      closePaywall();
+      return;
+    }
     if (!selectedProductId) return;
     await purchaseProduct(selectedProductId);
   };
@@ -1049,24 +1053,32 @@ export const PaywallModal: React.FC = () => {
           {/* Error Message */}
           {error && <Text style={styles.errorText}>{error}</Text>}
 
-          {/* Legal / INR Guarantee */}
-          <Text style={styles.legalNotice}>
-            All transactions are processed securely in INR (₹). Auto-renewable subscriptions can be canceled anytime via Google Play / App Store.
-          </Text>
+          {/* Legal / Launch Guarantee */}
+          {IS_FREE_LAUNCH_MODE ? (
+            <Text style={[styles.legalNotice, { color: Colors.primary, fontWeight: '700' }]}>
+              ✨ Truelove Launch Celebration: All VIP perks and coin features are 100% free during our community launch!
+            </Text>
+          ) : (
+            <Text style={styles.legalNotice}>
+              All transactions are processed securely in INR (₹). Auto-renewable subscriptions can be canceled anytime via Google Play / App Store.
+            </Text>
+          )}
 
-          {/* Subtle Bottom Restore Purchases Link (Compliant with Apple / Google Store Review) */}
-          <TouchableOpacity
-            style={styles.restoreLinkContainer}
-            onPress={restorePurchases}
-            disabled={isRestoring}
-            activeOpacity={0.6}
-          >
-            {isRestoring ? (
-              <ActivityIndicator color={Colors.textSecondary} size="small" />
-            ) : (
-              <Text style={styles.restoreLinkText}>Restore Purchases</Text>
-            )}
-          </TouchableOpacity>
+          {/* Restore Purchases (Only shown if live store purchases enabled) */}
+          {!IS_FREE_LAUNCH_MODE && (
+            <TouchableOpacity
+              style={styles.restoreLinkContainer}
+              onPress={restorePurchases}
+              disabled={isRestoring}
+              activeOpacity={0.6}
+            >
+              {isRestoring ? (
+                <ActivityIndicator color={Colors.textSecondary} size="small" />
+              ) : (
+                <Text style={styles.restoreLinkText}>Restore Purchases</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </ScrollView>
 
         {/* Sticky Primary Purchase CTA Bar */}
@@ -1079,10 +1091,12 @@ export const PaywallModal: React.FC = () => {
           <TouchableOpacity
             style={[styles.ctaButton, isPurchasing && styles.ctaButtonDisabled]}
             onPress={handlePurchase}
-            disabled={isPurchasing || !selectedProductId}
+            disabled={isPurchasing || (!selectedProductId && !IS_FREE_LAUNCH_MODE)}
             activeOpacity={0.88}
           >
-            {isPurchasing ? (
+            {IS_FREE_LAUNCH_MODE ? (
+              <Text style={styles.ctaButtonText}>🎉 Claim Free Launch Perks</Text>
+            ) : isPurchasing ? (
               <ActivityIndicator color={Colors.white} size="small" />
             ) : (
               <Text style={styles.ctaButtonText}>

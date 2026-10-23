@@ -17,6 +17,7 @@ import { BillingModule } from './billing/billing.module';
 import { CallModule } from './call/call.module';
 import { AdminModule } from './admin/admin.module';
 import { GiftsModule } from './gifts/gifts.module';
+import { LegalModule } from './legal/legal.module';
 
 /**
  * Root application module — Phase 12.
@@ -46,6 +47,7 @@ import { GiftsModule } from './gifts/gifts.module';
     CallModule,
     AdminModule,
     GiftsModule,
+    LegalModule,
   ],
   controllers: [HealthController],
   providers: [],

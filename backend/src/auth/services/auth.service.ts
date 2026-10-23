@@ -7,9 +7,11 @@ import {
 } from '@nestjs/common';
 import { User, UserStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { OtpService } from './otp.service';
 import { SessionService } from './session.service';
 import { PhoneUtil } from '../utils/phone.util';
+import { PinUtil } from '../utils/pin.util';
 
 export interface SafeUserDto {
   id: string;
@@ -35,6 +37,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly otpService: OtpService,
     private readonly sessionService: SessionService,
+    private readonly redisService: RedisService,
   ) {}
 
   /**
@@ -121,12 +124,158 @@ export class AuthService {
   }
 
   /**
+   * Checks whether a phone number is already registered and if it has a security PIN configured.
+   */
+  async checkPhone(
+    rawPhone: string,
+  ): Promise<{ exists: boolean; hasPin: boolean }> {
+    const { isValid, normalized, error } = PhoneUtil.normalize(rawPhone);
+    if (!isValid || !normalized) {
+      throw new BadRequestException(error || 'Invalid phone number format');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { phoneNumber: normalized },
+      select: { id: true, pinHash: true, status: true },
+    });
+
+    if (user && user.status !== UserStatus.ACTIVE && user.status !== UserStatus.DEACTIVATED) {
+      throw new ForbiddenException(`Account is ${user.status}. Please contact support.`);
+    }
+
+    return {
+      exists: !!user,
+      hasPin: !!user?.pinHash,
+    };
+  }
+
+  /**
+   * Authenticates or registers a user via Phone Number + 4-digit Security PIN.
+   * Zero SMS cost, brute-force protected via Redis, constant-time hashed comparison.
+   */
+  async loginWithPin(
+    rawPhone: string,
+    pin: string,
+    metadata?: { userAgent?: string; ipAddress?: string },
+  ): Promise<AuthResponseDto> {
+    const { isValid, normalized, error } = PhoneUtil.normalize(rawPhone);
+    if (!isValid || !normalized) {
+      throw new BadRequestException(error || 'Invalid phone number format');
+    }
+
+    if (!PinUtil.isValidPinFormat(pin)) {
+      throw new BadRequestException('Security PIN must be 4 to 6 digits');
+    }
+
+    // Rate limiting for PIN attempts (Max 5 attempts per phone within 15 minutes)
+    const attemptsKey = `auth:pin:attempts:${normalized}`;
+    const attemptsStr = await this.redisService.get(attemptsKey);
+    const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+    if (attempts >= 5) {
+      throw new ForbiddenException(
+        'Too many incorrect PIN attempts. For security, please wait 15 minutes before trying again.',
+      );
+    }
+
+    let user = await this.prisma.user.findUnique({
+      where: { phoneNumber: normalized },
+    });
+
+    const now = new Date();
+
+    if (!user) {
+      // New user registration with PIN
+      user = await this.prisma.user.create({
+        data: {
+          phoneNumber: normalized,
+          phoneVerifiedAt: now,
+          pinHash: PinUtil.hashPin(pin),
+          status: UserStatus.ACTIVE,
+          lastLoginAt: now,
+        },
+      });
+      this.logger.log(
+        `[USER_REGISTER_PIN] New user account ${user.id} registered for ${PhoneUtil.mask(normalized)}`,
+      );
+    } else {
+      if (user.status === UserStatus.DEACTIVATED) {
+        // Reactivate deactivated account if authenticating with correct PIN
+        if (user.pinHash) {
+          const isValidPin = PinUtil.verifyPin(pin, user.pinHash);
+          if (!isValidPin) {
+            await this.redisService.set(attemptsKey, (attempts + 1).toString(), 900);
+            throw new UnauthorizedException('Incorrect security PIN. Please try again.');
+          }
+        }
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            status: UserStatus.ACTIVE,
+            pinHash: user.pinHash || PinUtil.hashPin(pin),
+            lastLoginAt: now,
+          },
+        });
+        this.logger.log(`[USER_REACTIVATED] Account ${user.id} reactivated via PIN login.`);
+      } else if (user.status !== UserStatus.ACTIVE) {
+        throw new ForbiddenException(
+          `Account is not active (${user.status}). Please contact support.`,
+        );
+      } else {
+        // User is ACTIVE
+        if (!user.pinHash) {
+          // First time setting PIN on existing account
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              pinHash: PinUtil.hashPin(pin),
+              lastLoginAt: now,
+            },
+          });
+          this.logger.log(`[USER_PIN_SET] Security PIN initialized for user ${user.id}`);
+        } else {
+          // Verify existing PIN
+          const isValidPin = PinUtil.verifyPin(pin, user.pinHash);
+          if (!isValidPin) {
+            await this.redisService.set(attemptsKey, (attempts + 1).toString(), 900);
+            const remaining = Math.max(0, 4 - attempts);
+            throw new UnauthorizedException(
+              `Incorrect security PIN. ${remaining > 0 ? `${remaining} attempt(s) remaining.` : 'Account temporarily locked for 15 minutes.'}`,
+            );
+          }
+          // Reset attempts on successful PIN entry
+          await this.redisService.del(attemptsKey);
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              lastLoginAt: now,
+            },
+          });
+          this.logger.log(`[USER_LOGIN_PIN] User ${user.id} logged in with PIN`);
+        }
+      }
+    }
+
+    const sessionResult = await this.sessionService.createSession(user, metadata);
+
+    return {
+      user: this.formatSafeUser(user),
+      accessToken: sessionResult.accessToken,
+      refreshToken: sessionResult.refreshToken,
+      expiresIn: sessionResult.expiresIn,
+    };
+  }
+
+  /**
    * Direct instant login for seamless development without OTP delays.
    */
   async devLogin(
     rawPhone: string,
     metadata?: { userAgent?: string; ipAddress?: string },
   ): Promise<AuthResponseDto> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new ForbiddenException('Developer instant login is disabled in production.');
+    }
+
     const { isValid, normalized, error } = PhoneUtil.normalize(rawPhone);
     if (!isValid || !normalized) {
       throw new BadRequestException(error || 'Invalid phone number format');

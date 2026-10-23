@@ -3,6 +3,7 @@ import {
   Get,
   Put,
   Patch,
+  Delete,
   Body,
   Param,
   UseGuards,
@@ -117,5 +118,15 @@ export class ProfileController {
     @Param('profileId') profileId: string,
   ) {
     return this.profileService.getViewableProfile(requesterUserId, profileId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('profile/me')
+  @HttpCode(HttpStatus.OK)
+  async deleteMyAccount(
+    @CurrentUser('userId') userId: string,
+    @Body() body?: { reason?: string },
+  ) {
+    return this.profileService.deleteAccount(userId, body?.reason);
   }
 }

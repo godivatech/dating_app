@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsEnum, IsUUID, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsUUID,
+  IsOptional,
+} from 'class-validator';
 import { CallType, CallEndReason } from '@prisma/client';
 
 export class InitiateCallDto {
@@ -20,7 +26,6 @@ export class InitiateCallDto {
   @IsOptional()
   isVibeCheck?: boolean;
 }
-
 
 export class AcceptCallDto {
   @IsUUID()
@@ -47,3 +52,10 @@ export class EndCallDto {
   @IsOptional()
   reason?: CallEndReason = CallEndReason.CALLER_HANGUP;
 }
+
+export class RefreshTokenDto {
+  @IsUUID()
+  @IsNotEmpty()
+  callId: string;
+}
+

@@ -3,6 +3,7 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  ConflictException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -21,7 +22,7 @@ import {
   CreatorPayoutRequestDto,
   NotificationType,
 } from '../../../../shared/src/types';
-import { CoinTransactionType } from '@prisma/client';
+import { CoinTransactionType, Prisma } from '@prisma/client';
 
 export const GIFT_CATALOG: Record<
   GiftType,
@@ -151,26 +152,49 @@ export class GiftsService {
     const senderDisplayName = sender?.profile?.displayName || 'Someone';
     const receiverDisplayName = receiver?.profile?.displayName || 'User';
 
-    // 1. Deduct coins from sender atomically
-    const deducted = await this.creditService.deductCoins(
-      senderUserId,
-      giftDef.coinsCost,
-      CoinTransactionType.SPEND_VIRTUAL_GIFT,
-      `Sent ${giftDef.displayName} to ${receiverDisplayName}`,
-      dto.receiverUserId,
-    );
-
-    if (!deducted) {
-      throw new BadRequestException(
-        `Insufficient coins balance. You need ${giftDef.coinsCost} coins to send a ${giftDef.displayName}.`,
-      );
+    // 1. Database-backed Idempotency check: if key supplied and committed transaction exists, return receipt
+    if (dto.idempotencyKey) {
+      const existingTx = await this.prisma.virtualGiftTransaction.findUnique({
+        where: { idempotencyKey: dto.idempotencyKey },
+      });
+      if (existingTx) {
+        this.validateIdempotentReceipt(existingTx, senderUserId, dto);
+        const senderBalance = await this.creditService.getOrCreateBalance(senderUserId);
+        return {
+          success: true,
+          giftTransactionId: existingTx.id,
+          giftType: existingTx.giftType as any,
+          coinsSpent: existingTx.coinsSpent,
+          remainingCoins: senderBalance.coins,
+          receiverDisplayName,
+        };
+      }
     }
 
-    // 2. Perform atomic recording and wallet credit
-    const { giftTx, updatedWallet } = await this.prisma.$transaction(
-      async (tx) => {
-        // Record gift transaction
-        const giftTx = await tx.virtualGiftTransaction.create({
+    // 2. Perform atomic coin deduction, gift recording, and creator wallet credit in one transaction
+    let giftTx: any;
+    let senderRemainingCoins = 0;
+
+    try {
+      const txResult = await this.prisma.$transaction(async (tx) => {
+        // A. Deduct coins from sender atomically inside transaction
+        const deducted = await this.creditService.deductCoins(
+          senderUserId,
+          giftDef.coinsCost,
+          CoinTransactionType.SPEND_VIRTUAL_GIFT,
+          `Sent ${giftDef.displayName} to ${receiverDisplayName}`,
+          dto.receiverUserId,
+          tx,
+        );
+
+        if (!deducted) {
+          throw new BadRequestException(
+            `Insufficient coins balance. You need ${giftDef.coinsCost} coins to send a ${giftDef.displayName}.`,
+          );
+        }
+
+        // B. Record gift transaction with database-backed unique idempotencyKey
+        const createdGiftTx = await tx.virtualGiftTransaction.create({
           data: {
             senderUserId,
             receiverUserId: dto.receiverUserId,
@@ -180,11 +204,12 @@ export class GiftsService {
             creatorEarningPaise: giftDef.creatorEarningsPaise,
             conversationId: dto.conversationId || null,
             callId: dto.callId || null,
+            idempotencyKey: dto.idempotencyKey || null,
           },
         });
 
-        // Ensure creator wallet exists and credit earnings
-        const updatedWallet = await tx.creatorWallet.upsert({
+        // C. Ensure creator wallet exists and credit earnings
+        await tx.creatorWallet.upsert({
           where: { userId: dto.receiverUserId },
           create: {
             userId: dto.receiverUserId,
@@ -199,15 +224,56 @@ export class GiftsService {
           },
         });
 
-        return { giftTx, updatedWallet };
-      },
-    );
+        // Query updated balance inside the transaction
+        const balance = await tx.userCreditBalance.findUnique({
+          where: { userId: senderUserId },
+          select: { coins: true },
+        });
+
+        return {
+          giftTx: createdGiftTx,
+          remainingCoins: balance?.coins ?? 0,
+        };
+      });
+
+      giftTx = txResult.giftTx;
+      senderRemainingCoins = txResult.remainingCoins;
+    } catch (err: any) {
+      // 3. Handle concurrent unique-constraint race on idempotencyKey cleanly after transaction rollback
+      if (
+        dto.idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002' &&
+        (Array.isArray(err.meta?.target)
+          ? (err.meta?.target as string[]).includes('idempotencyKey')
+          : String(err.meta?.target).includes('idempotencyKey'))
+      ) {
+        const committedTx = await this.prisma.virtualGiftTransaction.findUnique({
+          where: { idempotencyKey: dto.idempotencyKey },
+        });
+        if (committedTx) {
+          this.validateIdempotentReceipt(committedTx, senderUserId, dto);
+          const senderBalance = await this.creditService.getOrCreateBalance(senderUserId);
+          return {
+            success: true,
+            giftTransactionId: committedTx.id,
+            giftType: committedTx.giftType as any,
+            coinsSpent: committedTx.coinsSpent,
+            remainingCoins: senderBalance.coins,
+            receiverDisplayName,
+          };
+        }
+      }
+
+      // Re-throw legitimate errors (insufficient coins, foreign key, etc.)
+      throw err;
+    }
 
     this.logger.log(
       `[GIFT_SENT] ${senderUserId} -> ${dto.receiverUserId}: ${giftDef.displayName} (${giftDef.coinsCost} coins). Receiver earned ₹${(giftDef.creatorEarningsPaise / 100).toFixed(2)}`,
     );
 
-    // 3. Dispatch in-app notification to receiver
+    // 4. Dispatch in-app notification to receiver
     try {
       await this.notificationsService.createNotification(
         dto.receiverUserId,
@@ -230,7 +296,7 @@ export class GiftsService {
       );
     }
 
-    // 4. Broadcast live socket events if in chat conversation
+    // 5. Broadcast live socket events if in chat conversation
     try {
       if (this.chatGateway?.server) {
         // Broadcast to receiver's user room
@@ -265,15 +331,12 @@ export class GiftsService {
       this.logger.warn(`[GIFT_SOCKET_ERROR] Socket broadcast error: ${err.message}`);
     }
 
-    // 5. Get sender's remaining coin balance
-    const senderBalance = await this.creditService.getOrCreateBalance(senderUserId);
-
     return {
       success: true,
       giftTransactionId: giftTx.id,
       giftType: dto.giftType,
       coinsSpent: giftDef.coinsCost,
-      remainingCoins: senderBalance.coins,
+      remainingCoins: senderRemainingCoins,
       receiverDisplayName,
     };
   }
@@ -457,4 +520,33 @@ export class GiftsService {
       createdAt: g.createdAt.toISOString(),
     }));
   }
+
+  /**
+   * Validates that an existing idempotency record belongs to the calling sender
+   * and contains identical request parameters.
+   */
+  private validateIdempotentReceipt(
+    existingTx: any,
+    senderUserId: string,
+    dto: SendGiftDto,
+  ): void {
+    if (existingTx.senderUserId !== senderUserId) {
+      throw new ConflictException(
+        'Idempotency key has already been used by another sender.',
+      );
+    }
+
+    const isEquivalent =
+      existingTx.receiverUserId === dto.receiverUserId &&
+      existingTx.giftType === dto.giftType &&
+      (existingTx.conversationId || null) === (dto.conversationId || null) &&
+      (existingTx.callId || null) === (dto.callId || null);
+
+    if (!isEquivalent) {
+      throw new ConflictException(
+        'Idempotency key was previously used with different request parameters.',
+      );
+    }
+  }
 }
+

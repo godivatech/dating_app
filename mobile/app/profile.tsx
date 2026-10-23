@@ -11,6 +11,7 @@ import {
   Modal,
   Switch,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -34,7 +35,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { user, logout } = useAuthStore();
+  const { user, logout, deleteAccount } = useAuthStore();
   const { profile, toggleVisibility, fetchProfile, uploadPhoto } = useProfileStore();
   const { billingStatus, creditBalance, fetchCreditBalance, openPaywall } = useBillingStore();
   const { wallet, fetchWallet } = useCreatorStore();
@@ -161,9 +162,15 @@ export default function ProfileScreen() {
           text: 'Delete Permanently',
           style: 'destructive',
           onPress: async () => {
-            setShowSettingsModal(false);
-            await logout();
-            router.replace('/(auth)/login');
+            try {
+              setShowSettingsModal(false);
+              await deleteAccount();
+              toast.success('Your Truelove account and personal data have been permanently deleted.');
+              router.replace('/(auth)/login');
+            } catch {
+              await logout();
+              router.replace('/(auth)/login');
+            }
           },
         },
       ],
@@ -824,6 +831,24 @@ export default function ProfileScreen() {
                 </View>
               )}
             </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.safetyUnderstoodBtn, { backgroundColor: '#F1F5F9', marginBottom: 8 }]}
+              onPress={() => {
+                const url =
+                  showLegalModal === 'TERMS'
+                    ? 'https://dating-app-idvk.onrender.com/terms'
+                    : 'https://dating-app-idvk.onrender.com/privacy';
+                Linking.openURL(url);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.safetyUnderstoodBtnText, { color: Colors.primary }]}>
+                {showLegalModal === 'TERMS'
+                  ? 'Open Terms in Browser'
+                  : 'Open Full Privacy Policy (Web)'}
+              </Text>
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.safetyUnderstoodBtn}

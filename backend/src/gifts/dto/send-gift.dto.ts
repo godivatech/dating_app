@@ -17,4 +17,8 @@ export class SendGiftDto {
   @IsString()
   @IsOptional()
   callId?: string;
+
+  @IsString()
+  @IsOptional()
+  idempotencyKey?: string;
 }
