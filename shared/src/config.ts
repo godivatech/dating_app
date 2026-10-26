@@ -17,10 +17,10 @@ export const APP_CONFIG = {
   supportEmail: 'infogodivatech@gmail.com',
   grievanceEmail: 'infogodivatech@gmail.com',
   urls: {
-    base: 'https://dating-app-idvk.onrender.com',
-    privacy: 'https://dating-app-idvk.onrender.com/privacy',
-    terms: 'https://dating-app-idvk.onrender.com/terms',
-    deleteAccount: 'https://dating-app-idvk.onrender.com/delete-account',
+    base: 'https://genzdate.in',
+    privacy: 'https://genzdate.in/privacy',
+    terms: 'https://genzdate.in/terms',
+    deleteAccount: 'https://genzdate.in/delete-account',
   },
   tiers: {
     plus: 'Genzdate Plus',
