@@ -23,6 +23,11 @@
     "android": {
       "package": "com.godivatech.datingapp",
       "googleServicesFile": "./google-services.json",
+      "blockedPermissions": [
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO"
+      ],
       "splash": {
         "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
