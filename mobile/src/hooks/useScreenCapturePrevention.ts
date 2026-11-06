@@ -17,6 +17,9 @@ let activeLocksCount = 0;
  */
 export function useScreenCapturePrevention(enabled: boolean = true) {
   useEffect(() => {
+    // TEMPORARY: Screenshot restriction bypassed for capturing Store Listing screenshots
+    return;
+
     if (!enabled || Platform.OS === 'web') return;
 
     activeLocksCount += 1;
