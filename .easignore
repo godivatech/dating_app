@@ -1,0 +1,12 @@
+backend
+admin
+docs
+asset
+scratch
+node_modules
+**/node_modules
+mobile/android
+mobile/ios
+mobile/.expo
+mobile/dist
+
