@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -45,10 +46,12 @@ export default function PhotosScreen() {
 
   const handlePickAndUpload = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
-        return;
+      if (Platform.OS === 'ios') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({

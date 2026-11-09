@@ -12,6 +12,7 @@ import {
   Switch,
   ActivityIndicator,
   Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -72,10 +73,12 @@ export default function ProfileScreen() {
 
   const handlePickAndUploadAvatar = async () => {
     try {
-      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
-        return;
+      if (Platform.OS === 'ios') {
+        const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!permission.granted) {
+          toast.error('Camera roll permission is required to upload photos.', 'Permission Required');
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
